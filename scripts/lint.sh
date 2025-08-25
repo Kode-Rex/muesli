@@ -35,11 +35,15 @@ fi
 # Run SwiftLint
 if [ "$FIX_MODE" = true ]; then
     echo -e "${YELLOW}🔧 Running SwiftLint with autocorrect...${NC}"
-    swiftlint --fix --format
+    swiftlint --fix --format --config .swiftlint.yml
     echo -e "${GREEN}✅ SwiftLint autocorrect completed${NC}"
+    
+    # Run analysis after fixing to show remaining issues
+    echo -e "${YELLOW}🔍 Running analysis to show remaining issues...${NC}"
+    swiftlint lint --config .swiftlint.yml
 else
     echo -e "${YELLOW}🔍 Running SwiftLint analysis...${NC}"
-    swiftlint lint --strict
+    swiftlint lint --strict --config .swiftlint.yml
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ SwiftLint passed${NC}"
     else

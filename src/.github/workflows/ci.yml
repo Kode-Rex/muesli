@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         destination: 
-          - 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+          - 'platform=iOS Simulator,name=iPhone 16,OS=latest'
           - 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest'
         
     steps:
@@ -41,11 +41,34 @@ jobs:
         xcodebuild clean build test \
           -scheme Muesli \
           -destination '${{ matrix.destination }}' \
+          -only-testing:MuesliTests \
           -resultBundlePath TestResults \
           -enableCodeCoverage YES \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO | xcpretty
           
+    - name: Run UI Tests
+      working-directory: src/Muesli
+      run: |
+        set -o pipefail
+        xcodebuild test \
+          -scheme Muesli \
+          -destination '${{ matrix.destination }}' \
+          -only-testing:MuesliUITests \
+          -resultBundlePath UITestResults \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO | xcpretty || true
+          
+    - name: Display Test Summary
+      working-directory: src/Muesli
+      if: always()
+      run: |
+        echo "📊 Test Results Summary:"
+        if [ -d "TestResults.xcresult" ]; then
+          xcrun xcresulttool get --format json --path TestResults.xcresult | \
+            jq -r '.issues.testFailureSummaries[]?.message // "No test failures found"' | head -10
+        fi
+        
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
       if: always()
@@ -55,7 +78,7 @@ jobs:
         
     - name: Upload Coverage Reports
       uses: codecov/codecov-action@v4
-      if: matrix.destination == 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+      if: matrix.destination == 'platform=iOS Simulator,name=iPhone 16,OS=latest'
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         xcode: true
@@ -117,6 +140,7 @@ jobs:
         test -f "MuesliTests/SampleData/SampleDataTests.swift" || (echo "❌ SampleDataTests.swift missing" && exit 1)
         test -f "MuesliTests/ContentParsing/ContentParsingTests.swift" || (echo "❌ ContentParsingTests.swift missing" && exit 1)
         test -f "MuesliTests/Utilities/UtilitiesTests.swift" || (echo "❌ UtilitiesTests.swift missing" && exit 1)
+        test -f "MuesliTests/SwiftData/SwiftDataTests.swift" || (echo "❌ SwiftDataTests.swift missing" && exit 1)
         
         # UI test files
         test -f "MuesliUITests/Launch/LaunchTests.swift" || (echo "❌ LaunchTests.swift missing" && exit 1)

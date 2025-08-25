@@ -1,0 +1,160 @@
+# SwiftLint Configuration for Muesli
+# Ensures consistent code formatting and best practices
+
+# Paths to include/exclude
+included:
+  - src/Muesli/Muesli
+  - src/Muesli/MuesliTests
+  - src/Muesli/MuesliUITests
+
+excluded:
+  - src/Muesli/build
+  - src/Muesli/Muesli.xcodeproj
+  - src/Muesli/Muesli.xcworkspace
+
+# Disabled rules (with justification)
+disabled_rules:
+  - trailing_whitespace # Handled by Xcode automatically
+  - todo # Allow TODO comments for development
+
+# Opt-in rules for enhanced code quality
+opt_in_rules:
+  - array_init
+  - attributes
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - enum_case_associated_values_count
+  - explicit_init
+  - extension_access_modifier
+  - fallthrough
+  - fatal_error_message
+  - file_header
+  - first_where
+  - force_unwrapping
+  - function_default_parameter_at_end
+  - identical_operands
+  - joined_default_parameter
+  - legacy_random
+  - let_var_whitespace
+  - literal_expression_end_indentation
+  - modifier_order
+  - nimble_operator
+  - nslocalizedstring_key
+  - number_separator
+  - object_literal
+  - operator_usage_whitespace
+  - overridden_super_call
+  - override_in_extension
+  - pattern_matching_keywords
+  - prefer_self_type_over_type_of_self
+  - private_action
+  - private_outlet
+  - prohibited_super_call
+  - quick_discouraged_call
+  - quick_discouraged_focused_test
+  - quick_discouraged_pending_test
+  - reduce_into
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - sorted_first_last
+  - static_operator
+  - strong_iboutlet
+  - toggle_bool
+  - unavailable_function
+  - unneeded_parentheses_in_closure_argument
+  - unused_import
+  - unused_private_declaration
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - yoda_condition
+
+# Customized rules
+line_length:
+  warning: 120
+  error: 150
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 400
+  error: 500
+
+function_body_length:
+  warning: 40
+  error: 60
+
+function_parameter_count:
+  warning: 5
+  error: 8
+
+type_body_length:
+  warning: 200
+  error: 350
+
+type_name:
+  min_length: 3
+  max_length: 40
+  excluded:
+    - ID
+    - UI
+
+identifier_name:
+  min_length: 1
+  max_length: 40
+  excluded:
+    - id
+    - db
+    - ui
+    - os
+    - x
+    - y
+    - z
+
+# Custom rules for this project
+custom_rules:
+  print_usage:
+    name: "Print Usage"
+    regex: 'print\('
+    message: "Use AppLogger instead of print() for logging"
+    severity: warning
+  
+  todo_without_issue:
+    name: "TODO without issue"
+    regex: '(TODO|FIXME)(?!.*#\d+)'
+    message: "TODOs should reference an issue number"
+    severity: warning
+  
+  swiftui_state_private:
+    name: "SwiftUI State Private"
+    regex: '@State\s+(?!private)'
+    message: "@State properties should be private"
+    severity: warning
+    
+  force_unwrap_in_view:
+    name: "Force Unwrap in View"
+    regex: '!\s*\n.*View'
+    message: "Avoid force unwrapping in SwiftUI Views"
+    severity: error
+
+# File header template
+file_header:
+  required_pattern: |
+                    \/\/
+                    \/\/  .*\.swift
+                    \/\/  Muesli
+                    \/\/
+                    \/\/  Created by .* on \d{1,2}\/\d{1,2}\/\d{2,4}\.
+                    \/\/
+
+# Reporter configuration
+reporter: "xcode" # Use Xcode reporter for IDE integration
+
+# Performance
+parallel: true # Enable parallel linting

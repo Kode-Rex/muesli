@@ -6,21 +6,24 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SimpleArchiveView: View {
     @Environment(\.dismiss) private var dismiss
-    @Binding var sampleNotes: [SampleNote]
-    @State private var selectedNote: (String, String, String)? = nil
+    @Environment(\.modelContext) private var modelContext
+    @Query(filter: #Predicate<Note> { $0.isArchived }, sort: \Note.timestamp, order: .reverse) 
+    private var archivedNotes: [Note]
+    
+    @State private var selectedNote: Note? = nil
     @State private var showingNoteDetail = false
     
-    private var archivedNotes: [SampleNote] {
-        sampleNotes.filter { $0.isArchived }
-    }
-    
-    private var groupedArchivedNotes: [(String, [SampleNote])] {
-        let groups = Dictionary(grouping: archivedNotes) { $0.date }
-        return groups.sorted { $0.key > $1.key }.map { (key, value) in
-            (key, value)
+    private var groupedArchivedNotes: [(String, [Note])] {
+        let groups = Dictionary(grouping: archivedNotes) { note in
+            note.dateString
+        }
+        return groups.sorted { first, second in
+            // Sort by date, newest first
+            first.value.first?.timestamp ?? Date() > second.value.first?.timestamp ?? Date()
         }
     }
     
@@ -53,21 +56,19 @@ struct SimpleArchiveView: View {
                                         .foregroundColor(.gray)
                                         .padding(.horizontal, 20)
                                     
-                                    ForEach(dateGroup.1, id: \.title) { note in
+                                    ForEach(dateGroup.1) { note in
                                         SimpleArchivedNoteCard(
                                             title: note.title,
-                                            time: note.time,
+                                            time: note.timeString,
                                             onTap: {
-                                                selectedNote = (note.title, note.time, note.date)
+                                                selectedNote = note
                                                 showingNoteDetail = true
                                             },
                                             onUnarchive: {
-                                                if let index = sampleNotes.firstIndex(where: { $0.title == note.title && $0.isArchived }) {
-                                                    sampleNotes[index] = (note.title, note.time, note.date, false)
-                                                }
+                                                unarchiveNote(note)
                                             },
                                             onDelete: {
-                                                sampleNotes.removeAll { $0.title == note.title && $0.isArchived }
+                                                deleteNote(note)
                                             }
                                         )
                                         .padding(.horizontal, 20)
@@ -93,14 +94,30 @@ struct SimpleArchiveView: View {
         }
         .sheet(isPresented: $showingNoteDetail) {
             if let note = selectedNote {
-                SimpleNoteDetailView(
-                    title: note.0,
-                    content: SampleData.generateContent(for: note.0),
-                    date: note.2
-                )
+                SimpleNoteDetailView(note: note)
             }
         }
         .preferredColorScheme(.dark)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func unarchiveNote(_ note: Note) {
+        do {
+            note.isArchived = false
+            try modelContext.save()
+        } catch {
+            AppLogger.shared.dataError("Unarchive Note", error: error, details: "Title: \(note.title)")
+        }
+    }
+    
+    private func deleteNote(_ note: Note) {
+        do {
+            modelContext.delete(note)
+            try modelContext.save()
+        } catch {
+            AppLogger.shared.dataError("Delete Note", error: error, details: "Title: \(note.title)")
+        }
     }
 }
 
@@ -156,7 +173,6 @@ struct SimpleArchivedNoteCard: View {
 }
 
 #Preview {
-    SimpleArchiveView(sampleNotes: .constant([
-        ("Test Note", "6:20 PM", "Wed 20 Aug", true)
-    ]))
+    SimpleArchiveView()
+        .modelContainer(for: Note.self, inMemory: true)
 }

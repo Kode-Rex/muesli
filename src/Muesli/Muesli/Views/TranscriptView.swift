@@ -24,7 +24,7 @@ struct TranscriptView: View {
                             .foregroundColor(.white)
                             .padding(.bottom, 8)
                         
-                        Text(SampleData.transcript)
+                        Text(ContentUtilities.sampleTranscript)
                             .font(.body)
                             .foregroundColor(.white)
                             .lineSpacing(4)

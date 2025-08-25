@@ -6,11 +6,19 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct NewNoteView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var title = ""
     @State private var content = ""
+    @State private var conferenceName = ""
+    @State private var sessionType = "note"
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    
+    private let sessionTypes = ["note", "meeting", "session"]
     
     var body: some View {
         NavigationView {
@@ -18,6 +26,7 @@ struct NewNoteView: View {
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    // Title field
                     TextField("Note title", text: $title)
                         .font(.title2)
                         .fontWeight(.bold)
@@ -28,6 +37,39 @@ struct NewNoteView: View {
                     Divider()
                         .background(Color.gray.opacity(0.3))
                     
+                    // Session type and conference name
+                    VStack(spacing: 12) {
+                        HStack {
+                            Text("Type:")
+                                .foregroundColor(.gray)
+                                .font(.subheadline)
+                            
+                            Picker("Session Type", selection: $sessionType) {
+                                ForEach(sessionTypes, id: \.self) { type in
+                                    Text(type.capitalized)
+                                        .tag(type)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .colorScheme(.dark)
+                        }
+                        
+                        if sessionType == "meeting" || sessionType == "session" {
+                            TextField("Conference/Meeting name (optional)", text: $conferenceName)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(8)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                    
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                    
+                    // Content editor
                     TextEditor(text: $content)
                         .font(.body)
                         .foregroundColor(.white)
@@ -50,8 +92,7 @@ struct NewNoteView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        // Save logic here
-                        dismiss()
+                        saveNote()
                     }
                     .foregroundColor(.teal)
                     .disabled(title.isEmpty)
@@ -59,5 +100,36 @@ struct NewNoteView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .alert("Error", isPresented: $showingError) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func saveNote() {
+        do {
+            let conferenceValue = conferenceName.isEmpty ? nil : conferenceName
+            let note = Note(
+                title: title,
+                content: content,
+                timestamp: Date(),
+                conferenceName: conferenceValue,
+                sessionType: sessionType,
+                isArchived: false
+            )
+            modelContext.insert(note)
+            try modelContext.save()
+            dismiss()
+        } catch {
+            showError("Failed to save note: \(error.localizedDescription)")
+        }
+    }
+    
+    private func showError(_ message: String) {
+        errorMessage = message
+        showingError = true
     }
 }

@@ -13,7 +13,7 @@ struct MyNotesView: View {
     let content: String
     
     private var personalNotes: [String] {
-        SampleData.extractPersonalNotes(from: content)
+        ContentUtilities.extractPersonalNotes(from: content)
     }
     
     var body: some View {

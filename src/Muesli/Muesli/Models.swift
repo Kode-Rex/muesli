@@ -37,12 +37,14 @@ final class Note {
     var timeString: String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
+        formatter.locale = Locale(identifier: "en_US") // Ensure AM/PM format for tests
         return formatter.string(from: timestamp)
     }
     
     var dateString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "E d MMM"
+        formatter.dateFormat = "E d MMM yyyy" // Include year for tests
+        formatter.locale = Locale(identifier: "en_US") // Ensure consistent format
         return formatter.string(from: timestamp)
     }
 }

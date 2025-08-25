@@ -47,7 +47,9 @@ struct ContentUtilities {
         let lines = content.components(separatedBy: .newlines)
         return lines.filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            return trimmed.contains("Action items") ||
+            return trimmed.contains("[Personal]") ||
+                   trimmed.contains("[Action]") ||
+                   trimmed.contains("Action items") ||
                    trimmed.contains("Follow up") ||
                    trimmed.contains("Goals for") ||
                    trimmed.contains("Next steps") ||
@@ -59,7 +61,7 @@ struct ContentUtilities {
                    trimmed.hasPrefix("○ Schedule") ||
                    trimmed.hasPrefix("○ Get quotes") ||
                    trimmed.hasPrefix("○ Send notice")
-        }
+        }.map { $0.trimmingCharacters(in: .whitespaces) }
     }
     
     // MARK: - Sample Content for Transcripts

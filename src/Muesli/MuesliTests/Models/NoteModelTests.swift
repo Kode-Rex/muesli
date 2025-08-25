@@ -116,7 +116,8 @@ struct NoteModelTests {
 // MARK: - Test Tags
 extension Tag {
     @Tag static var model: Self
-    @Tag static var sampleData: Self
+    @Tag static var contentUtilities: Self
     @Tag static var contentParsing: Self
     @Tag static var utilities: Self
+    @Tag static var swiftData: Self
 }

@@ -15,7 +15,7 @@ struct ContentParsingTests {
     @Test("Parse content handles headers correctly")
     func parseContentHandlesHeaders() async throws {
         let content = "# Header 1\n# Header 2"
-        let parsed = SampleData.parseContent(content)
+        let parsed = ContentUtilities.parseContent(content)
         
         let headers = parsed.filter { $0.1 == .header }
         #expect(headers.count == 2)
@@ -26,7 +26,7 @@ struct ContentParsingTests {
     @Test("Parse content handles bullet points")
     func parseContentHandlesBullets() async throws {
         let content = "• Bullet 1\n• Bullet 2"
-        let parsed = SampleData.parseContent(content)
+        let parsed = ContentUtilities.parseContent(content)
         
         let bullets = parsed.filter { $0.1 == .bullet }
         #expect(bullets.count == 2)
@@ -37,7 +37,7 @@ struct ContentParsingTests {
     @Test("Parse content handles sub-bullets")
     func parseContentHandlesSubBullets() async throws {
         let content = "• Main bullet\n○ Sub bullet 1\n○ Sub bullet 2"
-        let parsed = SampleData.parseContent(content)
+        let parsed = ContentUtilities.parseContent(content)
         
         let mainBullets = parsed.filter { $0.1 == .bullet }
         let subBullets = parsed.filter { $0.1 == .subBullet }
@@ -52,7 +52,7 @@ struct ContentParsingTests {
     @Test("Parse content handles regular text")
     func parseContentHandlesText() async throws {
         let content = "Regular text line"
-        let parsed = SampleData.parseContent(content)
+        let parsed = ContentUtilities.parseContent(content)
         
         #expect(parsed.count == 1)
         #expect(parsed[0].1 == .bullet) // Regular text is treated as bullet in the actual implementation
@@ -69,7 +69,7 @@ struct ContentParsingTests {
         More text
         """
         
-        let parsed = SampleData.parseContent(content)
+        let parsed = ContentUtilities.parseContent(content)
         
         #expect(parsed.count == 5)
         #expect(parsed[0].1 == .header)
@@ -82,7 +82,7 @@ struct ContentParsingTests {
     @Test("Parse content ignores empty lines")
     func parseContentIgnoresEmptyLines() async throws {
         let content = "Line 1\n\n\nLine 2\n\n"
-        let parsed = SampleData.parseContent(content)
+        let parsed = ContentUtilities.parseContent(content)
         
         #expect(parsed.count == 2)
         #expect(parsed[0].0 == "Line 1")
@@ -92,7 +92,7 @@ struct ContentParsingTests {
     @Test("Parse content handles special characters")
     func parseContentHandlesSpecialCharacters() async throws {
         let content = "# Header with émojis 🚀\n• Bullet with special chars: @#$%"
-        let parsed = SampleData.parseContent(content)
+        let parsed = ContentUtilities.parseContent(content)
         
         #expect(parsed.count == 2)
         #expect(parsed[0].0.contains("Header with émojis 🚀"))

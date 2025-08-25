@@ -134,4 +134,4 @@ Project Link: [https://github.com/Kode-Rex/muesli](https://github.com/Kode-Rex/m
 
 ---
 
-*Made with 🥣 for better conference experiences*
+*Make for a better conference experience*

@@ -10,6 +10,7 @@ import SwiftData
 
 @Model
 final class Note {
+    var id: UUID
     var title: String
     var content: String
     var timestamp: Date
@@ -18,6 +19,7 @@ final class Note {
     var isArchived: Bool
     
     init(
+        id: UUID = UUID(),
         title: String,
         content: String = "",
         timestamp: Date = Date(),
@@ -25,6 +27,7 @@ final class Note {
         sessionType: String = "note",
         isArchived: Bool = false
     ) {
+        self.id = id
         self.title = title
         self.content = content
         self.timestamp = timestamp

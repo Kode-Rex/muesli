@@ -37,27 +37,33 @@ class DataService {
         conferenceName: String? = nil,
         sessionType: String = "note"
     ) throws {
-        let note = Note(
-            title: title,
-            content: content,
-            timestamp: Date(),
-            conferenceName: conferenceName,
-            sessionType: sessionType,
-            isArchived: false
-        )
-        
-        modelContext.insert(note)
-        try modelContext.save()
+        try PerformanceMonitor.shared.measure(operation: "Create Note") {
+            let note = Note(
+                title: title,
+                content: content,
+                timestamp: Date(),
+                conferenceName: conferenceName,
+                sessionType: sessionType,
+                isArchived: false
+            )
+            
+            modelContext.insert(note)
+            try modelContext.save()
+            AppLogger.shared.dataSuccess("Create Note", details: "Title: \(title)")
+        }
     }
     
     func updateNote(_ note: Note, title: String? = nil, content: String? = nil) throws {
-        if let title = title {
-            note.title = title
+        try PerformanceMonitor.shared.measure(operation: "Update Note") {
+            if let title = title {
+                note.title = title
+            }
+            if let content = content {
+                note.content = content
+            }
+            try modelContext.save()
+            AppLogger.shared.dataSuccess("Update Note", details: "Title: \(note.title)")
         }
-        if let content = content {
-            note.content = content
-        }
-        try modelContext.save()
     }
     
     func archiveNote(_ note: Note) throws {
@@ -78,16 +84,20 @@ class DataService {
     // MARK: - Query Operations
     
     func fetchActiveNotes() -> [Note] {
-        let descriptor = FetchDescriptor<Note>(
-            predicate: #Predicate { !$0.isArchived },
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-        )
-        
-        do {
-            return try modelContext.fetch(descriptor)
-        } catch {
-            print("Error fetching active notes: \(error)")
-            return []
+        return PerformanceMonitor.shared.measure(operation: "Fetch Active Notes") {
+            let descriptor = FetchDescriptor<Note>(
+                predicate: #Predicate { !$0.isArchived },
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+            
+            do {
+                let notes = try modelContext.fetch(descriptor)
+                AppLogger.shared.dataSuccess("Fetch Active Notes", details: "Count: \(notes.count)")
+                return notes
+            } catch {
+                AppLogger.shared.dataError("Fetch Active Notes", error: error)
+                return []
+            }
         }
     }
     
@@ -98,35 +108,41 @@ class DataService {
         )
         
         do {
-            return try modelContext.fetch(descriptor)
+            let notes = try modelContext.fetch(descriptor)
+            AppLogger.shared.dataSuccess("Fetch Archived Notes", details: "Count: \(notes.count)")
+            return notes
         } catch {
-            print("Error fetching archived notes: \(error)")
+            AppLogger.shared.dataError("Fetch Archived Notes", error: error)
             return []
         }
     }
     
     func searchNotes(query: String, includeArchived: Bool = false) -> [Note] {
-        let searchQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        guard !searchQuery.isEmpty else {
-            return includeArchived ? fetchAllNotes() : fetchActiveNotes()
-        }
-        
-        let descriptor = FetchDescriptor<Note>(
-            predicate: #Predicate { note in
-                (note.title.localizedStandardContains(searchQuery) || 
-                 note.content.localizedStandardContains(searchQuery) || 
-                 (note.conferenceName?.localizedStandardContains(searchQuery) ?? false)) &&
-                (includeArchived || !note.isArchived)
-            },
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-        )
-        
-        do {
-            return try modelContext.fetch(descriptor)
-        } catch {
-            print("Error searching notes: \(error)")
-            return []
+        return PerformanceMonitor.shared.measure(operation: "Search Notes") {
+            let searchQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            guard !searchQuery.isEmpty else {
+                return includeArchived ? fetchAllNotes() : fetchActiveNotes()
+            }
+            
+            let descriptor = FetchDescriptor<Note>(
+                predicate: #Predicate { note in
+                    (note.title.localizedStandardContains(searchQuery) || 
+                     note.content.localizedStandardContains(searchQuery) || 
+                     (note.conferenceName?.localizedStandardContains(searchQuery) ?? false)) &&
+                    (includeArchived || !note.isArchived)
+                },
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+            
+            do {
+                let results = try modelContext.fetch(descriptor)
+                AppLogger.shared.searchOperation(query: searchQuery, resultCount: results.count, includeArchived: includeArchived)
+                return results
+            } catch {
+                AppLogger.shared.dataError("Search Notes", error: error, details: "Query: '\(searchQuery)'")
+                return []
+            }
         }
     }
     
@@ -136,9 +152,11 @@ class DataService {
         )
         
         do {
-            return try modelContext.fetch(descriptor)
+            let notes = try modelContext.fetch(descriptor)
+            AppLogger.shared.dataSuccess("Fetch All Notes", details: "Count: \(notes.count)")
+            return notes
         } catch {
-            print("Error fetching all notes: \(error)")
+            AppLogger.shared.dataError("Fetch All Notes", error: error)
             return []
         }
     }

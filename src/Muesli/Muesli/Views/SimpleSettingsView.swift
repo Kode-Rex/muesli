@@ -12,6 +12,7 @@ struct SimpleSettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Binding var showingArchive: Bool
+    @State private var showingPerformance = false
     
     @Query(filter: #Predicate<Note> { $0.isArchived })
     private var archivedNotes: [Note]
@@ -82,6 +83,42 @@ struct SimpleSettingsView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
+                // Performance section (Debug only)
+                #if DEBUG
+                Button(action: {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showingPerformance = true
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "speedometer")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 20))
+                            .frame(width: 24)
+                        
+                        Text("Performance Monitor")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Text("DEBUG")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.2))
+                            .cornerRadius(4)
+                        
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.15))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(PlainButtonStyle())
+                #endif
+                
                 Spacer()
             }
             .padding(.horizontal, 20)
@@ -97,6 +134,9 @@ struct SimpleSettingsView: View {
                     .foregroundColor(.teal)
                 }
             }
+        }
+        .sheet(isPresented: $showingPerformance) {
+            PerformanceView()
         }
         .preferredColorScheme(.dark)
     }

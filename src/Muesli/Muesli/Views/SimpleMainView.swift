@@ -32,20 +32,6 @@ struct SimpleMainView: View {
         return notes
     }
     
-    private var groupedNotes: [(String, [Note])] {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE d MMM"
-        
-        let groups = Dictionary(grouping: displayedNotes) { note in
-            formatter.string(from: note.timestamp)
-        }
-        
-        return groups.sorted { first, second in
-            // Sort by date, newest first
-            first.value.first?.timestamp ?? Date() > second.value.first?.timestamp ?? Date()
-        }
-    }
-    
     var body: some View {
         NavigationView {
             ZStack {
@@ -53,105 +39,38 @@ struct SimpleMainView: View {
                 
                 VStack(spacing: 0) {
                     // Header
-                    HStack {
-                        Text("My Notes")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Button(action: { showingSettings = true }) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.title2)
-                                .foregroundColor(.teal)
-                        }
+                    MainHeaderView {
+                        showingSettings = true
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
                     
                     // Search bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        
-                        TextField("Search", text: $searchText)
-                            .foregroundColor(.white)
-                            .font(.system(size: 16))
-                            .onChange(of: searchText) { _, newValue in
-                                handleSearchTextChange(newValue)
-                            }
+                    SearchBarView(searchText: $searchText) { newValue in
+                        handleSearchTextChange(newValue)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(12)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
                     
                     // Notes list
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(groupedNotes, id: \.0) { dateGroup in
-                                // Date header
-                                HStack {
-                                    Text(dateGroup.0)
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.top, 30)
-                                .padding(.bottom, 15)
-                                
-                                // Notes for this date
-                                ForEach(dateGroup.1, id: \.id) { note in
-                                    SimpleNoteCard(
-                                        title: note.title,
-                                        time: note.timeString,
-                                        onTap: {
-                                            selectedNote = note
-                                            showingNoteDetail = true
-                                        },
-                                        onEdit: {
-                                            editingNote = note
-                                            editingTitle = note.title
-                                            showingEditAlert = true
-                                        },
-                                        onArchive: {
-                                            archiveNote(note)
-                                        }
-                                    )
-                                    .padding(.horizontal, 20)
-                                    .padding(.bottom, 12)
-                                }
-                            }
+                    NotesListView(
+                        notes: displayedNotes,
+                        onNoteTap: { note in
+                            selectedNote = note
+                            showingNoteDetail = true
+                        },
+                        onNoteEdit: { note in
+                            editingNote = note
+                            editingTitle = note.title
+                            showingEditAlert = true
+                        },
+                        onNoteArchive: { note in
+                            archiveNote(note)
                         }
-                        .padding(.bottom, 100)
-                    }
+                    )
                     
                     Spacer()
                 }
                 
                 // Floating action button
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: { showingNewNote = true }) {
-                            Image(systemName: "plus")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .frame(width: 56, height: 56)
-                                .background(Color.teal)
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                        }
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 100)
-                    }
+                FloatingActionButton {
+                    showingNewNote = true
                 }
             }
         }
@@ -196,9 +115,11 @@ struct SimpleMainView: View {
     // MARK: - Helper Methods
     
     private func debugNotes() {
-        print("🔍 SimpleMainView loaded with \(notes.count) notes")
+        AppLogger.shared.viewLifecycle("SimpleMainView", event: .load)
+        AppLogger.shared.debug("SimpleMainView loaded with \(notes.count) notes")
         for (index, note) in notes.enumerated() {
-            print("   \(index): '\(note.title)' - content: \(note.content.isEmpty ? "EMPTY" : "\(note.content.count) chars")")
+            let contentInfo = note.content.isEmpty ? "EMPTY" : "\(note.content.count) chars"
+            AppLogger.shared.debug("Note \(index): '\(note.title)' - content: \(contentInfo)")
         }
     }
     
@@ -216,8 +137,9 @@ struct SimpleMainView: View {
             )
             do {
                 searchResults = try modelContext.fetch(descriptor)
+                AppLogger.shared.searchOperation(query: newValue, resultCount: searchResults.count)
             } catch {
-                print("Search error: \(error)")
+                AppLogger.shared.dataError("Local Search", error: error, details: "Query: '\(newValue)'")
                 searchResults = []
             }
         }
@@ -227,8 +149,10 @@ struct SimpleMainView: View {
         do {
             note.isArchived = true
             try modelContext.save()
+            AppLogger.shared.noteOperation(.archive, title: note.title)
+            AppLogger.shared.userAction("Archive Note", context: note.title)
         } catch {
-            print("Error archiving note: \(error)")
+            AppLogger.shared.dataError("Archive Note", error: error, details: "Title: \(note.title)")
         }
     }
     
@@ -236,12 +160,15 @@ struct SimpleMainView: View {
         guard let note = editingNote else { return }
         
         do {
+            let oldTitle = note.title
             note.title = editingTitle
             try modelContext.save()
+            AppLogger.shared.noteOperation(.update, title: editingTitle)
+            AppLogger.shared.userAction("Edit Title", context: "'\(oldTitle)' → '\(editingTitle)'")
             editingNote = nil
             editingTitle = ""
         } catch {
-            print("Error updating note title: \(error)")
+            AppLogger.shared.dataError("Update Note Title", error: error, details: "Title: \(editingTitle)")
         }
     }
 }

@@ -53,10 +53,10 @@ struct MuesliApp: App {
                 }
                 
                 try context.save()
-                print("✅ Added sample notes successfully")
+                AppLogger.shared.dataSuccess("Sample Data Seeding", details: "Added \(sampleNotes.count) sample notes")
             }
         } catch {
-            print("❌ Error checking/adding sample notes: \(error)")
+            AppLogger.shared.dataError("Sample Data Seeding", error: error)
         }
     }
 }

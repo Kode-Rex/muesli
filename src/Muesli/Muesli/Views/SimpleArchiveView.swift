@@ -107,7 +107,7 @@ struct SimpleArchiveView: View {
             note.isArchived = false
             try modelContext.save()
         } catch {
-            print("Error unarchiving note: \(error)")
+            AppLogger.shared.dataError("Unarchive Note", error: error, details: "Title: \(note.title)")
         }
     }
     
@@ -116,7 +116,7 @@ struct SimpleArchiveView: View {
             modelContext.delete(note)
             try modelContext.save()
         } catch {
-            print("Error deleting note: \(error)")
+            AppLogger.shared.dataError("Delete Note", error: error, details: "Title: \(note.title)")
         }
     }
 }

@@ -25,41 +25,38 @@ struct MuesliApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SimpleMainView()
+                .onAppear {
+                    addSampleNotesIfNeeded()
+                }
         }
         .modelContainer(sharedModelContainer)
     }
-}
-
-struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @State private var dataService: DataService?
     
-    var body: some View {
-        Group {
-            if let dataService = dataService {
-                SimpleMainView()
-                    .environment(\.dataService, dataService)
-            } else {
-                ProgressView("Loading...")
-                    .preferredColorScheme(.dark)
-            }
-        }
-        .onAppear {
-            setupDataService()
-        }
-    }
-    
-    private func setupDataService() {
-        let service = DataService(modelContext: modelContext)
+    private func addSampleNotesIfNeeded() {
+        // Add sample notes if database is empty
+        let context = sharedModelContainer.mainContext
         
-        // Seed sample data if needed
+        let descriptor = FetchDescriptor<Note>()
         do {
-            try service.seedSampleDataIfNeeded()
+            let existingNotes = try context.fetch(descriptor)
+            if existingNotes.isEmpty {
+                // Add sample notes
+                let sampleNotes = [
+                    Note(title: "Meeting Notes", content: "Today's discussion covered important project updates.", timestamp: Date(), conferenceName: nil, sessionType: "note", isArchived: false),
+                    Note(title: "Project Planning", content: "Need to finalize timeline and deliverables.", timestamp: Date().addingTimeInterval(-3600), conferenceName: nil, sessionType: "note", isArchived: false),
+                    Note(title: "Ideas", content: "Some creative ideas for the next sprint.", timestamp: Date().addingTimeInterval(-7200), conferenceName: nil, sessionType: "note", isArchived: false)
+                ]
+                
+                for note in sampleNotes {
+                    context.insert(note)
+                }
+                
+                try context.save()
+                print("✅ Added sample notes successfully")
+            }
         } catch {
-            print("Error seeding sample data: \(error)")
+            print("❌ Error checking/adding sample notes: \(error)")
         }
-        
-        dataService = service
     }
 }

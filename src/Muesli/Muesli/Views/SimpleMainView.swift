@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct SimpleMainView: View {
-    @Environment(\.dataService) private var dataService
+    @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<Note> { !$0.isArchived }, sort: \Note.timestamp, order: .reverse) 
     private var notes: [Note]
     
@@ -24,7 +24,7 @@ struct SimpleMainView: View {
     @State private var editingTitle = ""
     @State private var searchResults: [Note] = []
     @State private var isSearching = false
-    
+
     private var displayedNotes: [Note] {
         if isSearching && !searchText.isEmpty {
             return searchResults
@@ -33,9 +33,13 @@ struct SimpleMainView: View {
     }
     
     private var groupedNotes: [(String, [Note])] {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE d MMM"
+        
         let groups = Dictionary(grouping: displayedNotes) { note in
-            note.dateString
+            formatter.string(from: note.timestamp)
         }
+        
         return groups.sorted { first, second in
             // Sort by date, newest first
             first.value.first?.timestamp ?? Date() > second.value.first?.timestamp ?? Date()
@@ -58,14 +62,9 @@ struct SimpleMainView: View {
                         Spacer()
                         
                         Button(action: { showingSettings = true }) {
-                            Circle()
-                                .fill(Color.gray)
-                                .frame(width: 40, height: 40)
-                                .overlay(
-                                    Image(systemName: "person.fill")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 20))
-                                )
+                            Image(systemName: "gearshape.fill")
+                                .font(.title2)
+                                .foregroundColor(.teal)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -92,83 +91,63 @@ struct SimpleMainView: View {
                     
                     // Notes list
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 20) {
+                        LazyVStack(alignment: .leading, spacing: 0) {
                             ForEach(groupedNotes, id: \.0) { dateGroup in
-                                VStack(alignment: .leading, spacing: 12) {
+                                // Date header
+                                HStack {
                                     Text(dateGroup.0)
                                         .font(.headline)
-                                        .foregroundColor(.gray)
-                                        .padding(.horizontal, 20)
-                                    
-                                    ForEach(dateGroup.1) { note in
-                                        SimpleNoteCard(
-                                            title: note.title,
-                                            time: note.timeString,
-                                            onTap: {
-                                                selectedNote = note
-                                                showingNoteDetail = true
-                                            },
-                                            onEdit: {
-                                                editingNote = note
-                                                editingTitle = note.title
-                                                showingEditAlert = true
-                                            },
-                                            onArchive: {
-                                                archiveNote(note)
-                                            }
-                                        )
-                                        .padding(.horizontal, 20)
-                                    }
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.top, 30)
+                                .padding(.bottom, 15)
+                                
+                                // Notes for this date
+                                ForEach(dateGroup.1, id: \.id) { note in
+                                    SimpleNoteCard(
+                                        title: note.title,
+                                        time: note.timeString,
+                                        onTap: {
+                                            selectedNote = note
+                                            showingNoteDetail = true
+                                        },
+                                        onEdit: {
+                                            editingNote = note
+                                            editingTitle = note.title
+                                            showingEditAlert = true
+                                        },
+                                        onArchive: {
+                                            archiveNote(note)
+                                        }
+                                    )
+                                    .padding(.horizontal, 20)
+                                    .padding(.bottom, 12)
                                 }
                             }
-                            
-                            Rectangle()
-                                .fill(Color.clear)
-                                .frame(height: 100)
                         }
-                        .padding(.top, 20)
+                        .padding(.bottom, 100)
                     }
                     
-                    // Chat input
-                    HStack {
-                        Text("Chat with all your meetings")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 16))
-                        
-                        Spacer()
-                        
-                        Button(action: {}) {
-                            Image(systemName: "arrow.up")
-                                .foregroundColor(.white)
-                                .font(.system(size: 16, weight: .semibold))
-                                .frame(width: 28, height: 28)
-                                .background(Color.gray.opacity(0.3))
-                                .clipShape(Circle())
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
+                    Spacer()
                 }
                 
-                // Floating button
+                // Floating action button
                 VStack {
                     Spacer()
                     HStack {
                         Spacer()
                         Button(action: { showingNewNote = true }) {
-                            HStack {
-                                Image(systemName: "plus")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 16, weight: .semibold))
-                                
-                                Text("New")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 16, weight: .medium))
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(Color.gray.opacity(0.8))
-                            .cornerRadius(25)
+                            Image(systemName: "plus")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(width: 56, height: 56)
+                                .background(Color.teal)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
                         }
                         .padding(.trailing, 20)
                         .padding(.bottom, 100)
@@ -206,38 +185,59 @@ struct SimpleMainView: View {
             Text("Enter a new title for this note")
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            // Give data more time to load before debug
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                debugNotes()
+            }
+        }
     }
     
     // MARK: - Helper Methods
     
+    private func debugNotes() {
+        print("🔍 SimpleMainView loaded with \(notes.count) notes")
+        for (index, note) in notes.enumerated() {
+            print("   \(index): '\(note.title)' - content: \(note.content.isEmpty ? "EMPTY" : "\(note.content.count) chars")")
+        }
+    }
+    
     private func handleSearchTextChange(_ newValue: String) {
-        guard let dataService = dataService else { return }
-        
         if newValue.isEmpty {
             isSearching = false
             searchResults = []
         } else {
             isSearching = true
-            searchResults = dataService.searchNotes(query: newValue)
+            // Simple search using SwiftData directly
+            let descriptor = FetchDescriptor<Note>(
+                predicate: #Predicate { note in
+                    note.title.localizedStandardContains(newValue) && !note.isArchived
+                }
+            )
+            do {
+                searchResults = try modelContext.fetch(descriptor)
+            } catch {
+                print("Search error: \(error)")
+                searchResults = []
+            }
         }
     }
     
     private func archiveNote(_ note: Note) {
-        guard let dataService = dataService else { return }
-        
         do {
-            try dataService.archiveNote(note)
+            note.isArchived = true
+            try modelContext.save()
         } catch {
             print("Error archiving note: \(error)")
         }
     }
     
     private func saveEditedTitle() {
-        guard let dataService = dataService,
-              let note = editingNote else { return }
+        guard let note = editingNote else { return }
         
         do {
-            try dataService.updateNote(note, title: editingTitle)
+            note.title = editingTitle
+            try modelContext.save()
             editingNote = nil
             editingTitle = ""
         } catch {
@@ -293,5 +293,4 @@ struct SimpleNoteCard: View {
 #Preview {
     SimpleMainView()
         .modelContainer(for: Note.self, inMemory: true)
-        .environment(\.dataService, DataService(modelContext: ModelContext(try! ModelContainer(for: Note.self))))
 }

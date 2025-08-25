@@ -10,7 +10,7 @@ import SwiftData
 
 struct SimpleArchiveView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.dataService) private var dataService
+    @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<Note> { $0.isArchived }, sort: \Note.timestamp, order: .reverse) 
     private var archivedNotes: [Note]
     
@@ -103,20 +103,18 @@ struct SimpleArchiveView: View {
     // MARK: - Helper Methods
     
     private func unarchiveNote(_ note: Note) {
-        guard let dataService = dataService else { return }
-        
         do {
-            try dataService.unarchiveNote(note)
+            note.isArchived = false
+            try modelContext.save()
         } catch {
             print("Error unarchiving note: \(error)")
         }
     }
     
     private func deleteNote(_ note: Note) {
-        guard let dataService = dataService else { return }
-        
         do {
-            try dataService.deleteNote(note)
+            modelContext.delete(note)
+            try modelContext.save()
         } catch {
             print("Error deleting note: \(error)")
         }

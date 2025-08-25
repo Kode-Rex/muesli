@@ -10,7 +10,7 @@ import SwiftData
 
 struct SimpleSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.dataService) private var dataService
+
     @Binding var showingArchive: Bool
     
     @Query(filter: #Predicate<Note> { $0.isArchived })

@@ -13,7 +13,7 @@ struct SimpleNoteDetailView: View {
     let note: Note
     
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.dataService) private var dataService
+    @Environment(\.modelContext) private var modelContext
     @State private var showingOptions = false
     @State private var showingEditTitle = false
     @State private var showingTranscript = false
@@ -158,13 +158,9 @@ struct SimpleNoteDetailView: View {
     // MARK: - Helper Methods
     
     private func saveEditedTitle() {
-        guard let dataService = dataService else {
-            showError("Data service unavailable")
-            return
-        }
-        
         do {
-            try dataService.updateNote(note, title: editedTitle)
+            note.title = editedTitle
+            try modelContext.save()
         } catch {
             showError("Failed to update note title: \(error.localizedDescription)")
         }

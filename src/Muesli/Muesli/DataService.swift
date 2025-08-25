@@ -9,6 +9,18 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+// Environment key for DataService
+private struct DataServiceKey: EnvironmentKey {
+    static let defaultValue: DataService? = nil
+}
+
+extension EnvironmentValues {
+    var dataService: DataService? {
+        get { self[DataServiceKey.self] }
+        set { self[DataServiceKey.self] = newValue }
+    }
+}
+
 @Observable
 class DataService {
     private var modelContext: ModelContext
@@ -209,17 +221,5 @@ class DataService {
         }
         
         try modelContext.save()
-    }
-}
-
-// MARK: - Environment Key
-struct DataServiceKey: EnvironmentKey {
-    static let defaultValue: DataService? = nil
-}
-
-extension EnvironmentValues {
-    var dataService: DataService? {
-        get { self[DataServiceKey.self] }
-        set { self[DataServiceKey.self] = newValue }
     }
 }

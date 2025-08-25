@@ -6,10 +6,11 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct NewNoteView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.dataService) private var dataService
+    @Environment(\.modelContext) private var modelContext
     @State private var title = ""
     @State private var content = ""
     @State private var conferenceName = ""
@@ -109,19 +110,18 @@ struct NewNoteView: View {
     // MARK: - Helper Methods
     
     private func saveNote() {
-        guard let dataService = dataService else {
-            showError("Data service unavailable")
-            return
-        }
-        
         do {
             let conferenceValue = conferenceName.isEmpty ? nil : conferenceName
-            try dataService.createNote(
+            let note = Note(
                 title: title,
                 content: content,
+                timestamp: Date(),
                 conferenceName: conferenceValue,
-                sessionType: sessionType
+                sessionType: sessionType,
+                isArchived: false
             )
+            modelContext.insert(note)
+            try modelContext.save()
             dismiss()
         } catch {
             showError("Failed to save note: \(error.localizedDescription)")

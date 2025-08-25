@@ -1,0 +1,95 @@
+# SwiftLint Configuration for Muesli
+# https://github.com/realm/SwiftLint
+
+disabled_rules: # rule identifiers to exclude from running
+  - trailing_whitespace
+  - todo
+  
+opt_in_rules: # some rules are only opt-in
+  - empty_count
+  - missing_docs
+  - force_unwrapping
+  - implicit_return
+  - closure_spacing
+  - operator_usage_whitespace
+  - redundant_nil_coalescing
+  - sorted_imports
+  - vertical_parameter_alignment_on_call
+
+included: # paths to include during linting. `--path` is ignored if present.
+  - src/Muesli/Muesli
+  - src/Muesli/MuesliTests
+  - src/Muesli/MuesliUITests
+
+excluded: # paths to ignore during linting. Takes precedence over `included`.
+  - src/Muesli/build
+  - src/Muesli/DerivedData
+  - Pods
+  - .build
+
+# configurable rules can be customized from this configuration file
+line_length:
+  warning: 120
+  error: 150
+  ignores_comments: true
+  ignores_urls: true
+
+type_body_length:
+  warning: 300
+  error: 400
+
+function_body_length:
+  warning: 50
+  error: 100
+
+type_name:
+  min_length: 3
+  max_length: 40
+
+identifier_name:
+  min_length: 3
+  max_length: 40
+  excluded:
+    - id
+    - URL
+    - app
+    - row
+    - key
+    - i
+    - j
+    - x
+    - y
+
+file_length:
+  warning: 400
+  error: 500
+
+cyclomatic_complexity:
+  warning: 10
+  error: 20
+
+# Custom rules
+custom_rules:
+  # Prefer @State over @StateObject where appropriate
+  proper_state_usage:
+    name: "Proper State Usage"
+    regex: '@StateObject.*=.*\(\)'
+    message: "Consider using @State instead of @StateObject for simple value types"
+    severity: warning
+    
+  # Ensure proper spacing around operators
+  operator_spacing:
+    name: "Operator Spacing"
+    regex: '\w+[<>=!]+\w+'
+    message: "Add spaces around operators"
+    severity: warning
+    
+  # Discourage force unwrapping in production code
+  force_unwrap_production:
+    name: "Force Unwrap in Production"
+    regex: '!\s*(?!//)' # Exclude comments
+    message: "Avoid force unwrapping - use proper error handling instead"
+    severity: error
+    excluded: ".*Tests.*" # Allow in test files
+
+reporter: "xcode" # reporter type (xcode, json, csv, checkstyle, junit, html, emoji, sonarqube, markdown)

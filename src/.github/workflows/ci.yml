@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: macos-14
+    
+    strategy:
+      matrix:
+        destination: 
+          - 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+          - 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest'
+        
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+        
+    - name: Cache DerivedData
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-deriveddata-${{ hashFiles('**/*.xcodeproj') }}
+        restore-keys: |
+          ${{ runner.os }}-deriveddata-
+          
+    - name: Build and Test
+      working-directory: src/Muesli
+      run: |
+        set -o pipefail
+        xcodebuild clean build test \
+          -scheme Muesli \
+          -destination '${{ matrix.destination }}' \
+          -resultBundlePath TestResults \
+          -enableCodeCoverage YES \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO | xcpretty
+          
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.destination }}
+        path: src/Muesli/TestResults.xcresult
+        
+    - name: Upload Coverage Reports
+      uses: codecov/codecov-action@v4
+      if: matrix.destination == 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        xcode: true
+        xcode_archive_path: src/Muesli/TestResults.xcresult
+        
+  lint:
+    name: SwiftLint
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: SwiftLint
+      uses: norio-nomura/action-swiftlint@3.2.1
+      with:
+        args: --strict
+        
+  security:
+    name: Security Scan
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Run Security Scan
+      working-directory: src/Muesli
+      run: |
+        # Check for hardcoded secrets
+        if grep -r "sk_" --include="*.swift" .; then
+          echo "❌ Potential hardcoded API keys found"
+          exit 1
+        fi
+        
+        # Check for debugging code
+        if grep -r "print(" --include="*.swift" . | grep -v "// MARK:" | grep -v "Tests"; then
+          echo "⚠️  Debug print statements found (consider removing for production)"
+        fi
+        
+        echo "✅ Security scan completed"
+        
+  validate-project:
+    name: Validate Project Structure
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Validate Project Structure
+      working-directory: src/Muesli
+      run: |
+        # Check if all test files exist
+        echo "🔍 Validating test structure..."
+        
+        # Unit test files
+        test -f "MuesliTests/Models/NoteModelTests.swift" || (echo "❌ NoteModelTests.swift missing" && exit 1)
+        test -f "MuesliTests/SampleData/SampleDataTests.swift" || (echo "❌ SampleDataTests.swift missing" && exit 1)
+        test -f "MuesliTests/ContentParsing/ContentParsingTests.swift" || (echo "❌ ContentParsingTests.swift missing" && exit 1)
+        test -f "MuesliTests/Utilities/UtilitiesTests.swift" || (echo "❌ UtilitiesTests.swift missing" && exit 1)
+        
+        # UI test files
+        test -f "MuesliUITests/Launch/LaunchTests.swift" || (echo "❌ LaunchTests.swift missing" && exit 1)
+        test -f "MuesliUITests/Navigation/NavigationTests.swift" || (echo "❌ NavigationTests.swift missing" && exit 1)
+        test -f "MuesliUITests/NoteInteraction/NoteInteractionTests.swift" || (echo "❌ NoteInteractionTests.swift missing" && exit 1)
+        test -f "MuesliUITests/Features/FeatureTests.swift" || (echo "❌ FeatureTests.swift missing" && exit 1)
+        test -f "MuesliUITests/Performance/PerformanceTests.swift" || (echo "❌ PerformanceTests.swift missing" && exit 1)
+        
+        echo "✅ All test files present"
+        
+        # Check for proper file structure
+        echo "🔍 Checking project file count..."
+        SWIFT_FILES=$(find . -name "*.swift" -not -path "./build/*" | wc -l)
+        echo "📊 Found $SWIFT_FILES Swift files"
+        
+        if [ $SWIFT_FILES -lt 10 ]; then
+          echo "⚠️  Fewer Swift files than expected"
+        else
+          echo "✅ Project structure looks good"
+        fi

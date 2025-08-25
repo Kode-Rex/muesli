@@ -13,13 +13,16 @@ struct ContentView: View {
     @Query private var notes: [Note]
     @State private var searchText = ""
     @State private var showingNewNote = false
+    @State private var showingEditAlert = false
+    @State private var editingNoteIndex: Int?
+    @State private var editingTitle = ""
     
-    // Sample data for mock UI
-    private let sampleNotes = [
-        ("August 2025 HOA Board Meeting", "6:20 PM", "Wed 20 Aug"),
-        ("AI integration strategy for higher...", "12:52 PM", "Wed 13 Aug"),
-        ("AI learning and personal reflectio...", "12:29 PM", "Wed 13 Aug"),
-        ("AI opportunities for marketplace...", "12:15 PM", "Wed 13 Aug")
+    // Sample data for mock UI - now mutable with archive status
+    @State private var sampleNotes = [
+        ("August 2025 HOA Board Meeting", "6:20 PM", "Wed 20 Aug", false),
+        ("AI integration strategy for higher...", "12:52 PM", "Wed 13 Aug", false),
+        ("AI learning and personal reflectio...", "12:29 PM", "Wed 13 Aug", false),
+        ("AI opportunities for marketplace...", "12:15 PM", "Wed 13 Aug", false)
     ]
 
     var body: some View {
@@ -103,13 +106,34 @@ struct ContentView: View {
                                     .foregroundColor(.gray)
                                     .padding(.horizontal, 20)
                                 
-                                ForEach(dateGroup.1, id: \.0) { note in
+                                ForEach(Array(dateGroup.1.enumerated()), id: \.element.0) { index, note in
                                     NoteCardView(
                                         title: note.0,
                                         time: note.1,
                                         icon: "doc.text"
                                     )
                                     .padding(.horizontal, 20)
+                                    .contextMenu {
+                                        Button(action: {
+                                            // Find the original index in sampleNotes
+                                            if let originalIndex = sampleNotes.firstIndex(where: { $0.0 == note.0 && $0.1 == note.1 }) {
+                                                editingNoteIndex = originalIndex
+                                                editingTitle = note.0
+                                                showingEditAlert = true
+                                            }
+                                        }) {
+                                            Label("Edit Title", systemImage: "pencil")
+                                        }
+                                        
+                                        Button(action: {
+                                            // Find the original index in sampleNotes and archive it
+                                            if let originalIndex = sampleNotes.firstIndex(where: { $0.0 == note.0 && $0.1 == note.1 }) {
+                                                sampleNotes[originalIndex] = (note.0, note.1, sampleNotes[originalIndex].2, true)
+                                            }
+                                        }) {
+                                            Label("Archive", systemImage: "archivebox")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -172,10 +196,32 @@ struct ContentView: View {
         .sheet(isPresented: $showingNewNote) {
             NewNoteView()
         }
+        .alert("Edit Title", isPresented: $showingEditAlert) {
+            TextField("Note title", text: $editingTitle)
+            
+            Button("Cancel", role: .cancel) {
+                editingNoteIndex = nil
+                editingTitle = ""
+            }
+            
+            Button("Save") {
+                if let index = editingNoteIndex {
+                    sampleNotes[index] = (editingTitle, sampleNotes[index].1, sampleNotes[index].2, sampleNotes[index].3)
+                }
+                editingNoteIndex = nil
+                editingTitle = ""
+            }
+            .disabled(editingTitle.isEmpty)
+        } message: {
+            Text("Enter a new title for this note")
+        }
+        .preferredColorScheme(.dark)
     }
     
     private var groupedNotes: [(String, [(String, String)])] {
-        let groups = Dictionary(grouping: sampleNotes) { $0.2 }
+        // Filter out archived notes
+        let activeNotes = sampleNotes.filter { !$0.3 }
+        let groups = Dictionary(grouping: activeNotes) { $0.2 }
         return groups.sorted { $0.key > $1.key }.map { (key, value) in
             (key, value.map { ($0.0, $0.1) })
         }

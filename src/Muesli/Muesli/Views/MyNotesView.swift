@@ -19,51 +19,53 @@ struct MyNotesView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                DesignSystem.Colors.background.ignoresSafeArea()
+                Color.black.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                    VStack(alignment: .leading, spacing: 16) {
                         if personalNotes.isEmpty {
-                            VStack(spacing: DesignSystem.Spacing.lg) {
+                            VStack(spacing: 16) {
                                 Image(systemName: "note.text")
-                                    .font(.system(size: DesignSystem.IconSize.xxl))
-                                    .foregroundColor(DesignSystem.Colors.secondary)
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.gray)
                                 
                                 Text("No Personal Notes Found")
-                                    .font(DesignSystem.Typography.title2)
-                                    .foregroundColor(DesignSystem.Colors.secondary)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.gray)
                                 
                                 Text("Personal notes and action items will appear here")
-                                    .font(DesignSystem.Typography.body)
-                                    .foregroundColor(DesignSystem.Colors.secondary.opacity(0.7))
+                                    .font(.body)
+                                    .foregroundColor(.gray.opacity(0.7))
                                     .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.top, 50)
                         } else {
                             Text("Personal Notes & Action Items")
-                                .font(DesignSystem.Typography.title2)
-                                .foregroundColor(DesignSystem.Colors.primary)
-                                .padding(.bottom, DesignSystem.Spacing.sm)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.bottom, 8)
                             
                             ForEach(personalNotes, id: \.self) { note in
-                                HStack(alignment: .top, spacing: DesignSystem.Spacing.sm) {
+                                HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "checkmark.circle")
-                                        .foregroundColor(DesignSystem.Colors.accent)
-                                        .font(DesignSystem.Typography.body)
-                                        .frame(width: DesignSystem.IconSize.md, height: DesignSystem.IconSize.md)
+                                        .foregroundColor(.teal)
+                                        .font(.body)
+                                        .frame(width: 20, height: 20)
                                     
                                     Text(note.trimmingCharacters(in: .whitespaces))
-                                        .font(DesignSystem.Typography.body)
-                                        .foregroundColor(DesignSystem.Colors.primary)
+                                        .font(.body)
+                                        .foregroundColor(.white)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                 }
-                                .padding(.vertical, DesignSystem.Spacing.xs)
+                                .padding(.vertical, 4)
                             }
                         }
                     }
-                    .padding(.horizontal, DesignSystem.Spacing.xl)
-                    .padding(.top, DesignSystem.Spacing.xl)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
                 }
             }
             .navigationTitle("My Notes")
@@ -73,7 +75,7 @@ struct MyNotesView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(DesignSystem.Colors.accent)
+                    .foregroundColor(.teal)
                 }
             }
         }

@@ -68,19 +68,68 @@ struct SimpleNoteDetailView: View {
                 }
             }
         }
-        .confirmationDialog("Note Options", isPresented: $showingOptions) {
-            Button("Edit Title") {
-                editedTitle = title
-                showingEditTitle = true
+        .popover(isPresented: $showingOptions, attachmentAnchor: .point(.topTrailing), arrowEdge: .top) {
+            VStack(spacing: 0) {
+                NoteOptionRow(
+                    icon: "pencil",
+                    title: "Edit title"
+                ) {
+                    showingOptions = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        editedTitle = title
+                        showingEditTitle = true
+                    }
+                }
+                
+                Divider().background(Color.gray.opacity(0.5))
+                
+                NoteOptionRow(
+                    icon: "pencil",
+                    title: "Edit AI summary"
+                ) {
+                    showingOptions = false
+                }
+                
+                Divider().background(Color.gray.opacity(0.5))
+                
+                NoteOptionRow(
+                    icon: "doc.text",
+                    title: "View transcript"
+                ) {
+                    showingOptions = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        showingTranscript = true
+                    }
+                }
+                
+                Divider().background(Color.gray.opacity(0.5))
+                
+                NoteOptionRow(
+                    icon: "square.on.square",
+                    title: "Show my notes"
+                ) {
+                    showingOptions = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        showingMyNotes = true
+                    }
+                }
+                
+                Divider().background(Color.gray.opacity(0.5))
+                
+                NoteOptionRow(
+                    icon: "doc.on.doc",
+                    title: "Copy notes"
+                ) {
+                    UIPasteboard.general.string = content
+                    let impact = UIImpactFeedbackGenerator(style: .medium)
+                    impact.impactOccurred()
+                    showingOptions = false
+                }
             }
-            Button("View Transcript") { showingTranscript = true }
-            Button("Show My Notes") { showingMyNotes = true }
-            Button("Copy Notes") { 
-                UIPasteboard.general.string = content
-                let impact = UIImpactFeedbackGenerator(style: .medium)
-                impact.impactOccurred()
-            }
-            Button("Cancel", role: .cancel) { }
+            .background(Color(red: 0.2, green: 0.2, blue: 0.2))
+            .cornerRadius(12)
+            .frame(width: 200)
+            .presentationCompactAdaptation(.popover)
         }
         .sheet(isPresented: $showingTranscript) {
             TranscriptView(title: title)
@@ -157,6 +206,33 @@ struct SimpleContentData {
 
 enum SimpleContentType {
     case header, bullet, subBullet, text
+}
+
+
+// MARK: - Note Option Row
+private struct NoteOptionRow: View {
+    let icon: String
+    let title: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .foregroundColor(.white)
+                    .font(.system(size: 16))
+                    .frame(width: 20, height: 20)
+                
+                Text(title)
+                    .foregroundColor(.white)
+                    .font(.system(size: 15))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
 }
 
 #Preview {

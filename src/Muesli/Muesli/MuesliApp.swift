@@ -12,7 +12,6 @@ import SwiftData
 struct MuesliApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
             Note.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
@@ -26,7 +25,7 @@ struct MuesliApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainView()
+            SimpleMainView()
         }
         .modelContainer(sharedModelContainer)
     }

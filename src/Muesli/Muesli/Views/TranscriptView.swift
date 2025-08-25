@@ -14,23 +14,24 @@ struct TranscriptView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                DesignSystem.Colors.background.ignoresSafeArea()
+                Color.black.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                    VStack(alignment: .leading, spacing: 16) {
                         Text("Meeting Transcript")
-                            .font(DesignSystem.Typography.title2)
-                            .foregroundColor(DesignSystem.Colors.primary)
-                            .padding(.bottom, DesignSystem.Spacing.sm)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.bottom, 8)
                         
                         Text(SampleData.transcript)
-                            .font(DesignSystem.Typography.body)
-                            .foregroundColor(DesignSystem.Colors.primary)
+                            .font(.body)
+                            .foregroundColor(.white)
                             .lineSpacing(4)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.horizontal, DesignSystem.Spacing.xl)
-                    .padding(.top, DesignSystem.Spacing.xl)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
                 }
             }
             .navigationTitle("Transcript")
@@ -40,7 +41,7 @@ struct TranscriptView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(DesignSystem.Colors.accent)
+                    .foregroundColor(.teal)
                 }
             }
         }

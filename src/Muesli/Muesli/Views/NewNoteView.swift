@@ -14,15 +14,29 @@ struct NewNoteView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                TextField("Note title", text: $title)
-                    .font(DesignSystem.Typography.title2)
-                    .padding()
+            ZStack {
+                Color.black.ignoresSafeArea()
                 
-                TextEditor(text: $content)
-                    .padding()
-                
-                Spacer()
+                VStack(spacing: 0) {
+                    TextField("Note title", text: $title)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                    
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                    
+                    TextEditor(text: $content)
+                        .font(.body)
+                        .foregroundColor(.white)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                        .padding()
+                    
+                    Spacer()
+                }
             }
             .navigationTitle("New Note")
             .navigationBarTitleDisplayMode(.inline)
@@ -31,6 +45,7 @@ struct NewNoteView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(.white)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -38,6 +53,7 @@ struct NewNoteView: View {
                         // Save logic here
                         dismiss()
                     }
+                    .foregroundColor(.teal)
                     .disabled(title.isEmpty)
                 }
             }

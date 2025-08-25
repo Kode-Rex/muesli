@@ -6,19 +6,21 @@
 //
 
 import SwiftUI
+import SwiftData
 import UIKit
 
 struct SimpleNoteDetailView: View {
-    let title: String
-    let content: String
-    let date: String
+    let note: Note
     
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dataService) private var dataService
     @State private var showingOptions = false
     @State private var showingEditTitle = false
     @State private var showingTranscript = false
     @State private var showingMyNotes = false
     @State private var editedTitle = ""
+    @State private var showingError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationView {
@@ -26,11 +28,11 @@ struct SimpleNoteDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(date)
+                        Text(note.dateString)
                             .font(.caption)
                             .foregroundColor(.gray)
                         
-                        Text(title)
+                        Text(note.title)
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.white)
@@ -41,7 +43,7 @@ struct SimpleNoteDetailView: View {
                         .background(Color.gray.opacity(0.3))
                     
                     // Content using simple text parsing
-                    ForEach(parseSimpleContent(content), id: \.text) { item in
+                    ForEach(parseSimpleContent(note.content), id: \.text) { item in
                         SimpleContentItemView(item: item)
                     }
                     
@@ -76,7 +78,7 @@ struct SimpleNoteDetailView: View {
                 ) {
                     showingOptions = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        editedTitle = title
+                        editedTitle = note.title
                         showingEditTitle = true
                     }
                 }
@@ -120,7 +122,7 @@ struct SimpleNoteDetailView: View {
                     icon: "doc.on.doc",
                     title: "Copy notes"
                 ) {
-                    UIPasteboard.general.string = content
+                    UIPasteboard.general.string = note.content
                     let impact = UIImpactFeedbackGenerator(style: .medium)
                     impact.impactOccurred()
                     showingOptions = false
@@ -132,17 +134,45 @@ struct SimpleNoteDetailView: View {
             .presentationCompactAdaptation(.popover)
         }
         .sheet(isPresented: $showingTranscript) {
-            TranscriptView(title: title)
+            TranscriptView(title: note.title)
         }
         .sheet(isPresented: $showingMyNotes) {
-            MyNotesView(title: title, content: content)
+            MyNotesView(title: note.title, content: note.content)
         }
         .alert("Edit Title", isPresented: $showingEditTitle) {
             TextField("Note title", text: $editedTitle)
             Button("Cancel", role: .cancel) { }
-            Button("Save") { /* Save logic */ }
+            Button("Save") { 
+                saveEditedTitle()
+            }
+            .disabled(editedTitle.isEmpty)
+        }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
         }
         .preferredColorScheme(.dark)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func saveEditedTitle() {
+        guard let dataService = dataService else {
+            showError("Data service unavailable")
+            return
+        }
+        
+        do {
+            try dataService.updateNote(note, title: editedTitle)
+        } catch {
+            showError("Failed to update note title: \(error.localizedDescription)")
+        }
+    }
+    
+    private func showError(_ message: String) {
+        errorMessage = message
+        showingError = true
     }
     
     private func parseSimpleContent(_ content: String) -> [SimpleContentData] {
@@ -236,9 +266,25 @@ private struct NoteOptionRow: View {
 }
 
 #Preview {
-    SimpleNoteDetailView(
-        title: "August 2025 HOA Board Meeting",
-        content: SampleData.generateContent(for: "August 2025 HOA Board Meeting"),
-        date: "Wed 20 Aug"
+    let note = Note(
+        title: "Sample Meeting Notes",
+        content: """
+        # Meeting Overview
+        
+        • Key discussion points covered
+        • Action items identified
+        • Follow-up meetings scheduled
+        
+        # Next Steps
+        
+        ○ Finalize project timeline
+        ○ Schedule stakeholder review
+        ○ Prepare documentation
+        """,
+        sessionType: "meeting"
     )
+    
+    SimpleNoteDetailView(note: note)
+        .modelContainer(for: Note.self, inMemory: true)
+        .environment(\.dataService, DataService(modelContext: ModelContext(try! ModelContainer(for: Note.self))))
 }

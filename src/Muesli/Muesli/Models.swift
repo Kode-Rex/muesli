@@ -47,5 +47,5 @@ final class Note {
     }
 }
 
-// MARK: - Sample Data Types (for demo/preview purposes)
-typealias SampleNote = (title: String, time: String, date: String, isArchived: Bool)
+// MARK: - Note Model Extensions and Utilities
+// All note functionality is now handled through SwiftData and the DataService

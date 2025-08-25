@@ -6,14 +6,18 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SimpleSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Binding var sampleNotes: [SampleNote]
+    @Environment(\.dataService) private var dataService
     @Binding var showingArchive: Bool
     
+    @Query(filter: #Predicate<Note> { $0.isArchived })
+    private var archivedNotes: [Note]
+    
     private var archivedCount: Int {
-        sampleNotes.filter { $0.isArchived }.count
+        archivedNotes.count
     }
     
     var body: some View {
@@ -99,8 +103,6 @@ struct SimpleSettingsView: View {
 }
 
 #Preview {
-    SimpleSettingsView(
-        sampleNotes: .constant(SampleData.notes),
-        showingArchive: .constant(false)
-    )
+    SimpleSettingsView(showingArchive: .constant(false))
+        .modelContainer(for: Note.self, inMemory: true)
 }

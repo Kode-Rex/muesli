@@ -25,8 +25,41 @@ struct MuesliApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SimpleMainView()
+            ContentView()
         }
         .modelContainer(sharedModelContainer)
+    }
+}
+
+struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var dataService: DataService?
+    
+    var body: some View {
+        Group {
+            if let dataService = dataService {
+                SimpleMainView()
+                    .environment(\.dataService, dataService)
+            } else {
+                ProgressView("Loading...")
+                    .preferredColorScheme(.dark)
+            }
+        }
+        .onAppear {
+            setupDataService()
+        }
+    }
+    
+    private func setupDataService() {
+        let service = DataService(modelContext: modelContext)
+        
+        // Seed sample data if needed
+        do {
+            try service.seedSampleDataIfNeeded()
+        } catch {
+            print("Error seeding sample data: \(error)")
+        }
+        
+        dataService = service
     }
 }

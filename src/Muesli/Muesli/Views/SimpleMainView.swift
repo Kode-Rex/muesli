@@ -9,28 +9,36 @@ import SwiftUI
 import SwiftData
 
 struct SimpleMainView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var notes: [Note]
+    @Environment(\.dataService) private var dataService
+    @Query(filter: #Predicate<Note> { !$0.isArchived }, sort: \Note.timestamp, order: .reverse) 
+    private var notes: [Note]
     
     @State private var searchText = ""
     @State private var showingNewNote = false
     @State private var showingSettings = false
     @State private var showingArchive = false
     @State private var showingNoteDetail = false
-    @State private var selectedNote: (String, String, String)? = nil
+    @State private var selectedNote: Note? = nil
     @State private var showingEditAlert = false
-    @State private var editingNoteIndex: Int?
+    @State private var editingNote: Note?
     @State private var editingTitle = ""
-    @State private var sampleNotes = SampleData.notes
+    @State private var searchResults: [Note] = []
+    @State private var isSearching = false
     
-    private var activeNotes: [SampleNote] {
-        sampleNotes.filter { !$0.isArchived }
+    private var displayedNotes: [Note] {
+        if isSearching && !searchText.isEmpty {
+            return searchResults
+        }
+        return notes
     }
     
-    private var groupedNotes: [(String, [SampleNote])] {
-        let groups = Dictionary(grouping: activeNotes) { $0.date }
-        return groups.sorted { $0.key > $1.key }.map { (key, value) in
-            (key, value)
+    private var groupedNotes: [(String, [Note])] {
+        let groups = Dictionary(grouping: displayedNotes) { note in
+            note.dateString
+        }
+        return groups.sorted { first, second in
+            // Sort by date, newest first
+            first.value.first?.timestamp ?? Date() > second.value.first?.timestamp ?? Date()
         }
     }
     
@@ -71,6 +79,9 @@ struct SimpleMainView: View {
                         TextField("Search", text: $searchText)
                             .foregroundColor(.white)
                             .font(.system(size: 16))
+                            .onChange(of: searchText) { _, newValue in
+                                handleSearchTextChange(newValue)
+                            }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -89,25 +100,21 @@ struct SimpleMainView: View {
                                         .foregroundColor(.gray)
                                         .padding(.horizontal, 20)
                                     
-                                    ForEach(dateGroup.1, id: \.title) { note in
+                                    ForEach(dateGroup.1) { note in
                                         SimpleNoteCard(
                                             title: note.title,
-                                            time: note.time,
+                                            time: note.timeString,
                                             onTap: {
-                                                selectedNote = (note.title, note.time, note.date)
+                                                selectedNote = note
                                                 showingNoteDetail = true
                                             },
                                             onEdit: {
-                                                if let index = sampleNotes.firstIndex(where: { $0.title == note.title }) {
-                                                    editingNoteIndex = index
-                                                    editingTitle = note.title
-                                                    showingEditAlert = true
-                                                }
+                                                editingNote = note
+                                                editingTitle = note.title
+                                                showingEditAlert = true
                                             },
                                             onArchive: {
-                                                if let index = sampleNotes.firstIndex(where: { $0.title == note.title }) {
-                                                    sampleNotes[index] = (note.title, note.time, note.date, true)
-                                                }
+                                                archiveNote(note)
                                             }
                                         )
                                         .padding(.horizontal, 20)
@@ -173,40 +180,69 @@ struct SimpleMainView: View {
             NewNoteView()
         }
         .sheet(isPresented: $showingSettings) {
-            SimpleSettingsView(sampleNotes: $sampleNotes, showingArchive: $showingArchive)
+            SimpleSettingsView(showingArchive: $showingArchive)
         }
         .sheet(isPresented: $showingArchive) {
-            SimpleArchiveView(sampleNotes: $sampleNotes)
+            SimpleArchiveView()
         }
         .sheet(isPresented: $showingNoteDetail) {
             if let note = selectedNote {
-                SimpleNoteDetailView(
-                    title: note.0,
-                    content: SampleData.generateContent(for: note.0),
-                    date: note.2
-                )
+                SimpleNoteDetailView(note: note)
             }
         }
         .alert("Edit Title", isPresented: $showingEditAlert) {
             TextField("Note title", text: $editingTitle)
             
             Button("Cancel", role: .cancel) {
-                editingNoteIndex = nil
+                editingNote = nil
                 editingTitle = ""
             }
             
             Button("Save") {
-                if let index = editingNoteIndex {
-                    sampleNotes[index] = (editingTitle, sampleNotes[index].time, sampleNotes[index].date, sampleNotes[index].isArchived)
-                }
-                editingNoteIndex = nil
-                editingTitle = ""
+                saveEditedTitle()
             }
             .disabled(editingTitle.isEmpty)
         } message: {
             Text("Enter a new title for this note")
         }
         .preferredColorScheme(.dark)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func handleSearchTextChange(_ newValue: String) {
+        guard let dataService = dataService else { return }
+        
+        if newValue.isEmpty {
+            isSearching = false
+            searchResults = []
+        } else {
+            isSearching = true
+            searchResults = dataService.searchNotes(query: newValue)
+        }
+    }
+    
+    private func archiveNote(_ note: Note) {
+        guard let dataService = dataService else { return }
+        
+        do {
+            try dataService.archiveNote(note)
+        } catch {
+            print("Error archiving note: \(error)")
+        }
+    }
+    
+    private func saveEditedTitle() {
+        guard let dataService = dataService,
+              let note = editingNote else { return }
+        
+        do {
+            try dataService.updateNote(note, title: editingTitle)
+            editingNote = nil
+            editingTitle = ""
+        } catch {
+            print("Error updating note title: \(error)")
+        }
     }
 }
 
@@ -257,4 +293,5 @@ struct SimpleNoteCard: View {
 #Preview {
     SimpleMainView()
         .modelContainer(for: Note.self, inMemory: true)
+        .environment(\.dataService, DataService(modelContext: ModelContext(try! ModelContainer(for: Note.self))))
 }

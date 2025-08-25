@@ -34,6 +34,12 @@ Muesli is a SwiftUI-based conference companion that helps you capture, organize,
 - Context menus and popovers for intuitive interactions
 - Typography optimized for readability
 
+### 🛠️ **Developer Features**
+- **Professional Logging**: Structured logging with `os.log` for debugging and monitoring
+- **Performance Monitoring**: Real-time performance metrics and memory usage tracking
+- **Automated Code Quality**: SwiftLint integration with 40+ rules for consistent code style
+- **Modular Architecture**: Reusable components following iOS best practices
+
 ## 📱 Screenshots
 
 *Coming soon - the app features a sleek dark interface with organized note cards, contextual menus, and clean typography.*
@@ -95,6 +101,8 @@ Muesli/
 - **SwiftData** - Apple's latest data persistence framework
 - **UIKit Integration** - For clipboard access and haptic feedback
 - **Foundation** - Core utilities and date formatting
+- **os.log** - Apple's unified logging system for professional debugging
+- **SwiftLint** - Automated code quality and style enforcement
 
 ## 🎯 Roadmap
 

@@ -36,11 +36,11 @@ cd "$WORKSPACE_DIR"
 # Function to run unit tests
 run_unit_tests() {
     echo -e "${YELLOW}🔬 Running Unit Tests...${NC}"
-    xcodebuild test \
+    eval "xcodebuild test \
         -scheme Muesli \
-        -destination "platform=iOS Simulator,name=$DEVICE,OS=latest" \
+        -destination \"platform=iOS Simulator,name=$DEVICE,OS=latest\" \
         -only-testing:MuesliTests \
-        | xcpretty --color --test
+        $USE_XCPRETTY"
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Unit Tests Passed${NC}"
@@ -53,11 +53,11 @@ run_unit_tests() {
 # Function to run UI tests
 run_ui_tests() {
     echo -e "${YELLOW}📱 Running UI Tests...${NC}"
-    xcodebuild test \
+    eval "xcodebuild test \
         -scheme Muesli \
-        -destination "platform=iOS Simulator,name=$DEVICE,OS=latest" \
+        -destination \"platform=iOS Simulator,name=$DEVICE,OS=latest\" \
         -only-testing:MuesliUITests \
-        | xcpretty --color --test
+        $USE_XCPRETTY"
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ UI Tests Passed${NC}"
@@ -70,11 +70,11 @@ run_ui_tests() {
 # Function to run all tests
 run_all_tests() {
     echo -e "${YELLOW}🧪 Running All Tests...${NC}"
-    xcodebuild test \
+    eval "xcodebuild test \
         -scheme Muesli \
-        -destination "platform=iOS Simulator,name=$DEVICE,OS=latest" \
+        -destination \"platform=iOS Simulator,name=$DEVICE,OS=latest\" \
         -enableCodeCoverage YES \
-        | xcpretty --color --test
+        $USE_XCPRETTY"
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ All Tests Passed${NC}"
@@ -84,10 +84,12 @@ run_all_tests() {
     fi
 }
 
-# Check if xcpretty is installed
-if ! command -v xcpretty &> /dev/null; then
-    echo -e "${YELLOW}⚠️  xcpretty not found. Installing...${NC}"
-    gem install xcpretty
+# Check if xcpretty is installed, use if available
+if command -v xcpretty &> /dev/null; then
+    USE_XCPRETTY="| xcpretty --color --test"
+else
+    echo -e "${YELLOW}⚠️  xcpretty not found. Running without pretty output...${NC}"
+    USE_XCPRETTY=""
 fi
 
 # Run tests based on type

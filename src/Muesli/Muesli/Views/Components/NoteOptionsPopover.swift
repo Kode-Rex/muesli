@@ -16,6 +16,7 @@ struct NoteOptionsPopover: View {
     let onShowMyNotes: () -> Void
     let onEditAISummary: () -> Void
     let onCopyNotes: () -> Void
+    let onArchive: () -> Void
     let onClose: () -> Void
     
     var body: some View {
@@ -89,6 +90,18 @@ struct NoteOptionsPopover: View {
                 impact.impactOccurred()
                 AppLogger.shared.userAction("Copy Notes", context: note.title)
                 onClose()
+            }
+            
+            Divider().background(Color.gray.opacity(0.5))
+            
+            NoteOptionRow(
+                icon: "archivebox",
+                title: "Archive note"
+            ) {
+                onClose()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    onArchive()
+                }
             }
         }
         .background(Color(red: 0.2, green: 0.2, blue: 0.2))

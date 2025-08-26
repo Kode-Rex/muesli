@@ -90,6 +90,9 @@ struct SimpleNoteDetailView: View {
                     showingAISummaryEditor = true
                 },
                 onCopyNotes: {},
+                onArchive: {
+                    archiveNote()
+                },
                 onClose: {
                     showingOptions = false
                 }
@@ -138,6 +141,18 @@ struct SimpleNoteDetailView: View {
     private func showError(_ message: String) {
         errorMessage = message
         showingError = true
+    }
+    
+    private func archiveNote() {
+        do {
+            note.isArchived = true
+            try modelContext.save()
+            AppLogger.shared.noteOperation(.archive, title: note.title)
+            AppLogger.shared.userAction("Archive Note", context: note.title)
+            dismiss() // Close the detail view after archiving
+        } catch {
+            showError("Failed to archive note: \(error.localizedDescription)")
+        }
     }
     
 }

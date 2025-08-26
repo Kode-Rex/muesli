@@ -210,6 +210,22 @@ struct SimpleNoteCard: View {
             .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button {
+                onArchive()
+            } label: {
+                Label("Archive", systemImage: "archivebox")
+            }
+            .tint(.orange)
+        }
+        .swipeActions(edge: .leading) {
+            Button {
+                onEdit()
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
         .contextMenu {
             Button("Edit Title", systemImage: "pencil", action: onEdit)
             Button("Archive", systemImage: "archivebox", action: onArchive)

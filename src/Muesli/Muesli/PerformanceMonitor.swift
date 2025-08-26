@@ -106,6 +106,10 @@ final class PerformanceMonitor: ObservableObject {
             .store(in: &cancellables)
     }
     
+    func updateMemoryUsage() {
+        recordMemoryUsage()
+    }
+    
     private func recordMemoryUsage() {
         let memoryUsage = getMemoryUsage()
         DispatchQueue.main.async {

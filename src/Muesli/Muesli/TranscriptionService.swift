@@ -61,9 +61,9 @@ class TranscriptionService {
     
     static let shared = TranscriptionService()
     
-    // Configuration - Your API endpoint that proxies to Deepgram
-    private var transcriptionAPIBaseURL: String = "https://your-api.com/v1" // Replace with your API
+    // Configuration
     private var urlSession: URLSession
+    private var currentAPIBaseURL: String = ""
     
     // Real-time transcription state
     private var webSocketTask: URLSessionWebSocketTask?
@@ -83,30 +83,28 @@ class TranscriptionService {
         config.timeoutIntervalForResource = 300
         self.urlSession = URLSession(configuration: config)
         
-        loadConfiguration()
+        Task {
+            await loadAPIConfiguration()
+        }
+    }
+    
+    private func loadAPIConfiguration() async {
+        currentAPIBaseURL = await APIConfiguration.getCurrentAPIURL()
+        hasValidAPIEndpoint = !currentAPIBaseURL.isEmpty
     }
     
     // MARK: - Configuration
     
-    func setTranscriptionAPIEndpoint(_ baseURL: String) {
-        transcriptionAPIBaseURL = baseURL
-        hasValidAPIEndpoint = !baseURL.isEmpty && URL(string: baseURL) != nil
-        saveConfiguration()
-        AppLogger.shared.info("Transcription API endpoint configured: \(baseURL)")
+    var currentAPIEndpoint: String {
+        return currentAPIBaseURL
     }
     
-    private func loadConfiguration() {
-        if let endpoint = UserDefaults.standard.string(forKey: "TranscriptionAPIEndpoint") {
-            transcriptionAPIBaseURL = endpoint
-            hasValidAPIEndpoint = !endpoint.isEmpty && URL(string: endpoint) != nil
-        } else {
-            // Default to a placeholder - you'll need to set your actual endpoint
-            hasValidAPIEndpoint = false
-        }
+    var isUsingLocalhost: Bool {
+        return currentAPIBaseURL.contains("localhost") || currentAPIBaseURL.contains("127.0.0.1")
     }
     
-    private func saveConfiguration() {
-        UserDefaults.standard.set(transcriptionAPIBaseURL, forKey: "TranscriptionAPIEndpoint")
+    var environmentName: String {
+        return APIConfiguration.environmentName
     }
     
     // MARK: - Real-time Transcription
@@ -121,7 +119,7 @@ class TranscriptionService {
         }
         
         // Your API WebSocket endpoint for real-time transcription
-        let urlString = "\(transcriptionAPIBaseURL)/transcribe/realtime"
+        let urlString = "\(currentAPIBaseURL)/transcribe/realtime"
         guard let url = URL(string: urlString.replacingOccurrences(of: "https://", with: "wss://")) else {
             throw TranscriptionError.serviceUnavailable
         }
@@ -227,7 +225,7 @@ class TranscriptionService {
             throw TranscriptionError.networkError
         }
         
-        guard let transcriptionURL = URL(string: "\(transcriptionAPIBaseURL)/transcribe") else {
+        guard let transcriptionURL = URL(string: "\(currentAPIBaseURL)/transcribe") else {
             throw TranscriptionError.serviceUnavailable
         }
         

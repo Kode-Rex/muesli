@@ -25,7 +25,7 @@ struct UtilitiesTests {
         let personalNotes = ContentUtilities.extractPersonalNotes(from: content)
         
         #expect(!personalNotes.isEmpty)
-        #expect(personalNotes.contains("email") || personalNotes.contains("proposal"))
+        #expect(personalNotes.contains { $0.contains("email") } || personalNotes.contains { $0.contains("proposal") })
     }
     
     @Test("Extract personal notes handles no personal content")

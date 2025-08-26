@@ -13,6 +13,7 @@ struct NotesListView: View {
     let onNoteTap: (Note) -> Void
     let onNoteEdit: (Note) -> Void
     let onNoteArchive: (Note) -> Void
+    let onProcessTranscription: ((Note) -> Void)?
     
     private var groupedNotes: [(String, [Note])] {
         let formatter = DateFormatter()
@@ -38,8 +39,7 @@ struct NotesListView: View {
                     // Notes for this date
                     ForEach(dateGroup.1, id: \.id) { note in
                         SimpleNoteCard(
-                            title: note.title,
-                            time: note.timeString,
+                            note: note,
                             onTap: {
                                 onNoteTap(note)
                             },
@@ -48,7 +48,10 @@ struct NotesListView: View {
                             },
                             onArchive: {
                                 onNoteArchive(note)
-                            }
+                            },
+                            onProcessTranscription: note.needsTranscription ? {
+                                onProcessTranscription?(note)
+                            } : nil
                         )
                         .padding(.horizontal, 20)
                         .padding(.bottom, 12)
@@ -87,7 +90,8 @@ struct DateHeaderView: View {
         notes: sampleNotes,
         onNoteTap: { _ in },
         onNoteEdit: { _ in },
-        onNoteArchive: { _ in }
+        onNoteArchive: { _ in },
+        onProcessTranscription: { _ in }
     )
     .background(Color.black)
     .preferredColorScheme(.dark)

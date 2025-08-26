@@ -43,9 +43,9 @@ struct MuesliApp: App {
             if existingNotes.isEmpty {
                 // Add sample notes
                 let sampleNotes = [
-                    Note(title: "Meeting Notes", content: "Today's discussion covered important project updates.", timestamp: Date(), conferenceName: nil, sessionType: "note", isArchived: false),
-                    Note(title: "Project Planning", content: "Need to finalize timeline and deliverables.", timestamp: Date().addingTimeInterval(-3600), conferenceName: nil, sessionType: "note", isArchived: false),
-                    Note(title: "Ideas", content: "Some creative ideas for the next sprint.", timestamp: Date().addingTimeInterval(-7200), conferenceName: nil, sessionType: "note", isArchived: false)
+                    Note(title: "Meeting Notes", content: "Today's discussion covered important project updates.", timestamp: Date(), conferenceName: nil, sessionType: "note", isArchived: false, audioFilePath: nil, transcriptionStatus: "none", duration: 0),
+                    Note(title: "Project Planning", content: "Need to finalize timeline and deliverables.", timestamp: Date().addingTimeInterval(-3600), conferenceName: nil, sessionType: "note", isArchived: false, audioFilePath: nil, transcriptionStatus: "none", duration: 0),
+                    Note(title: "Ideas", content: "Some creative ideas for the next sprint.", timestamp: Date().addingTimeInterval(-7200), conferenceName: nil, sessionType: "note", isArchived: false, audioFilePath: nil, transcriptionStatus: "none", duration: 0)
                 ]
                 
                 for note in sampleNotes {

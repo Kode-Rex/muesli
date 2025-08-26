@@ -62,6 +62,9 @@ struct SimpleMainView: View {
                         },
                         onNoteArchive: { note in
                             archiveNote(note)
+                        },
+                        onProcessTranscription: { note in
+                            processTranscription(for: note)
                         }
                     )
                     
@@ -171,35 +174,137 @@ struct SimpleMainView: View {
             AppLogger.shared.dataError("Update Note Title", error: error, details: "Title: \(editingTitle)")
         }
     }
+    
+    private func processTranscription(for note: Note) {
+        guard note.needsTranscription,
+              let audioFilePath = note.audioFilePath,
+              let audioURL = AudioRecordingManager.shared.getRecordingURL(fileName: audioFilePath) else {
+            AppLogger.shared.warning("Cannot process transcription - invalid audio file")
+            return
+        }
+        
+        // Check network connectivity
+        guard NetworkMonitor.shared.isConnected else {
+            AppLogger.shared.warning("Cannot process transcription - no internet connection")
+            return
+        }
+        
+        // Update status to processing
+        note.transcriptionStatus = "processing"
+        do {
+            try modelContext.save()
+        } catch {
+            AppLogger.shared.dataError("Update Note Status", error: error)
+            return
+        }
+        
+        // Process transcription
+        Task {
+            do {
+                let transcript = try await TranscriptionService.shared.transcribeAudioFile(url: audioURL)
+                
+                DispatchQueue.main.async {
+                    note.content = transcript
+                    note.transcriptionStatus = "completed"
+                    
+                    do {
+                        try self.modelContext.save()
+                        AppLogger.shared.info("Successfully transcribed note: \(note.title)")
+                    } catch {
+                        AppLogger.shared.dataError("Save Transcription", error: error)
+                        note.transcriptionStatus = "failed"
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    note.transcriptionStatus = "failed"
+                    do {
+                        try self.modelContext.save()
+                    } catch {
+                        AppLogger.shared.dataError("Update Failed Status", error: error)
+                    }
+                    AppLogger.shared.error("Transcription failed for note: \(note.title)", error: error)
+                }
+            }
+        }
+    }
 }
 
 // Simple, standard note card
 struct SimpleNoteCard: View {
-    let title: String
-    let time: String
+    let note: Note
     let onTap: () -> Void
     let onEdit: () -> Void
     let onArchive: () -> Void
+    let onProcessTranscription: (() -> Void)?
     
     var body: some View {
         Button(action: onTap) {
             HStack {
-                Image(systemName: "doc.text")
-                    .foregroundColor(.teal)
+                // Icon based on audio status
+                Image(systemName: note.hasAudio ? "waveform" : "doc.text")
+                    .foregroundColor(note.hasAudio ? .orange : .teal)
                     .font(.system(size: 20))
                     .frame(width: 40, height: 40)
-                    .background(Color.teal.opacity(0.2))
+                    .background((note.hasAudio ? Color.orange : Color.teal).opacity(0.2))
                     .cornerRadius(8)
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .foregroundColor(.white)
-                        .font(.system(size: 16, weight: .medium))
-                        .lineLimit(1)
+                    HStack {
+                        Text(note.title)
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        // Transcription status indicators
+                        if note.hasAudio {
+                            if note.isTranscribing {
+                                HStack(spacing: 4) {
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .orange))
+                                    Text("Processing")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+                            } else if note.needsTranscription {
+                                Button(action: {
+                                    onProcessTranscription?()
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "text.microphone")
+                                            .font(.caption)
+                                        Text("Transcribe")
+                                            .font(.caption)
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.orange)
+                                    .cornerRadius(6)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            } else if note.transcriptionStatus == "completed" {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                    .font(.caption)
+                            }
+                        }
+                    }
                     
-                    Text(time)
-                        .foregroundColor(.gray)
-                        .font(.system(size: 14))
+                    HStack {
+                        Text(note.timeString)
+                            .foregroundColor(.gray)
+                            .font(.system(size: 14))
+                        
+                        if note.hasAudio && note.duration > 0 {
+                            Text("• \(note.durationString)")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 14))
+                        }
+                    }
                 }
                 
                 Spacer()

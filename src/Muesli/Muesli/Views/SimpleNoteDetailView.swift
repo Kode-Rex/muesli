@@ -18,6 +18,8 @@ struct SimpleNoteDetailView: View {
     @State private var showingEditTitle = false
     @State private var showingTranscript = false
     @State private var showingMyNotes = false
+    @State private var showingAISummaryEditor = false
+    @State private var showingEnhancedEditor = false
     @State private var editedTitle = ""
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -75,11 +77,17 @@ struct SimpleNoteDetailView: View {
                     editedTitle = note.title
                     showingEditTitle = true
                 },
+                onEditContent: {
+                    showingEnhancedEditor = true
+                },
                 onViewTranscript: {
                     showingTranscript = true
                 },
                 onShowMyNotes: {
                     showingMyNotes = true
+                },
+                onEditAISummary: {
+                    showingAISummaryEditor = true
                 },
                 onCopyNotes: {},
                 onClose: {
@@ -93,6 +101,12 @@ struct SimpleNoteDetailView: View {
         }
         .sheet(isPresented: $showingMyNotes) {
             MyNotesView(title: note.title, content: note.content)
+        }
+        .sheet(isPresented: $showingAISummaryEditor) {
+            AISummaryEditorView(note: note)
+        }
+        .sheet(isPresented: $showingEnhancedEditor) {
+            EnhancedNoteEditorView(note: note)
         }
         .alert("Edit Title", isPresented: $showingEditTitle) {
             TextField("Note title", text: $editedTitle)

@@ -11,8 +11,10 @@ import UIKit
 struct NoteOptionsPopover: View {
     let note: Note
     let onEditTitle: () -> Void
+    let onEditContent: () -> Void
     let onViewTranscript: () -> Void
     let onShowMyNotes: () -> Void
+    let onEditAISummary: () -> Void
     let onCopyNotes: () -> Void
     let onClose: () -> Void
     
@@ -31,10 +33,25 @@ struct NoteOptionsPopover: View {
             Divider().background(Color.gray.opacity(0.5))
             
             NoteOptionRow(
-                icon: "pencil",
+                icon: "square.and.pencil",
+                title: "Edit content"
+            ) {
+                onClose()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    onEditContent()
+                }
+            }
+            
+            Divider().background(Color.gray.opacity(0.5))
+            
+            NoteOptionRow(
+                icon: "brain",
                 title: "Edit AI summary"
             ) {
                 onClose()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    onEditAISummary()
+                }
             }
             
             Divider().background(Color.gray.opacity(0.5))

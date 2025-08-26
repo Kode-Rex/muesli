@@ -13,6 +13,7 @@ struct SimpleSettingsView: View {
 
     @Binding var showingArchive: Bool
     @State private var showingPerformance = false
+    @State private var showingProfile = false
     
     @Query(filter: #Predicate<Note> { $0.isArchived })
     private var archivedNotes: [Note]
@@ -25,7 +26,12 @@ struct SimpleSettingsView: View {
         NavigationView {
             VStack(spacing: 24) {
                 // Profile Section
-                Button(action: {}) {
+                Button(action: {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showingProfile = true
+                    }
+                }) {
                     HStack {
                         Image(systemName: "person.fill")
                             .foregroundColor(.gray)
@@ -137,6 +143,9 @@ struct SimpleSettingsView: View {
         }
         .sheet(isPresented: $showingPerformance) {
             PerformanceView()
+        }
+        .sheet(isPresented: $showingProfile) {
+            ProfileView()
         }
         .preferredColorScheme(.dark)
     }

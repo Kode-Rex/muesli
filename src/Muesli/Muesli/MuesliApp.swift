@@ -27,10 +27,21 @@ struct MuesliApp: App {
         WindowGroup {
             SimpleMainView()
                 .onAppear {
+                    configureApp()
                     addSampleNotesIfNeeded()
                 }
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    private func configureApp() {
+        // Configure your transcription API endpoint here
+        // Replace with your actual API endpoint
+        #if DEBUG
+        AppConfiguration.setupForEnvironment(.development)
+        #else
+        AppConfiguration.setupForEnvironment(.production)
+        #endif
     }
     
     private func addSampleNotesIfNeeded() {

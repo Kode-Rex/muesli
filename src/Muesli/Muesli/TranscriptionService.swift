@@ -10,7 +10,7 @@ import AVFoundation
 import SwiftUI
 
 enum TranscriptionError: Error, LocalizedError {
-    case invalidAPIKey
+    case apiEndpointNotConfigured
     case networkError
     case invalidAudioFile
     case decodingError
@@ -18,8 +18,8 @@ enum TranscriptionError: Error, LocalizedError {
     
     var errorDescription: String? {
         switch self {
-        case .invalidAPIKey:
-            return "Invalid Deepgram API key"
+        case .apiEndpointNotConfigured:
+            return "Transcription API endpoint not configured"
         case .networkError:
             return "Network error during transcription"
         case .invalidAudioFile:
@@ -61,18 +61,17 @@ class TranscriptionService {
     
     static let shared = TranscriptionService()
     
-    // Configuration
-    private let baseURL = "https://api.deepgram.com/v1"
-    private var apiKey: String?
+    // Configuration - Your API endpoint that proxies to Deepgram
+    private var transcriptionAPIBaseURL: String = "https://your-api.com/v1" // Replace with your API
+    private var urlSession: URLSession
     
     // Real-time transcription state
     private var webSocketTask: URLSessionWebSocketTask?
-    private var urlSession: URLSession
     
     // Published properties
     private(set) var isTranscribing: Bool = false
     private(set) var currentTranscript: String = ""
-    private(set) var hasValidAPIKey: Bool = false
+    private(set) var hasValidAPIEndpoint: Bool = false
     
     // Callbacks
     var onTranscriptionUpdate: ((TranscriptionResult) -> Void)?
@@ -84,48 +83,52 @@ class TranscriptionService {
         config.timeoutIntervalForResource = 300
         self.urlSession = URLSession(configuration: config)
         
-        loadAPIKey()
+        loadConfiguration()
     }
     
     // MARK: - Configuration
     
-    func setAPIKey(_ key: String) {
-        apiKey = key
-        hasValidAPIKey = !key.isEmpty
-        saveAPIKey(key)
-        AppLogger.shared.info("Deepgram API key configured")
+    func setTranscriptionAPIEndpoint(_ baseURL: String) {
+        transcriptionAPIBaseURL = baseURL
+        hasValidAPIEndpoint = !baseURL.isEmpty && URL(string: baseURL) != nil
+        saveConfiguration()
+        AppLogger.shared.info("Transcription API endpoint configured: \(baseURL)")
     }
     
-    private func loadAPIKey() {
-        if let key = UserDefaults.standard.string(forKey: "DeepgramAPIKey") {
-            apiKey = key
-            hasValidAPIKey = !key.isEmpty
+    private func loadConfiguration() {
+        if let endpoint = UserDefaults.standard.string(forKey: "TranscriptionAPIEndpoint") {
+            transcriptionAPIBaseURL = endpoint
+            hasValidAPIEndpoint = !endpoint.isEmpty && URL(string: endpoint) != nil
+        } else {
+            // Default to a placeholder - you'll need to set your actual endpoint
+            hasValidAPIEndpoint = false
         }
     }
     
-    private func saveAPIKey(_ key: String) {
-        UserDefaults.standard.set(key, forKey: "DeepgramAPIKey")
+    private func saveConfiguration() {
+        UserDefaults.standard.set(transcriptionAPIBaseURL, forKey: "TranscriptionAPIEndpoint")
     }
     
     // MARK: - Real-time Transcription
     
     func startRealtimeTranscription() async throws {
-        guard let apiKey = apiKey, !apiKey.isEmpty else {
-            throw TranscriptionError.invalidAPIKey
+        guard hasValidAPIEndpoint else {
+            throw TranscriptionError.apiEndpointNotConfigured
         }
         
         guard NetworkMonitor.shared.isConnected else {
             throw TranscriptionError.networkError
         }
         
-        // Deepgram WebSocket URL for real-time transcription
-        let urlString = "\(baseURL)/listen?model=nova-2&language=en&smart_format=true&interim_results=true"
+        // Your API WebSocket endpoint for real-time transcription
+        let urlString = "\(transcriptionAPIBaseURL)/transcribe/realtime"
         guard let url = URL(string: urlString.replacingOccurrences(of: "https://", with: "wss://")) else {
             throw TranscriptionError.serviceUnavailable
         }
         
         var request = URLRequest(url: url)
-        request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
+        // Add any authentication headers your API requires
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         webSocketTask = urlSession.webSocketTask(with: request)
         webSocketTask?.resume()
@@ -136,7 +139,7 @@ class TranscriptionService {
         // Start listening for messages
         await startListening()
         
-        AppLogger.shared.info("Started real-time transcription")
+        AppLogger.shared.info("Started real-time transcription via custom API")
     }
     
     func stopRealtimeTranscription() {
@@ -216,37 +219,51 @@ class TranscriptionService {
     // MARK: - Batch Transcription
     
     func transcribeAudioFile(url: URL) async throws -> String {
-        guard let apiKey = apiKey, !apiKey.isEmpty else {
-            throw TranscriptionError.invalidAPIKey
+        guard hasValidAPIEndpoint else {
+            throw TranscriptionError.apiEndpointNotConfigured
         }
         
         guard NetworkMonitor.shared.isConnected else {
             throw TranscriptionError.networkError
         }
         
-        let transcriptionURL = URL(string: "\(baseURL)/listen?model=nova-2&smart_format=true")!
+        guard let transcriptionURL = URL(string: "\(transcriptionAPIBaseURL)/transcribe") else {
+            throw TranscriptionError.serviceUnavailable
+        }
+        
         var request = URLRequest(url: transcriptionURL)
         request.httpMethod = "POST"
-        request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("audio/mpeg", forHTTPHeaderField: "Content-Type")
+        
+        // Create multipart form data for audio file upload
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         do {
             let audioData = try Data(contentsOf: url)
-            request.httpBody = audioData
+            var body = Data()
+            
+            // Add audio file to form data
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"audio\"; filename=\"recording.m4a\"\r\n".data(using: .utf8)!)
+            body.append("Content-Type: audio/mp4\r\n\r\n".data(using: .utf8)!)
+            body.append(audioData)
+            body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+            
+            request.httpBody = body
             
             let (data, response) = try await urlSession.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse,
                   200...299 ~= httpResponse.statusCode else {
+                AppLogger.shared.error("Transcription API returned status: \(((response as? HTTPURLResponse)?.statusCode ?? 0))")
                 throw TranscriptionError.serviceUnavailable
             }
             
-            let deepgramResponse = try JSONDecoder().decode(DeepgramResponse.self, from: data)
-            
-            if let channel = deepgramResponse.results.channels.first,
-               let alternative = channel.alternatives.first {
-                AppLogger.shared.info("Successfully transcribed audio file")
-                return alternative.transcript
+            // Expected JSON response: {"transcript": "transcribed text"}
+            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let transcript = json["transcript"] as? String {
+                AppLogger.shared.info("Successfully transcribed audio file via custom API")
+                return transcript
             } else {
                 throw TranscriptionError.decodingError
             }
@@ -260,6 +277,6 @@ class TranscriptionService {
     // MARK: - Utility Methods
     
     func isConfigured() -> Bool {
-        return hasValidAPIKey && NetworkMonitor.shared.isConnected
+        return hasValidAPIEndpoint && NetworkMonitor.shared.isConnected
     }
 }

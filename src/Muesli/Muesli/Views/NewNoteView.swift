@@ -30,8 +30,6 @@ struct NewNoteView: View {
     @State private var recordingTime: TimeInterval = 0
     @State private var isOnlineMode = false
     @State private var showingPermissionAlert = false
-    @State private var showingAPIKeyAlert = false
-    @State private var apiKeyInput = ""
     
     // Timer for updating UI
     @State private var recordingTimer: Timer?
@@ -171,18 +169,7 @@ struct NewNoteView: View {
         } message: {
             Text("Please allow microphone access to record notes.")
         }
-        .alert("Deepgram API Key", isPresented: $showingAPIKeyAlert) {
-            TextField("API Key", text: $apiKeyInput)
-            Button("Save") {
-                transcriptionService.setAPIKey(apiKeyInput)
-                showingAPIKeyAlert = false
-            }
-            Button("Skip") {
-                showingAPIKeyAlert = false
-            }
-        } message: {
-            Text("Enter your Deepgram API key for real-time transcription, or skip to record locally.")
-        }
+
         .alert("Error", isPresented: $showingError) {
             Button("OK") { }
         } message: {
@@ -294,16 +281,14 @@ struct NewNoteView: View {
             }
         }
         
-        // Check if we should prompt for API key
-        if !transcriptionService.hasValidAPIKey && networkMonitor.isConnected {
-            showingAPIKeyAlert = true
-        }
+        // Note: API endpoint should be configured programmatically or via settings
+        // No need to prompt user for API keys on device
     }
     
     private func startRecording() async {
         do {
             // Determine if we can use real-time transcription
-            isOnlineMode = networkMonitor.isConnected && transcriptionService.hasValidAPIKey
+            isOnlineMode = networkMonitor.isConnected && transcriptionService.hasValidAPIEndpoint
             
             // Start recording
             let fileName = try await recordingManager.startRecording()

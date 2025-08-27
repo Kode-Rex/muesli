@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 # Default values
 TEST_TYPE="all"
 DEVICE="iPhone 16"
-WORKSPACE_DIR="src/Muesli"
+WORKSPACE_DIR="src/mobile"
 
 # Parse arguments
 if [ $# -gt 0 ]; then

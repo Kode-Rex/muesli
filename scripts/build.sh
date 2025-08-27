@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 # Default values
 CLEAN_BUILD=false
 DEVICE="iPhone 16"
-WORKSPACE_DIR="src/Muesli"
+WORKSPACE_DIR="src/mobile"
 
 # Parse arguments
 for arg in "$@"; do

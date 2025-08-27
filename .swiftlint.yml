@@ -3,14 +3,14 @@
 
 # Paths to include/exclude
 included:
-  - src/Muesli/Muesli
-  - src/Muesli/MuesliTests
-  - src/Muesli/MuesliUITests
+  - src/mobile/Muesli
+  - src/mobile/MuesliTests
+  - src/mobile/MuesliUITests
 
 excluded:
-  - src/Muesli/build
-  - src/Muesli/Muesli.xcodeproj
-  - src/Muesli/Muesli.xcworkspace
+  - src/mobile/build
+  - src/mobile/Muesli.xcodeproj
+  - src/mobile/Muesli.xcworkspace
 
 # Disabled rules (with justification)
 disabled_rules:

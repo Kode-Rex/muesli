@@ -43,7 +43,7 @@ struct EnhancedNoteEditorViewTests {
         for (text, expectedCount) in testCases {
             let wordCount = text.components(separatedBy: .whitespacesAndNewlines)
                 .filter { !$0.isEmpty }.count
-            #expect(wordCount == expectedCount)
+            #expect(wordCount == expectedCount, "Failed for text: '\(text)' - expected \(expectedCount), got \(wordCount)")
         }
     }
     

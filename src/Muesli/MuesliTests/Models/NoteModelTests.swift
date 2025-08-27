@@ -229,4 +229,6 @@ extension Tag {
     @Tag static var unit: Self
     @Tag static var integration: Self
     @Tag static var ui: Self
+    @Tag static var views: Self
+    @Tag static var performance: Self
 }

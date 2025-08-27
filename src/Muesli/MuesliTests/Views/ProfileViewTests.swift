@@ -124,7 +124,4 @@ extension ProfileViewTests {
 }
 
 // MARK: - Test Tags Extension
-
-extension Tag {
-    @Tag static var views: Self
-}
+// Note: Tags are defined in NoteModelTests.swift to avoid redefinition

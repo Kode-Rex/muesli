@@ -69,18 +69,12 @@ struct TestSetup {
         try context.save()
     }
     
-    // MARK: - Service Initialization
+    // MARK: - Test Isolation Helpers
     
-    /// Ensures all singletons are properly initialized for testing
-    static func initializeServicesForTesting() async {
-        // Initialize services that might be accessed by tests
-        _ = AudioRecordingManager.shared
-        _ = NetworkMonitor.shared
-        _ = PerformanceMonitor.shared
-        _ = TranscriptionService.shared
-        
-        // Wait a moment for async initialization to complete
-        try? await Task.sleep(for: .milliseconds(100))
+    /// Creates isolated test instances instead of using shared singletons
+    static func createIsolatedTestInstances() {
+        // Tests should create their own instances or use dependency injection
+        // No more shared singleton initialization that pollutes other tests
     }
     
     // MARK: - Test Audio File

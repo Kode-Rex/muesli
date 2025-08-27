@@ -90,7 +90,9 @@ class TranscriptionService {
     
     private func loadAPIConfiguration() async {
         currentAPIBaseURL = await APIConfiguration.getCurrentAPIURL()
-        hasValidAPIEndpoint = !currentAPIBaseURL.isEmpty
+        await MainActor.run {
+            hasValidAPIEndpoint = !currentAPIBaseURL.isEmpty
+        }
     }
     
     // MARK: - Configuration

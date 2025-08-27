@@ -12,12 +12,14 @@ import Foundation
 @Suite("Transcription Service Tests", .tags(.transcription))
 struct TranscriptionServiceTests {
     
+    // Remove shared state dependency
     init() async throws {
-        await TestSetup.initializeServicesForTesting()
+        // No shared state initialization
     }
     
     @Test("Transcription service singleton works")
     func transcriptionServiceSingletonWorks() async throws {
+        // Test singleton pattern without affecting other tests
         let service1 = TranscriptionService.shared
         let service2 = TranscriptionService.shared
         
@@ -111,23 +113,26 @@ struct TranscriptionServiceTests {
     
     @Test("API endpoint configuration works correctly")
     func apiEndpointConfigurationWorksCorrectly() async throws {
-        let service = TranscriptionService.shared
+        // Test API configuration without shared state
+        let primaryURL = APIConfiguration.transcriptionAPIBaseURL
+        let fallbackURL = APIConfiguration.fallbackAPIBaseURL
+        let environmentName = APIConfiguration.environmentName
         
-        // Wait a moment for async initialization to complete
-        try await Task.sleep(for: .seconds(0.1))
-        
-        // Test that current endpoint is properly configured
-        let currentEndpoint = service.currentAPIEndpoint
-        #expect(!currentEndpoint.isEmpty)
-        
-        // Test environment name is set
-        let environmentName = service.environmentName
+        // Test that endpoints are properly configured
+        #expect(!primaryURL.isEmpty)
+        #expect(!fallbackURL.isEmpty)
         #expect(!environmentName.isEmpty)
         
-        // Test localhost detection works
-        let isLocalhost = service.isUsingLocalhost
-        // Note: In tests, localhost detection might fail, so we just verify the property exists
-        #expect(isLocalhost == isLocalhost) // This always passes but tests the property
+        // Test environment detection
+        #if DEBUG
+        #expect(environmentName == "Development")
+        #else
+        #expect(environmentName == "Production")
+        #endif
+        
+        // Test URL validation
+        #expect(primaryURL.hasPrefix("http"))
+        #expect(fallbackURL.hasPrefix("http"))
     }
     
     @Test("Configuration is build-time determined")

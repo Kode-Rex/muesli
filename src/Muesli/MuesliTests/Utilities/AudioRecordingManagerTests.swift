@@ -13,8 +13,9 @@ import AVFoundation
 @Suite("Audio Recording Manager Tests", .tags(.recording))
 struct AudioRecordingManagerTests {
     
+    // Remove shared state dependency
     init() async throws {
-        await TestSetup.initializeServicesForTesting()
+        // No shared state initialization
     }
     
     @Test("Audio recording manager singleton works")

@@ -1,8 +1,8 @@
 # 🥣 Muesli
 
-**A beautifully crafted iOS app for conference note-taking and session management**
+**A full-stack conference note-taking platform with iOS app and API backend**
 
-Muesli is a SwiftUI-based conference companion that helps you capture, organize, and review your conference experiences with an elegant, dark-themed interface inspired by modern productivity apps.
+Muesli combines a beautifully crafted SwiftUI iOS app with a production-ready Node.js API for comprehensive conference note-taking, audio transcription, and session management. The platform features an elegant, dark-themed interface inspired by modern productivity apps.
 
 ## ✨ Features
 
@@ -24,9 +24,17 @@ Muesli is a SwiftUI-based conference companion that helps you capture, organize,
 
 ### 🔧 **Advanced Actions**
 - **Extract Personal Notes**: AI-powered extraction of your action items and key takeaways
+- **Audio Transcription**: Real-time and batch audio transcription via Deepgram API
 - **View Transcripts**: Access full session transcripts when available
 - **Quick Copy**: One-tap copying of notes with haptic feedback
 - **Title Editing**: Rename sessions on the fly
+
+### 🌐 **API Backend**
+- **Production-Ready**: Dockerized Node.js API with comprehensive testing
+- **Audio Processing**: Batch and real-time transcription via Deepgram
+- **Security**: Rate limiting, CORS, input validation, and authentication
+- **Monitoring**: Health checks, structured logging, and performance metrics
+- **CI/CD**: Automated testing with 36 tests and coverage reporting
 
 ### 🎨 **Beautiful Design**
 - Native iOS dark theme
@@ -59,50 +67,88 @@ Muesli is a SwiftUI-based conference companion that helps you capture, organize,
    cd muesli
    ```
 
-2. **Open in Xcode**
+2. **Setup API Backend** (optional for full functionality)
    ```bash
-   open src/Muesli/Muesli.xcodeproj
+   cd src/api
+   cp .env.example .env
+   # Edit .env with your Deepgram API key
+   npm install
+   npm start
    ```
 
-3. **Build and Run**
+3. **Open iOS App in Xcode**
+   ```bash
+   open src/mobile/Muesli.xcodeproj
+   ```
+
+4. **Build and Run**
    - Select your target device or simulator
    - Press `Cmd + R` to build and run
 
 ## 🏗️ Architecture
 
-Muesli is built with modern iOS development best practices:
+Muesli is a full-stack platform with clean separation between client and server:
 
+### **📱 iOS App (SwiftUI)**
 - **SwiftUI** for declarative UI
 - **SwiftData** for local data persistence
 - **MVVM-inspired** architecture with SwiftUI's native state management
 - **Modular design** with separated views and reusable components
 
-### Key Components
+### **🌐 API Backend (Node.js)**
+- **Express.js** RESTful API with WebSocket support
+- **Deepgram** integration for audio transcription
+- **Dockerized** deployment with multi-stage builds
+- **Comprehensive testing** with Jest (36 tests, 17% coverage)
+
+### Project Structure
 
 ```
-Muesli/
-├── Models/
-│   ├── Note.swift           # Core data model
-│   └── SampleData.swift     # Demo content and utilities
-├── Views/
-│   ├── SimpleMainView.swift      # Main dashboard
-│   ├── SimpleNoteDetailView.swift # Note viewing/editing
-│   ├── SimpleArchiveView.swift   # Archived notes
-│   ├── SimpleSettingsView.swift  # App settings
-│   ├── NewNoteView.swift         # Note creation
-│   ├── TranscriptView.swift      # Transcript viewer
-│   └── MyNotesView.swift         # Personal notes extraction
-└── MuesliApp.swift          # App entry point
+src/
+├── mobile/                     # iOS App
+│   ├── Muesli/
+│   │   ├── Models/
+│   │   │   ├── Note.swift           # Core data model
+│   │   │   └── SampleData.swift     # Demo content
+│   │   ├── Views/
+│   │   │   ├── SimpleMainView.swift      # Main dashboard
+│   │   │   ├── SimpleNoteDetailView.swift # Note editing
+│   │   │   ├── SimpleArchiveView.swift   # Archived notes
+│   │   │   └── TranscriptView.swift      # Transcript viewer
+│   │   └── MuesliApp.swift         # App entry point
+│   ├── MuesliTests/                # Unit tests
+│   └── MuesliUITests/              # UI tests
+└── api/                        # Backend API
+    ├── src/
+    │   ├── routes/                 # API endpoints
+    │   ├── services/               # Business logic
+    │   ├── middleware/             # Express middleware
+    │   └── config/                 # Configuration
+    ├── tests/
+    │   ├── unit/                   # Unit tests
+    │   └── integration/            # Integration tests
+    ├── Dockerfile                  # Container build
+    └── docker-compose.yml          # Orchestration
 ```
 
 ## 🛠️ Technologies Used
 
+### **📱 iOS App**
 - **SwiftUI** - Modern declarative UI framework
 - **SwiftData** - Apple's latest data persistence framework
 - **UIKit Integration** - For clipboard access and haptic feedback
 - **Foundation** - Core utilities and date formatting
 - **os.log** - Apple's unified logging system for professional debugging
 - **SwiftLint** - Automated code quality and style enforcement
+
+### **🌐 API Backend**
+- **Node.js 18+** - JavaScript runtime
+- **Express.js** - Web application framework
+- **Deepgram** - AI-powered speech recognition
+- **Jest** - Testing framework with 36 comprehensive tests
+- **Winston** - Structured logging
+- **Docker** - Containerization and deployment
+- **GitHub Actions** - CI/CD pipeline
 
 ## 🎯 Roadmap
 

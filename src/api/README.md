@@ -11,12 +11,41 @@ Production-ready Node.js API server for audio transcription using Deepgram, desi
 - **Health Checks**: Multiple health check endpoints for monitoring
 - **Docker Support**: Full containerization with multi-stage builds
 - **Error Handling**: Graceful error handling and recovery
+- **🧪 Comprehensive Testing**: 36 tests with unit and integration coverage
+- **🚀 CI/CD Pipeline**: Automated testing with GitHub Actions
+- **📊 Code Coverage**: Codecov integration with coverage reporting
+- **🏗️ Clean Architecture**: Organized in `/src/api` with proper structure
 
 ## 📋 Prerequisites
 
 - Node.js 18+ and npm 9+
 - Deepgram API key ([Get one here](https://deepgram.com))
 - Docker (optional, for containerized deployment)
+
+## 🏗️ Project Structure
+
+```
+src/
+├── api/                    # Backend API (this directory)
+│   ├── src/
+│   │   ├── config/         # Configuration management
+│   │   ├── middleware/     # Express middleware
+│   │   ├── routes/         # API route handlers
+│   │   ├── services/       # Business logic services
+│   │   └── utils/          # Utility functions
+│   ├── tests/
+│   │   ├── unit/           # Unit tests
+│   │   ├── integration/    # Integration tests
+│   │   └── helpers/        # Test utilities
+│   ├── Dockerfile          # Multi-stage Docker build
+│   ├── docker-compose.yml  # Container orchestration
+│   ├── jest.config.js      # Test configuration
+│   └── package.json        # Dependencies and scripts
+└── mobile/                 # iOS app (Muesli.xcodeproj)
+    ├── Muesli/
+    ├── MuesliTests/
+    └── MuesliUITests/
+```
 
 ## ⚡ Quick Start
 
@@ -25,7 +54,7 @@ Production-ready Node.js API server for audio transcription using Deepgram, desi
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd muesli/api
+cd muesli/src/api
 
 # Copy environment template
 cp .env.example .env
@@ -146,6 +175,43 @@ curl http://localhost:3000/health/metrics
 - `logs/muesli-api-exceptions-*.log` - Uncaught exceptions
 
 ## 🧪 Testing
+
+### Automated Test Suite
+
+The API includes a comprehensive test suite with **36 tests** covering:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:ci
+
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests  
+npm run test:integration
+
+# Watch mode for development
+npm run test:watch
+```
+
+**Test Coverage:**
+- ✅ **Unit Tests**: Health and transcription endpoints
+- ✅ **Integration Tests**: Full API workflows
+- ✅ **Error Handling**: All error scenarios
+- ✅ **Validation**: Input validation and security
+- ✅ **Performance**: Response time monitoring
+- ✅ **Coverage**: 17%+ overall, 95%+ for health routes
+
+### CI/CD Pipeline
+
+Tests run automatically on every commit via GitHub Actions:
+- 🚀 **iOS Tests**: Swift/Xcode testing for mobile app
+- 🌐 **API Tests**: Node.js testing for backend
+- 📊 **Coverage**: Automatic coverage reporting to Codecov
+- 🔍 **Linting**: Code quality checks
 
 ### Manual Testing
 

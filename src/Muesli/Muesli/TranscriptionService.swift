@@ -241,11 +241,18 @@ class TranscriptionService {
             var body = Data()
             
             // Add audio file to form data
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"audio\"; filename=\"recording.m4a\"\r\n".data(using: .utf8)!)
-            body.append("Content-Type: audio/mp4\r\n\r\n".data(using: .utf8)!)
+            guard let boundaryStart = "--\(boundary)\r\n".data(using: .utf8),
+                  let contentDisposition = "Content-Disposition: form-data; name=\"audio\"; filename=\"recording.m4a\"\r\n".data(using: .utf8),
+                  let contentType = "Content-Type: audio/mp4\r\n\r\n".data(using: .utf8),
+                  let boundaryEnd = "\r\n--\(boundary)--\r\n".data(using: .utf8) else {
+                throw TranscriptionError.invalidAudioFile
+            }
+            
+            body.append(boundaryStart)
+            body.append(contentDisposition)
+            body.append(contentType)
             body.append(audioData)
-            body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+            body.append(boundaryEnd)
             
             request.httpBody = body
             

@@ -19,7 +19,18 @@ struct MuesliApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // Log the error but continue with in-memory fallback
+            AppLogger.shared.error("SwiftData container creation failed, using in-memory fallback", error: error)
+            
+            // Fallback to in-memory storage
+            let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                return try ModelContainer(for: schema, configurations: [fallbackConfig])
+            } catch {
+                // Last resort - this should never happen
+                AppLogger.shared.error("Critical: Even in-memory container failed", error: error)
+                fatalError("Could not create any ModelContainer: \(error)")
+            }
         }
     }()
 
@@ -34,29 +45,20 @@ struct MuesliApp: App {
     }
     
     private func addSampleNotesIfNeeded() {
-        // Add sample notes if database is empty
+        #if DEBUG
+        // Only add sample data in debug builds for development/testing
         let context = sharedModelContainer.mainContext
         
         let descriptor = FetchDescriptor<Note>()
         do {
             let existingNotes = try context.fetch(descriptor)
             if existingNotes.isEmpty {
-                // Add sample notes
-                let sampleNotes = [
-                    Note(title: "Meeting Notes", content: "Today's discussion covered important project updates.", timestamp: Date(), conferenceName: nil, sessionType: "note", isArchived: false, audioFilePath: nil, transcriptionStatus: "none", duration: 0),
-                    Note(title: "Project Planning", content: "Need to finalize timeline and deliverables.", timestamp: Date().addingTimeInterval(-3600), conferenceName: nil, sessionType: "note", isArchived: false, audioFilePath: nil, transcriptionStatus: "none", duration: 0),
-                    Note(title: "Ideas", content: "Some creative ideas for the next sprint.", timestamp: Date().addingTimeInterval(-7200), conferenceName: nil, sessionType: "note", isArchived: false, audioFilePath: nil, transcriptionStatus: "none", duration: 0)
-                ]
-                
-                for note in sampleNotes {
-                    context.insert(note)
-                }
-                
-                try context.save()
-                AppLogger.shared.dataSuccess("Sample Data Seeding", details: "Added \(sampleNotes.count) sample notes")
+                SampleDataManager.seedDatabase(context: context)
+                AppLogger.shared.dataSuccess("Development Sample Data", details: "Added sample notes for development")
             }
         } catch {
             AppLogger.shared.dataError("Sample Data Seeding", error: error)
         }
+        #endif
     }
 }

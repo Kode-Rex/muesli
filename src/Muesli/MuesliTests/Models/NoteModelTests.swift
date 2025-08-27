@@ -10,7 +10,7 @@ import SwiftData
 import Foundation
 @testable import Muesli
 
-@Suite("Note Model Tests", .tags(.model))
+@Suite("Note Model Tests", .tags(.unit))
 struct NoteModelTests {
     
     @Test("Note initialization with all properties")
@@ -222,7 +222,11 @@ extension Tag {
     @Tag static var contentParsing: Self
     @Tag static var utilities: Self
     @Tag static var swiftData: Self
+    @Tag static var swiftdata: Self
     @Tag static var transcription: Self
     @Tag static var recording: Self
     @Tag static var network: Self
+    @Tag static var unit: Self
+    @Tag static var integration: Self
+    @Tag static var ui: Self
 }

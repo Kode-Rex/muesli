@@ -12,6 +12,10 @@ import Foundation
 @Suite("Transcription Service Tests", .tags(.transcription))
 struct TranscriptionServiceTests {
     
+    init() async throws {
+        await TestSetup.initializeServicesForTesting()
+    }
+    
     @Test("Transcription service singleton works")
     func transcriptionServiceSingletonWorks() async throws {
         let service1 = TranscriptionService.shared

@@ -13,6 +13,10 @@ import AVFoundation
 @Suite("Audio Recording Manager Tests", .tags(.recording))
 struct AudioRecordingManagerTests {
     
+    init() async throws {
+        await TestSetup.initializeServicesForTesting()
+    }
+    
     @Test("Audio recording manager singleton works")
     func audioRecordingManagerSingletonWorks() async throws {
         let manager1 = AudioRecordingManager.shared

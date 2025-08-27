@@ -10,24 +10,17 @@ import SwiftData
 import Foundation
 @testable import Muesli
 
-@Suite("SwiftData Operation Tests", .tags(.swiftData))
+@Suite("SwiftData Operation Tests", .tags(.swiftdata))
 struct SwiftDataTests {
     
-    private var modelContainer: ModelContainer {
-        let schema = Schema([Note.self])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer for testing: \(error)")
-        }
+    private func createTestContainer() throws -> ModelContainer {
+        return try TestSetup.createTestContainer()
     }
     
     @Test("Create and save note")
-    func createAndSaveNote() async throws {
-        let container = modelContainer
-        let context = await container.mainContext
+    @MainActor func createAndSaveNote() async throws {
+        let container = try createTestContainer()
+        let context = container.mainContext
         
         let note = Note(
             title: "Test Note",
@@ -49,9 +42,9 @@ struct SwiftDataTests {
     }
     
     @Test("Update existing note")
-    func updateExistingNote() async throws {
-        let container = modelContainer
-        let context = await container.mainContext
+    @MainActor func updateExistingNote() async throws {
+        let container = try createTestContainer()
+        let context = container.mainContext
         
         // Create initial note
         let note = Note(
@@ -79,9 +72,9 @@ struct SwiftDataTests {
     }
     
     @Test("Archive and unarchive note")
-    func archiveAndUnarchiveNote() async throws {
-        let container = modelContainer
-        let context = await container.mainContext
+    @MainActor func archiveAndUnarchiveNote() async throws {
+        let container = try createTestContainer()
+        let context = container.mainContext
         
         let note = Note(
             title: "Test Note",
@@ -117,9 +110,9 @@ struct SwiftDataTests {
     }
     
     @Test("Delete note")
-    func deleteNote() async throws {
-        let container = modelContainer
-        let context = await container.mainContext
+    @MainActor func deleteNote() async throws {
+        let container = try createTestContainer()
+        let context = container.mainContext
         
         let note = Note(
             title: "Note to Delete",
@@ -147,9 +140,9 @@ struct SwiftDataTests {
     }
     
     @Test("Search notes by title")
-    func searchNotesByTitle() async throws {
-        let container = modelContainer
-        let context = await container.mainContext
+    @MainActor func searchNotesByTitle() async throws {
+        let container = try createTestContainer()
+        let context = container.mainContext
         
         // Create test notes
         let notes = [
@@ -176,9 +169,9 @@ struct SwiftDataTests {
     }
     
     @Test("Search notes by content")
-    func searchNotesByContent() async throws {
-        let container = modelContainer
-        let context = await container.mainContext
+    @MainActor func searchNotesByContent() async throws {
+        let container = try createTestContainer()
+        let context = container.mainContext
         
         // Create test notes
         let notes = [
@@ -204,9 +197,9 @@ struct SwiftDataTests {
     }
     
     @Test("Filter active notes")
-    func filterActiveNotes() async throws {
-        let container = modelContainer
-        let context = await container.mainContext
+    @MainActor func filterActiveNotes() async throws {
+        let container = try createTestContainer()
+        let context = container.mainContext
         
         // Create mix of active and archived notes
         let notes = [
@@ -233,9 +226,9 @@ struct SwiftDataTests {
     }
     
     @Test("Sort notes by timestamp")
-    func sortNotesByTimestamp() async throws {
-        let container = modelContainer
-        let context = await container.mainContext
+    @MainActor func sortNotesByTimestamp() async throws {
+        let container = try createTestContainer()
+        let context = container.mainContext
         
         let now = Date()
         let notes = [
@@ -262,7 +255,7 @@ struct SwiftDataTests {
     }
     
     @Test("Note time and date string formatting")
-    func noteTimeAndDateStringFormatting() async throws {
+    @MainActor func noteTimeAndDateStringFormatting() async throws {
         let note = Note(
             title: "Test Note",
             content: "Test content",

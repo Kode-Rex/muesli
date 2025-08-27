@@ -9,8 +9,12 @@ import Testing
 import Foundation
 @testable import Muesli
 
-@Suite("Performance Monitor Tests", .tags(.utilities))
+@Suite("Performance Monitor Tests", .tags(.performance))
 struct PerformanceMonitorTests {
+    
+    init() async throws {
+        await TestSetup.initializeServicesForTesting()
+    }
     
     @Test("Performance monitor starts and ends timing correctly")
     func performanceMonitorStartsAndEndsTimingCorrectly() async throws {

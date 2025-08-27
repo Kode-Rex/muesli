@@ -5,6 +5,46 @@ on:
     branches: [ main, develop ]
 
 jobs:
+  api-debug:
+    name: Debug API Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: src/api/package-lock.json
+        
+    - name: List API Structure
+      run: |
+        echo "🔍 API project structure:"
+        find src/api -name "*.js" -type f | head -20
+        echo ""
+        echo "📦 API package.json:"
+        cat src/api/package.json | jq .scripts
+        
+    - name: Install API Dependencies
+      working-directory: src/api
+      run: |
+        echo "📥 Installing API dependencies..."
+        npm ci
+        echo "✅ Dependencies installed"
+        
+    - name: Quick API Test
+      working-directory: src/api
+      run: |
+        echo "🧪 Running API tests..."
+        npm run test:ci
+      env:
+        NODE_ENV: test
+        DEEPGRAM_API_KEY: test-key-mock
+        DEBUG_TESTS: true
+        
   debug:
     name: Debug Tests
     runs-on: macos-14
@@ -19,7 +59,7 @@ jobs:
         find . -name "*.swift" -type f | head -20
         
     - name: Check Xcode Project
-      working-directory: src/Muesli
+      working-directory: src/mobile
       run: |
         echo "📁 Muesli project contents:"
         ls -la
@@ -33,7 +73,7 @@ jobs:
         xcode-version: latest-stable
         
     - name: Quick Build Test
-      working-directory: src/Muesli
+      working-directory: src/mobile
       run: |
         echo "🏗️ Testing basic build..."
         xcodebuild -list

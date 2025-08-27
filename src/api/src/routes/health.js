@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import os from 'os';
 import { config } from '../config/index.js';
 import deepgramService from '../services/deepgramService.js';
 import Logger from '../utils/logger.js';
@@ -104,9 +105,9 @@ router.get('/health/detailed', async (req, res) => {
       nodeVersion: process.version,
       platform: process.platform,
       arch: process.arch,
-      loadAverage: process.platform !== 'win32' ? require('os').loadavg() : null,
-      freeMemory: Math.round(require('os').freemem() / 1024 / 1024),
-      totalMemory: Math.round(require('os').totalmem() / 1024 / 1024)
+      loadAverage: process.platform !== 'win32' ? os.loadavg() : null,
+      freeMemory: Math.round(os.freemem() / 1024 / 1024),
+      totalMemory: Math.round(os.totalmem() / 1024 / 1024)
     };
 
     // Check configuration
@@ -263,10 +264,10 @@ router.get('/health/metrics', (req, res) => {
         platform: process.platform,
         nodeVersion: process.version,
         pid: process.pid,
-        freeMemory: Math.round(require('os').freemem() / 1024 / 1024),
-        totalMemory: Math.round(require('os').totalmem() / 1024 / 1024),
-        cpuCount: require('os').cpus().length,
-        loadAverage: process.platform !== 'win32' ? require('os').loadavg() : null
+        freeMemory: Math.round(os.freemem() / 1024 / 1024),
+        totalMemory: Math.round(os.totalmem() / 1024 / 1024),
+        cpuCount: os.cpus().length,
+        loadAverage: process.platform !== 'win32' ? os.loadavg() : null
       }
     };
 

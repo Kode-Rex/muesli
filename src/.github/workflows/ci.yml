@@ -7,6 +7,44 @@ on:
     branches: [ main, develop ]
 
 jobs:
+  api-test:
+    name: API Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: src/api/package-lock.json
+        
+    - name: Install API Dependencies
+      working-directory: src/api
+      run: npm ci
+      
+    - name: Run API Linting
+      working-directory: src/api
+      run: npm run lint
+      
+    - name: Run API Tests
+      working-directory: src/api
+      run: npm run test:ci
+      env:
+        NODE_ENV: test
+        DEEPGRAM_API_KEY: test-key-mock
+        
+    - name: Upload API Coverage Reports
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: src/api/coverage
+        flags: api
+        name: api-coverage
+        
   test:
     name: Test
     runs-on: macos-14
@@ -35,7 +73,7 @@ jobs:
           ${{ runner.os }}-deriveddata-
           
     - name: Build and Test
-      working-directory: src/Muesli
+      working-directory: src/mobile
       run: |
         set -o pipefail
         xcodebuild clean build test \
@@ -48,7 +86,7 @@ jobs:
           CODE_SIGNING_REQUIRED=NO | xcpretty
           
     - name: Run UI Tests
-      working-directory: src/Muesli
+      working-directory: src/mobile
       run: |
         set -o pipefail
         xcodebuild test \
@@ -60,7 +98,7 @@ jobs:
           CODE_SIGNING_REQUIRED=NO | xcpretty || true
           
     - name: Display Test Summary
-      working-directory: src/Muesli
+      working-directory: src/mobile
       if: always()
       run: |
         echo "📊 Test Results Summary:"
@@ -74,7 +112,7 @@ jobs:
       if: always()
       with:
         name: test-results-${{ matrix.destination }}
-        path: src/Muesli/TestResults.xcresult
+        path: src/mobile/TestResults.xcresult
         
     - name: Upload Coverage Reports
       uses: codecov/codecov-action@v4
@@ -82,7 +120,7 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         xcode: true
-        xcode_archive_path: src/Muesli/TestResults.xcresult
+        xcode_archive_path: src/mobile/TestResults.xcresult
         
   lint:
     name: SwiftLint
@@ -106,7 +144,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Run Security Scan
-      working-directory: src/Muesli
+      working-directory: src/mobile
       run: |
         # Check for hardcoded secrets
         if grep -r "sk_" --include="*.swift" .; then
@@ -130,7 +168,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Validate Project Structure
-      working-directory: src/Muesli
+      working-directory: src/mobile
       run: |
         # Check if all test files exist
         echo "🔍 Validating test structure..."

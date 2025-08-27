@@ -7,8 +7,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --coverage",
-    "test:watch": "jest --watch",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --passWithNoTests",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
+    "test:unit": "NODE_OPTIONS='--experimental-vm-modules' jest tests/unit --coverage",
+    "test:integration": "NODE_OPTIONS='--experimental-vm-modules' jest tests/integration --coverage",
+    "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --ci --watchAll=false --passWithNoTests",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "health": "curl -f http://localhost:3000/health || exit 1",

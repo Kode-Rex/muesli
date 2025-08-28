@@ -195,12 +195,8 @@ struct TranscriptionServiceTests {
         // Test with invalid file URL
         let invalidURL = URL(string: "file:///nonexistent/path/file.m4a")!
         
-        do {
-            _ = try await service.transcribeAudioFile(url: invalidURL)
-            #expect(Bool(false)) // Should throw an error
-        } catch {
-            #expect(Bool(true)) // Expected to throw
-        }
+        let result = await service.transcribeAudioFile(url: invalidURL)
+        #expect(result == nil) // Should return nil for invalid file
     }
     
     @Test("WebSocket URL transformation works correctly")

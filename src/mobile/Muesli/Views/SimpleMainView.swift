@@ -200,8 +200,7 @@ struct SimpleMainView: View {
         
         // Process transcription
         Task {
-            do {
-                let transcript = try await TranscriptionService.shared.transcribeAudioFile(url: audioURL)
+            if let transcript = await TranscriptionService.shared.transcribeAudioFile(url: audioURL) {
                 
                 DispatchQueue.main.async {
                     note.content = transcript
@@ -215,7 +214,8 @@ struct SimpleMainView: View {
                         note.transcriptionStatus = "failed"
                     }
                 }
-            } catch {
+            } else {
+                // Mark transcription as failed if service is not available
                 DispatchQueue.main.async {
                     note.transcriptionStatus = "failed"
                     do {
@@ -223,8 +223,8 @@ struct SimpleMainView: View {
                     } catch {
                         AppLogger.shared.dataError("Update Failed Status", error: error)
                     }
-                    AppLogger.shared.error("Transcription failed for note: \(note.title)", error: error)
                 }
+                AppLogger.shared.info("Transcription not available for note: \(note.title)")
             }
         }
     }

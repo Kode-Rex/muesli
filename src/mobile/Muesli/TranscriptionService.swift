@@ -111,19 +111,22 @@ class TranscriptionService {
     
     // MARK: - Real-time Transcription
     
-    func startRealtimeTranscription() async throws {
+    func startRealtimeTranscription() async -> Bool {
         guard hasValidAPIEndpoint else {
-            throw TranscriptionError.apiEndpointNotConfigured
+            AppLogger.shared.warning("Transcription API endpoint not configured - falling back to local recording")
+            return false
         }
         
         guard NetworkMonitor.shared.isConnected else {
-            throw TranscriptionError.networkError
+            AppLogger.shared.warning("Network not available - falling back to local recording")
+            return false
         }
         
         // Your API WebSocket endpoint for real-time transcription
         let urlString = "\(currentAPIBaseURL)/transcribe/realtime"
         guard let url = URL(string: urlString.replacingOccurrences(of: "https://", with: "wss://")) else {
-            throw TranscriptionError.serviceUnavailable
+            AppLogger.shared.warning("Invalid WebSocket URL - falling back to local recording")
+            return false
         }
         
         var request = URLRequest(url: url)
@@ -140,6 +143,7 @@ class TranscriptionService {
         await startListening()
         
         AppLogger.shared.info("Started real-time transcription via custom API")
+        return true
     }
     
     func stopRealtimeTranscription() {
@@ -218,17 +222,20 @@ class TranscriptionService {
     
     // MARK: - Batch Transcription
     
-    func transcribeAudioFile(url: URL) async throws -> String {
+    func transcribeAudioFile(url: URL) async -> String? {
         guard hasValidAPIEndpoint else {
-            throw TranscriptionError.apiEndpointNotConfigured
+            AppLogger.shared.warning("Transcription API endpoint not configured for batch transcription")
+            return nil
         }
         
         guard NetworkMonitor.shared.isConnected else {
-            throw TranscriptionError.networkError
+            AppLogger.shared.warning("Network not available for batch transcription")
+            return nil
         }
         
         guard let transcriptionURL = URL(string: "\(currentAPIBaseURL)/transcribe") else {
-            throw TranscriptionError.serviceUnavailable
+            AppLogger.shared.warning("Invalid transcription URL for batch transcription")
+            return nil
         }
         
         var request = URLRequest(url: transcriptionURL)
@@ -247,7 +254,8 @@ class TranscriptionService {
                   let contentDisposition = "Content-Disposition: form-data; name=\"audio\"; filename=\"recording.m4a\"\r\n".data(using: .utf8),
                   let contentType = "Content-Type: audio/mp4\r\n\r\n".data(using: .utf8),
                   let boundaryEnd = "\r\n--\(boundary)--\r\n".data(using: .utf8) else {
-                throw TranscriptionError.invalidAudioFile
+                AppLogger.shared.warning("Failed to create form data for batch transcription")
+                return nil
             }
             
             body.append(boundaryStart)
@@ -262,8 +270,8 @@ class TranscriptionService {
             
             guard let httpResponse = response as? HTTPURLResponse,
                   200...299 ~= httpResponse.statusCode else {
-                AppLogger.shared.error("Transcription API returned status: \(((response as? HTTPURLResponse)?.statusCode ?? 0))")
-                throw TranscriptionError.serviceUnavailable
+                AppLogger.shared.warning("Transcription API returned status: \(((response as? HTTPURLResponse)?.statusCode ?? 0))")
+                return nil
             }
             
             // Expected JSON response: {"transcript": "transcribed text"}
@@ -272,12 +280,13 @@ class TranscriptionService {
                 AppLogger.shared.info("Successfully transcribed audio file via custom API")
                 return transcript
             } else {
-                throw TranscriptionError.decodingError
+                AppLogger.shared.warning("Failed to decode batch transcription response")
+                return nil
             }
             
         } catch {
-            AppLogger.shared.error("Batch transcription failed", error: error)
-            throw error
+            AppLogger.shared.warning("Batch transcription failed: \(error.localizedDescription)")
+            return nil
         }
     }
     

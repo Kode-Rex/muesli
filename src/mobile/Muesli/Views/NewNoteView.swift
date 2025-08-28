@@ -98,9 +98,24 @@ struct NewNoteView: View {
                                     .font(.system(size: 16, weight: .medium))
                                     .textFieldStyle(PlainTextFieldStyle())
                                 
-                                Text(formatTime(recordingTime))
-                                    .foregroundColor(.gray)
-                                    .font(.system(size: 14))
+                                HStack(spacing: 8) {
+                                    Text(formatTime(recordingTime))
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 14))
+                                    
+                                    // Recording mode indicator
+                                    if recordingManager.state == .recording || recordingManager.state == .paused {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: isOnlineMode ? "wifi" : "wifi.slash")
+                                                .foregroundColor(isOnlineMode ? .green : .orange)
+                                                .font(.system(size: 12))
+                                            
+                                            Text(isOnlineMode ? "Live transcription" : "Local recording")
+                                                .foregroundColor(isOnlineMode ? .green : .orange)
+                                                .font(.system(size: 12, weight: .medium))
+                                        }
+                                    }
+                                }
                             }
                             
                             Spacer()
@@ -287,25 +302,36 @@ struct NewNoteView: View {
     
     private func startRecording() async {
         do {
-            // Determine if we can use real-time transcription
-            isOnlineMode = networkMonitor.isConnected && transcriptionService.hasValidAPIEndpoint
-            
-            // Start recording
+            // Start recording (always works locally)
             let fileName = try await recordingManager.startRecording()
             
-            // Start real-time transcription if online
-            if isOnlineMode {
-                try await transcriptionService.startRealtimeTranscription()
-            }
+            // Try to start real-time transcription if possible
+            isOnlineMode = await tryStartTranscription()
             
             // Start UI timer
             startRecordingTimer()
             
-            AppLogger.shared.info("Recording started - Mode: \(isOnlineMode ? "Online" : "Offline")")
+            let mode = isOnlineMode ? "Online with transcription" : "Offline (local recording only)"
+            AppLogger.shared.info("Recording started - Mode: \(mode)")
             
         } catch {
             showError("Failed to start recording: \(error.localizedDescription)")
         }
+    }
+    
+    private func tryStartTranscription() async -> Bool {
+        // Check if conditions are met for transcription
+        guard networkMonitor.isConnected && transcriptionService.hasValidAPIEndpoint else {
+            AppLogger.shared.info("Transcription not available - continuing with local recording only")
+            return false
+        }
+        
+        // Attempt to start transcription service
+        let success = await transcriptionService.startRealtimeTranscription()
+        if !success {
+            AppLogger.shared.info("Transcription service unavailable - continuing with local recording only")
+        }
+        return success
     }
     
     private func handleResumeOrPause() {
@@ -334,7 +360,12 @@ struct NewNoteView: View {
         
         if isOnlineMode {
             Task {
-                try? await transcriptionService.startRealtimeTranscription()
+                let success = await transcriptionService.startRealtimeTranscription()
+                if !success {
+                    // If transcription fails, switch to offline mode
+                    isOnlineMode = false
+                    AppLogger.shared.info("Transcription reconnection failed - continuing in offline mode")
+                }
             }
         }
     }
@@ -378,11 +409,44 @@ struct NewNoteView: View {
             modelContext.insert(note)
             try modelContext.save()
             
+            // If we saved in offline mode, attempt batch transcription in background
+            if !isOnlineMode, let audioPath = recordingManager.currentRecordingPath {
+                Task {
+                    await attemptBatchTranscription(for: note, audioPath: audioPath)
+                }
+            }
+            
             AppLogger.shared.info("Note saved - Duration: \(recordingTime)s, Transcription: \(transcriptionStatus)")
             dismiss()
             
         } catch {
             showError("Failed to save note: \(error.localizedDescription)")
+        }
+    }
+    
+    private func attemptBatchTranscription(for note: Note, audioPath: String) async {
+        guard let audioURL = recordingManager.getRecordingURL(fileName: audioPath) else {
+            AppLogger.shared.warning("Audio file not found for batch transcription: \(audioPath)")
+            return
+        }
+        
+        AppLogger.shared.info("Attempting batch transcription for offline recording")
+        
+        if let transcript = await transcriptionService.transcribeAudioFile(url: audioURL) {
+            // Update the note with transcription
+            await MainActor.run {
+                note.content = transcript
+                note.transcriptionStatus = "completed"
+                
+                do {
+                    try modelContext.save()
+                    AppLogger.shared.info("Successfully transcribed offline recording")
+                } catch {
+                    AppLogger.shared.error("Failed to save transcribed content", error: error)
+                }
+            }
+        } else {
+            AppLogger.shared.info("Batch transcription not available - note remains with local recording only")
         }
     }
     

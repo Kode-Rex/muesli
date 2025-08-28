@@ -283,32 +283,40 @@ class AudioRecordingManager: NSObject {
     private func startDurationTimer() {
         stopDurationTimer()
         AppLogger.shared.info("Starting duration timer with 0.1s interval")
-        durationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self else { 
-                AppLogger.shared.warning("Timer callback: self is nil")
-                return 
-            }
-            
-            guard let recorder = self.audioRecorder else { 
-                AppLogger.shared.warning("Timer callback: recorder is nil")
-                return 
-            }
-            
-            // Check if recorder is actually recording
-            guard recorder.isRecording else {
-                AppLogger.shared.warning("Timer callback: recorder.isRecording is false")
-                return
-            }
-            
-            // Log every 10th callback (every 1 second)
-            let currentTime = recorder.currentTime
-            if Int(currentTime * 10) % 10 == 0 {
-                AppLogger.shared.info("Timer callback: currentTime=\(currentTime), state=\(self.state), isRecording=\(recorder.isRecording)")
-            }
-            
-            // Ensure UI updates happen on main thread
-            DispatchQueue.main.async {
-                // Always update duration when actually recording
+        
+        // Ensure timer is created on main thread and added to main run loop
+        DispatchQueue.main.async {
+            self.durationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
+                guard let self = self else { 
+                    AppLogger.shared.warning("Timer callback: self is nil")
+                    timer.invalidate()
+                    return 
+                }
+                
+                // Debug: Log first few timer fires
+                if self.recordingDuration < 1.0 {
+                    AppLogger.shared.info("Timer fired - duration: \(self.recordingDuration), state: \(self.state)")
+                }
+                
+                guard let recorder = self.audioRecorder else { 
+                    AppLogger.shared.warning("Timer callback: recorder is nil")
+                    return 
+                }
+                
+                // Check if recorder is actually recording
+                guard recorder.isRecording else {
+                    AppLogger.shared.warning("Timer callback: recorder.isRecording is false - stopping timer updates")
+                    return
+                }
+                
+                // Log every 10th callback (every 1 second) and first few callbacks
+                let currentTime = recorder.currentTime
+                let callbackCount = Int(currentTime * 10)
+                if callbackCount % 10 == 0 || callbackCount < 10 {
+                    AppLogger.shared.info("Timer callback #\(callbackCount): currentTime=\(currentTime), state=\(self.state), isRecording=\(recorder.isRecording)")
+                }
+                
+                // Update duration and audio levels (already on main thread)
                 self.recordingDuration = recorder.currentTime
                 
                 // Only update audio levels when actively recording
@@ -320,6 +328,11 @@ class AudioRecordingManager: NSObject {
                     // Normalize audio level (0.0 to 1.0) where -160 dB is silence
                     let normalizedLevel = pow(10.0, (0.05 * self.averagePower))
                     self.audioLevel = min(max(normalizedLevel, 0.0), 1.0)
+                    
+                    // Debug audio levels for first few seconds
+                    if self.recordingDuration < 3.0 && callbackCount % 5 == 0 {
+                        AppLogger.shared.info("Audio levels - avgPower: \(self.averagePower), peakPower: \(self.peakPower), normalizedLevel: \(normalizedLevel), audioLevel: \(self.audioLevel)")
+                    }
                 } else {
                     // Reset audio levels when paused
                     self.audioLevel = 0.0
@@ -327,12 +340,14 @@ class AudioRecordingManager: NSObject {
                     self.peakPower = 0.0
                 }
             }
-        }
-        
-        if durationTimer != nil {
-            AppLogger.shared.info("Duration timer created and scheduled successfully")
-        } else {
-            AppLogger.shared.error("Failed to create duration timer")
+            
+            // Add timer to current run loop to ensure it fires
+            if let timer = self.durationTimer {
+                RunLoop.current.add(timer, forMode: .common)
+                AppLogger.shared.info("Duration timer created and added to run loop successfully")
+            } else {
+                AppLogger.shared.error("Failed to create duration timer")
+            }
         }
     }
     

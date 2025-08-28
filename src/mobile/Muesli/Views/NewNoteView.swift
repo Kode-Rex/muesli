@@ -39,6 +39,7 @@ struct NewNoteView: View {
     @State private var showingImagePicker = false
     @State private var capturedImages: [CapturedImage] = []
     @State private var userEndedRecording = false
+    @State private var recordingStartTime: Date?
     
     private let sessionTypes = ["note", "meeting", "session"]
     
@@ -49,6 +50,12 @@ struct NewNoteView: View {
         #else
         return UIImagePickerController.isSourceTypeAvailable(.camera) ? "camera.fill" : "photo.on.rectangle"
         #endif
+    }
+    
+    // Prevent accidental pause button presses right after recording starts
+    private var shouldDisablePauseButton: Bool {
+        guard let startTime = recordingStartTime else { return false }
+        return Date().timeIntervalSince(startTime) < 2.0 // Disable for first 2 seconds
     }
     
     var body: some View {
@@ -286,7 +293,7 @@ struct NewNoteView: View {
                             .stroke(Color.white.opacity(0.3), lineWidth: 2)
                     )
             }
-            .disabled(recordingManager.state == .idle)
+            .disabled(recordingManager.state == .idle || shouldDisablePauseButton)
             
             // Waveform and timer
             VStack(spacing: 8) {
@@ -378,6 +385,9 @@ struct NewNoteView: View {
             // Start recording (always works locally)
             _ = try await recordingManager.startRecording()
             
+            // Set recording start time for UI protection
+            recordingStartTime = Date()
+            
             // Try to start real-time transcription if possible
             isOnlineMode = await tryStartTranscription()
             
@@ -387,6 +397,7 @@ struct NewNoteView: View {
             AppLogger.shared.info("Recording started - Mode: \(mode)")
             
         } catch {
+            recordingStartTime = nil
             showError("Failed to start recording: \(error.localizedDescription)")
         }
     }
@@ -407,12 +418,18 @@ struct NewNoteView: View {
     }
     
     private func handleResumeOrPause() {
+        AppLogger.shared.info("handleResumeOrPause called - current state: \(recordingManager.state)")
+        AppLogger.shared.info("Call Stack: \(Thread.callStackSymbols.prefix(3).joined(separator: "\n"))")
+        
         switch recordingManager.state {
         case .recording:
+            AppLogger.shared.info("Pausing recording from handleResumeOrPause")
             pauseRecording()
         case .paused:
+            AppLogger.shared.info("Resuming recording from handleResumeOrPause")
             resumeRecording()
         default:
+            AppLogger.shared.warning("handleResumeOrPause called with unexpected state: \(recordingManager.state)")
             break
         }
     }
@@ -548,6 +565,7 @@ struct NewNoteView: View {
         
         // Reset flags
         userEndedRecording = false
+        recordingStartTime = nil
     }
     
 

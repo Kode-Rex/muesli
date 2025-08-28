@@ -49,9 +49,16 @@ struct WaveformView: View {
     
     private func startAnimation() {
         stopAnimation()
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            DispatchQueue.main.async {
-                updateWaveform()
+        
+        // Ensure timer is created and scheduled on main thread
+        DispatchQueue.main.async {
+            self.animationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+                self.updateWaveform()
+            }
+            
+            // Add to run loop to ensure it fires
+            if let timer = self.animationTimer {
+                RunLoop.current.add(timer, forMode: .common)
             }
         }
     }
@@ -69,6 +76,11 @@ struct WaveformView: View {
         
         // Convert audio level to visual heights
         let baseLevel = CGFloat(audioLevel)
+        
+        // Debug: Log audio level occasionally
+        if Int.random(in: 1...20) == 1 { // Log roughly every 2 seconds
+            print("WaveformView: audioLevel=\(audioLevel), baseLevel=\(baseLevel), isRecording=\(isRecording)")
+        }
         
         for i in 0..<waveformHeights.count {
             // Add some randomization and variation between bars

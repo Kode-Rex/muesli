@@ -19,7 +19,7 @@ final class Note {
     var isArchived: Bool
     var audioFilePath: String? // Local path to audio file
     var transcriptionStatus: String // "none", "pending", "processing", "completed", "failed"
-    var duration: TimeInterval // Recording duration in seconds
+    var duration: TimeInterval? // Recording duration in seconds
     
     init(
         id: UUID = UUID(),
@@ -31,7 +31,7 @@ final class Note {
         isArchived: Bool = false,
         audioFilePath: String? = nil,
         transcriptionStatus: String = "none",
-        duration: TimeInterval = 0
+        duration: TimeInterval? = nil
     ) {
         self.id = id
         self.title = title
@@ -61,6 +61,7 @@ final class Note {
     }
     
     var durationString: String {
+        guard let duration = duration else { return "00:00" }
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%02d:%02d", minutes, seconds)

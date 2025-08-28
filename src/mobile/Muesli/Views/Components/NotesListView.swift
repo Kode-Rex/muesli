@@ -58,7 +58,7 @@ struct NotesListView: View {
                     }
                 }
             }
-            .padding(.bottom, 100)
+            .padding(.bottom, 120)
         }
     }
 }

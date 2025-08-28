@@ -274,7 +274,7 @@ struct SimpleNoteCard: View {
                                     onProcessTranscription?()
                                 }) {
                                     HStack(spacing: 4) {
-                                        Image(systemName: "text.microphone")
+                                        Image(systemName: "doc.text.below.ecg")
                                             .font(.caption)
                                         Text("Transcribe")
                                             .font(.caption)
@@ -299,7 +299,7 @@ struct SimpleNoteCard: View {
                             .foregroundColor(.gray)
                             .font(.system(size: 14))
                         
-                        if note.hasAudio && note.duration > 0 {
+                        if note.hasAudio && (note.duration ?? 0) > 0 {
                             Text("• \(note.durationString)")
                                 .foregroundColor(.gray)
                                 .font(.system(size: 14))

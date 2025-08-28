@@ -113,7 +113,7 @@ class TranscriptionService {
     
     func startRealtimeTranscription() async -> Bool {
         guard hasValidAPIEndpoint else {
-            AppLogger.shared.warning("Transcription API endpoint not configured - falling back to local recording")
+            AppLogger.shared.info("Transcription API endpoint not configured - using local recording mode")
             return false
         }
         
@@ -122,28 +122,43 @@ class TranscriptionService {
             return false
         }
         
+        // Stop any existing connection first
+        if webSocketTask != nil {
+            AppLogger.shared.info("Stopping existing WebSocket connection before starting new one")
+            stopRealtimeTranscription()
+        }
+        
         // Your API WebSocket endpoint for real-time transcription
         let urlString = "\(currentAPIBaseURL)/transcribe/realtime"
-        guard let url = URL(string: urlString.replacingOccurrences(of: "https://", with: "wss://")) else {
-            AppLogger.shared.warning("Invalid WebSocket URL - falling back to local recording")
+        let wsURL = urlString.replacingOccurrences(of: "http://", with: "ws://")
+                             .replacingOccurrences(of: "https://", with: "wss://")
+        
+        guard let url = URL(string: wsURL) else {
+            AppLogger.shared.warning("Invalid WebSocket URL: \(wsURL) - falling back to local recording")
             return false
         }
         
         var request = URLRequest(url: url)
-        // Add any authentication headers your API requires
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Add timeout for connection
+        request.timeoutInterval = 10.0
         
-        webSocketTask = urlSession.webSocketTask(with: request)
-        webSocketTask?.resume()
-        
-        isTranscribing = true
-        currentTranscript = ""
-        
-        // Start listening for messages
-        await startListening()
-        
-        AppLogger.shared.info("Started real-time transcription via custom API")
-        return true
+        do {
+            webSocketTask = urlSession.webSocketTask(with: request)
+            webSocketTask?.resume()
+            
+            isTranscribing = true
+            currentTranscript = ""
+            
+            // Start listening for messages
+            await startListening()
+            
+            AppLogger.shared.info("Started real-time transcription via custom API at: \(wsURL)")
+            return true
+        } catch {
+            AppLogger.shared.warning("Failed to create WebSocket task: \(error) - falling back to local recording")
+            return false
+        }
     }
     
     func stopRealtimeTranscription() {
@@ -165,20 +180,40 @@ class TranscriptionService {
     }
     
     private func startListening() async {
-        guard let webSocketTask = webSocketTask else { return }
+        guard let webSocketTask = webSocketTask else { 
+            AppLogger.shared.warning("startListening called but webSocketTask is nil")
+            return 
+        }
         
         do {
             let message = try await webSocketTask.receive()
             await handleWebSocketMessage(message)
             
-            // Continue listening if still connected
-            if isTranscribing {
+            // Continue listening if still connected and transcribing
+            if isTranscribing && self.webSocketTask != nil {
                 await startListening()
             }
         } catch {
-            AppLogger.shared.error("WebSocket receive error", error: error)
-            onError?(error)
-            isTranscribing = false
+            AppLogger.shared.info("[TranscriptionService.swift:179] startListening() - WebSocket connection lost - transcription will continue in offline mode")
+            
+            // Clean up the connection
+            DispatchQueue.main.async {
+                self.isTranscribing = false
+                self.webSocketTask = nil
+            }
+            
+            // Don't call onError for normal connection loss - just stop gracefully
+            if let urlError = error as? URLError {
+                switch urlError.code {
+                case .cancelled, .networkConnectionLost, .notConnectedToInternet:
+                    // These are expected in mobile environments
+                    AppLogger.shared.info("WebSocket closed due to network conditions: \(urlError.localizedDescription)")
+                default:
+                    AppLogger.shared.warning("WebSocket error: \(urlError.localizedDescription)")
+                }
+            } else {
+                AppLogger.shared.warning("WebSocket error: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -251,8 +286,8 @@ class TranscriptionService {
             
             // Add audio file to form data
             guard let boundaryStart = "--\(boundary)\r\n".data(using: .utf8),
-                  let contentDisposition = "Content-Disposition: form-data; name=\"audio\"; filename=\"recording.m4a\"\r\n".data(using: .utf8),
-                  let contentType = "Content-Type: audio/mp4\r\n\r\n".data(using: .utf8),
+                  let contentDisposition = "Content-Disposition: form-data; name=\"audio\"; filename=\"recording.wav\"\r\n".data(using: .utf8),
+                  let contentType = "Content-Type: audio/wav\r\n\r\n".data(using: .utf8),
                   let boundaryEnd = "\r\n--\(boundary)--\r\n".data(using: .utf8) else {
                 AppLogger.shared.warning("Failed to create form data for batch transcription")
                 return nil

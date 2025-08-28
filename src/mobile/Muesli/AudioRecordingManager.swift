@@ -49,9 +49,13 @@ class AudioRecordingManager: NSObject {
     private(set) var currentRecordingPath: String?
     private(set) var recordingDuration: TimeInterval = 0
     private(set) var hasPermission: Bool = false
+    private(set) var audioLevel: Float = 0.0
+    private(set) var averagePower: Float = 0.0
+    private(set) var peakPower: Float = 0.0
     
-    // Timer for updating duration
+    // Timer for updating duration and audio levels
     private var durationTimer: Timer?
+    private var recordingStartTime: Date?
     
     private override init() {
         super.init()
@@ -62,7 +66,7 @@ class AudioRecordingManager: NSObject {
     
     func requestPermission() async -> Bool {
         await withCheckedContinuation { continuation in
-            audioSession.requestRecordPermission { granted in
+            AVAudioApplication.requestRecordPermission { granted in
                 DispatchQueue.main.async {
                     self.hasPermission = granted
                     continuation.resume(returning: granted)
@@ -72,7 +76,7 @@ class AudioRecordingManager: NSObject {
     }
     
     func checkPermission() {
-        switch audioSession.recordPermission {
+        switch AVAudioApplication.shared.recordPermission {
         case .granted:
             hasPermission = true
         case .denied, .undetermined:
@@ -89,37 +93,74 @@ class AudioRecordingManager: NSObject {
             throw RecordingError.permissionDenied
         }
         
+        // Stop any existing recording first
+        if audioRecorder?.isRecording == true {
+            AppLogger.shared.info("Stopping existing recording before starting new one")
+            audioRecorder?.stop()
+        }
+        
         // Generate file path
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let audioFilename = fileName ?? "recording_\(UUID().uuidString).m4a"
+        let audioFilename = fileName ?? "recording_\(UUID().uuidString).wav"
         let audioURL = documentsPath.appendingPathComponent(audioFilename)
         
-        // Audio recording settings
+        // Audio recording settings - using more compatible format for iOS Simulator
         let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 44100,
+            AVFormatIDKey: Int(kAudioFormatLinearPCM), // Use uncompressed PCM for better compatibility
+            AVSampleRateKey: 44100.0, // Standard sample rate
             AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false
         ]
         
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .default)
+            // Use simpler, more compatible audio session configuration
+            try audioSession.setCategory(.record, mode: .default)
             try audioSession.setActive(true)
+            
+            // Add a small delay to let audio session stabilize
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             
             audioRecorder = try AVAudioRecorder(url: audioURL, settings: settings)
             audioRecorder?.delegate = self
             audioRecorder?.isMeteringEnabled = true
-            audioRecorder?.prepareToRecord()
+            
+            // Ensure prepareToRecord succeeds
+            guard let recorder = audioRecorder else {
+                AppLogger.shared.error("Failed to create AVAudioRecorder")
+                throw RecordingError.recordingFailed
+            }
+            
+            guard recorder.prepareToRecord() else {
+                AppLogger.shared.error("Failed to prepare recorder - URL: \(audioURL), Settings: \(settings)")
+                throw RecordingError.recordingFailed
+            }
+            
+            // Add a small delay before starting recording
+            try await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
             
             let success = audioRecorder?.record() ?? false
             if success {
-                state = .recording
-                currentRecordingPath = audioFilename
-                recordingDuration = 0
-                startDurationTimer()
-                AppLogger.shared.info("Started recording: \(audioFilename)")
-                return audioFilename
+                recordingStartTime = Date()
+                DispatchQueue.main.async {
+                    self.state = .recording
+                    self.currentRecordingPath = audioFilename
+                    self.recordingDuration = 0
+                }
+                
+                // Verify recording actually started
+                try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                if audioRecorder?.isRecording == true {
+                    startDurationTimer()
+                    AppLogger.shared.info("Started recording: \(audioFilename) - Verified recording is active")
+                    return audioFilename
+                } else {
+                    AppLogger.shared.error("Recording failed to start properly - isRecording is false")
+                    throw RecordingError.recordingFailed
+                }
             } else {
+                AppLogger.shared.error("record() returned false")
                 throw RecordingError.recordingFailed
             }
         } catch {
@@ -132,25 +173,43 @@ class AudioRecordingManager: NSObject {
         guard state == .recording else { return }
         
         audioRecorder?.pause()
-        state = .paused
-        stopDurationTimer()
+        DispatchQueue.main.async {
+            self.state = .paused
+        }
+        // Keep timer running to track duration even when paused
         AppLogger.shared.info("Paused recording")
     }
     
     func resumeRecording() {
         guard state == .paused else { return }
         
+        // Ensure audio session is still active
+        do {
+            try audioSession.setActive(true)
+        } catch {
+            AppLogger.shared.warning("Failed to reactivate audio session on resume: \(error)")
+        }
+        
         audioRecorder?.record()
-        state = .recording
-        startDurationTimer()
+        DispatchQueue.main.async {
+            self.state = .recording
+        }
+        // Timer should already be running
         AppLogger.shared.info("Resumed recording")
     }
     
     func stopRecording() {
-        guard state == .recording || state == .paused else { return }
+        guard state == .recording || state == .paused else { 
+            AppLogger.shared.warning("stopRecording called but state is: \(state)")
+            return 
+        }
+        
+        AppLogger.shared.info("stopRecording called - current duration: \(recordingDuration)s, state: \(state)")
         
         audioRecorder?.stop()
-        state = .finished
+        DispatchQueue.main.async {
+            self.state = .finished
+        }
         stopDurationTimer()
         
         do {
@@ -214,7 +273,7 @@ class AudioRecordingManager: NSObject {
     
     private func setupAudioSession() {
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .default)
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
             checkPermission()
         } catch {
             AppLogger.shared.error("Failed to setup audio session", error: error)
@@ -223,15 +282,68 @@ class AudioRecordingManager: NSObject {
     
     private func startDurationTimer() {
         stopDurationTimer()
+        AppLogger.shared.info("Starting duration timer with 0.1s interval")
         durationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self, let recorder = self.audioRecorder else { return }
-            self.recordingDuration = recorder.currentTime
+            guard let self = self else { 
+                AppLogger.shared.warning("Timer callback: self is nil")
+                return 
+            }
+            
+            guard let recorder = self.audioRecorder else { 
+                AppLogger.shared.warning("Timer callback: recorder is nil")
+                return 
+            }
+            
+            // Check if recorder is actually recording
+            guard recorder.isRecording else {
+                AppLogger.shared.warning("Timer callback: recorder.isRecording is false")
+                return
+            }
+            
+            // Log every 10th callback (every 1 second)
+            let currentTime = recorder.currentTime
+            if Int(currentTime * 10) % 10 == 0 {
+                AppLogger.shared.info("Timer callback: currentTime=\(currentTime), state=\(self.state), isRecording=\(recorder.isRecording)")
+            }
+            
+            // Ensure UI updates happen on main thread
+            DispatchQueue.main.async {
+                // Always update duration when actually recording
+                self.recordingDuration = recorder.currentTime
+                
+                // Only update audio levels when actively recording
+                if self.state == .recording && recorder.isRecording {
+                    recorder.updateMeters()
+                    self.averagePower = recorder.averagePower(forChannel: 0)
+                    self.peakPower = recorder.peakPower(forChannel: 0)
+                    
+                    // Normalize audio level (0.0 to 1.0) where -160 dB is silence
+                    let normalizedLevel = pow(10.0, (0.05 * self.averagePower))
+                    self.audioLevel = min(max(normalizedLevel, 0.0), 1.0)
+                } else {
+                    // Reset audio levels when paused
+                    self.audioLevel = 0.0
+                    self.averagePower = 0.0
+                    self.peakPower = 0.0
+                }
+            }
+        }
+        
+        if durationTimer != nil {
+            AppLogger.shared.info("Duration timer created and scheduled successfully")
+        } else {
+            AppLogger.shared.error("Failed to create duration timer")
         }
     }
     
     private func stopDurationTimer() {
         durationTimer?.invalidate()
         durationTimer = nil
+        
+        // Reset audio levels when not recording
+        audioLevel = 0.0
+        averagePower = 0.0
+        peakPower = 0.0
     }
 }
 
@@ -240,13 +352,25 @@ class AudioRecordingManager: NSObject {
 extension AudioRecordingManager: AVAudioRecorderDelegate {
     
     func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
-        if flag {
-            AppLogger.shared.info("Recording finished successfully")
-        } else {
-            AppLogger.shared.error("Recording failed to finish")
-            state = .idle
-            currentRecordingPath = nil
-            recordingDuration = 0
+        let elapsedSinceStart = recordingStartTime?.timeIntervalSinceNow ?? 0
+        AppLogger.shared.info("AVAudioRecorderDelegate: audioRecorderDidFinishRecording called - success: \(flag), duration: \(recordingDuration), elapsed since start: \(abs(elapsedSinceStart))s")
+        
+        // If recording finished almost immediately (< 0.5 seconds), it might be a false trigger
+        if let startTime = recordingStartTime, abs(startTime.timeIntervalSinceNow) < 0.5 {
+            AppLogger.shared.warning("Recording finished too quickly - possible audio session conflict or simulator limitation")
+        }
+        
+        DispatchQueue.main.async {
+            if flag {
+                AppLogger.shared.info("Recording finished successfully")
+                self.state = .finished
+            } else {
+                AppLogger.shared.error("Recording failed to finish")
+                self.state = .idle
+                self.currentRecordingPath = nil
+                self.recordingDuration = 0
+                self.stopDurationTimer()
+            }
         }
     }
     
@@ -255,5 +379,13 @@ extension AudioRecordingManager: AVAudioRecorderDelegate {
         state = .idle
         currentRecordingPath = nil
         recordingDuration = 0
+        stopDurationTimer()
+        
+        // Try to deactivate audio session gracefully
+        do {
+            try audioSession.setActive(false)
+        } catch {
+            AppLogger.shared.warning("Failed to deactivate audio session after encode error: \(error)")
+        }
     }
 }

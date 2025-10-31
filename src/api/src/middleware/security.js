@@ -121,16 +121,13 @@ export const transcriptionRateLimit = rateLimit({
 export const slowDownMiddleware = slowDown({
   windowMs: config.security.rateLimiting.windowMs,
   delayAfter: Math.floor(config.security.rateLimiting.maxRequests * 0.5),
-  delayMs: 500,
+  delayMs: () => 500, // Fixed: Use function for v2 behavior
   maxDelayMs: 20000,
   skipFailedRequests: false,
   skipSuccessfulRequests: false,
-  onLimitReached: (req, res, options) => {
-    Logger.security('Slow down limit reached', {
-      ip: req.ip,
-      path: req.path,
-      delay: options.delay
-    });
+  // Removed deprecated onLimitReached - use handler instead if needed
+  validate: {
+    onLimitReached: false // Disable deprecation warning
   }
 });
 

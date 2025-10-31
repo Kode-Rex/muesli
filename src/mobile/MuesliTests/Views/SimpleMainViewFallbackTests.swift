@@ -23,6 +23,7 @@ struct SimpleMainViewFallbackTests {
     // MARK: - Batch Transcription Fallback Tests
     
     @Test("Batch transcription handles API unavailable gracefully")
+    @MainActor
     func batchTranscriptionHandlesAPIUnavailableGracefully() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -86,6 +87,7 @@ struct SimpleMainViewFallbackTests {
     }
     
     @Test("Multiple batch transcription requests don't interfere")
+    @MainActor
     func multipleBatchTranscriptionRequestsDontInterfere() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -136,6 +138,7 @@ struct SimpleMainViewFallbackTests {
     // MARK: - Error State Management Tests
     
     @Test("Transcription failure updates note status correctly")
+    @MainActor
     func transcriptionFailureUpdatesNoteStatusCorrectly() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -174,6 +177,7 @@ struct SimpleMainViewFallbackTests {
     }
     
     @Test("Database save errors during transcription are handled")
+    @MainActor
     func databaseSaveErrorsDuringTranscriptionAreHandled() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -222,6 +226,7 @@ struct SimpleMainViewFallbackTests {
     // MARK: - Status Transition Tests
     
     @Test("Transcription status transitions follow correct flow")
+    @MainActor
     func transcriptionStatusTransitionsFollowCorrectFlow() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -273,6 +278,7 @@ struct SimpleMainViewFallbackTests {
     // MARK: - UI Integration Tests
     
     @Test("Note list updates correctly after transcription status changes")
+    @MainActor
     func noteListUpdatesCorrectlyAfterTranscriptionStatusChanges() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -303,7 +309,9 @@ struct SimpleMainViewFallbackTests {
         for note in allNotes {
             #expect(!note.title.isEmpty)
             #expect(note.timestamp <= Date()) // Should not be in the future
-            #expect(note.duration >= 0) // Should not be negative
+            if let duration = note.duration {
+                #expect(duration >= 0) // Should not be negative
+            }
             #expect(["pending", "processing", "completed", "failed"].contains(note.transcriptionStatus))
         }
     }
@@ -311,6 +319,7 @@ struct SimpleMainViewFallbackTests {
     // MARK: - Performance Tests
     
     @Test("Large batch transcription operations don't block")
+    @MainActor
     func largeBatchTranscriptionOperationsDontBlock() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext

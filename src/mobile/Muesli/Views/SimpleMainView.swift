@@ -198,23 +198,24 @@ struct SimpleMainView: View {
             return
         }
         
-        // Process transcription
+        // Process transcription with hybrid service
         Task {
-            if let transcript = await TranscriptionService.shared.transcribeAudioFile(url: audioURL) {
-                
+            do {
+                let transcript = try await HybridTranscriptionService.shared.transcribeAudioFile(url: audioURL)
+
                 DispatchQueue.main.async {
                     note.content = transcript
                     note.transcriptionStatus = "completed"
-                    
+
                     do {
                         try self.modelContext.save()
-                        AppLogger.shared.info("Successfully transcribed note: \(note.title)")
+                        AppLogger.shared.info("Successfully transcribed note: \(note.title) (\(transcript.count) chars)")
                     } catch {
                         AppLogger.shared.dataError("Save Transcription", error: error)
                         note.transcriptionStatus = "failed"
                     }
                 }
-            } else {
+            } catch {
                 // Mark transcription as failed if service is not available
                 DispatchQueue.main.async {
                     note.transcriptionStatus = "failed"
@@ -224,7 +225,7 @@ struct SimpleMainView: View {
                         AppLogger.shared.dataError("Update Failed Status", error: error)
                     }
                 }
-                AppLogger.shared.info("Transcription not available for note: \(note.title)")
+                AppLogger.shared.info("Transcription failed for note: \(note.title) - \(error.localizedDescription)")
             }
         }
     }

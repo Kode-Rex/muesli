@@ -45,14 +45,32 @@ struct AppConstants {
         static let maxFileSize: Int64 = 50 * 1024 * 1024 // 50MB
     }
     
+    // MARK: - Transcription Configuration
+    struct Transcription {
+        // Duration threshold for switching from local to cloud (in seconds)
+        static let shortRecordingThreshold: TimeInterval = 5 * 60 // 5 minutes
+
+        // Local transcription limits (iOS Speech framework)
+        static let localDailyLimit: TimeInterval = 60 * 60 // ~1 hour per day (Apple limit)
+        static let localMaxFileSize: Int64 = 10 * 1024 * 1024 // 10MB
+
+        // Cloud transcription settings
+        static let cloudMinFileSize: Int64 = 1024 // 1KB
+        static let cloudMaxFileSize: Int64 = 50 * 1024 * 1024 // 50MB
+
+        // Real-time transcription
+        static let realtimeBufferSize: Int = 4096
+        static let realtimeUpdateInterval: TimeInterval = 0.5
+    }
+
     // MARK: - Transcription Status
     enum TranscriptionStatus: String, CaseIterable {
         case none = "none"
-        case pending = "pending" 
+        case pending = "pending"
         case processing = "processing"
         case completed = "completed"
         case failed = "failed"
-        
+
         var displayName: String {
             switch self {
             case .none: return "No Transcription"
@@ -119,6 +137,7 @@ extension AppConstants {
         static let hasSeenOnboarding = "hasSeenOnboarding"
         static let preferredSessionType = "preferredSessionType"
         static let autoTranscriptionEnabled = "autoTranscriptionEnabled"
+        static let transcriptionStrategy = "transcriptionStrategy"
         static let lastAppVersion = "lastAppVersion"
     }
 }

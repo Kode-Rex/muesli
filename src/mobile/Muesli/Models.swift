@@ -20,6 +20,7 @@ final class Note {
     var audioFilePath: String? // Local path to audio file
     var transcriptionStatus: String // "none", "pending", "processing", "completed", "failed"
     var duration: TimeInterval? // Recording duration in seconds
+    var imagePaths: [String]? // Array of local file paths to captured images
     
     init(
         id: UUID = UUID(),
@@ -31,7 +32,8 @@ final class Note {
         isArchived: Bool = false,
         audioFilePath: String? = nil,
         transcriptionStatus: String = "none",
-        duration: TimeInterval? = nil
+        duration: TimeInterval? = nil,
+        imagePaths: [String]? = nil
     ) {
         self.id = id
         self.title = title
@@ -43,6 +45,7 @@ final class Note {
         self.audioFilePath = audioFilePath
         self.transcriptionStatus = transcriptionStatus
         self.duration = duration
+        self.imagePaths = imagePaths
     }
     
     // Computed properties for UI display
@@ -77,6 +80,14 @@ final class Note {
     
     var isTranscribing: Bool {
         return transcriptionStatus == "processing"
+    }
+
+    var hasImages: Bool {
+        return imagePaths != nil && !(imagePaths?.isEmpty ?? true)
+    }
+
+    var imageCount: Int {
+        return imagePaths?.count ?? 0
     }
 }
 

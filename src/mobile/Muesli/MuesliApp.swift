@@ -37,28 +37,7 @@ struct MuesliApp: App {
     var body: some Scene {
         WindowGroup {
             SimpleMainView()
-                .onAppear {
-                    addSampleNotesIfNeeded()
-                }
         }
         .modelContainer(sharedModelContainer)
-    }
-    
-    private func addSampleNotesIfNeeded() {
-        #if DEBUG
-        // Only add sample data in debug builds for development/testing
-        let context = sharedModelContainer.mainContext
-        
-        let descriptor = FetchDescriptor<Note>()
-        do {
-            let existingNotes = try context.fetch(descriptor)
-            if existingNotes.isEmpty {
-                SampleDataManager.seedDatabase(context: context)
-                AppLogger.shared.dataSuccess("Development Sample Data", details: "Added sample notes for development")
-            }
-        } catch {
-            AppLogger.shared.dataError("Sample Data Seeding", error: error)
-        }
-        #endif
     }
 }

@@ -22,7 +22,7 @@ struct NewNoteView: View {
     
     // Recording state
     @State private var recordingManager = AudioRecordingManager.shared
-    @State private var transcriptionService = TranscriptionService.shared
+    @State private var transcriptionService = HybridTranscriptionService.shared
     @State private var networkMonitor = NetworkMonitor.shared
     
     // Note properties
@@ -297,10 +297,7 @@ struct NewNoteView: View {
             
             // Waveform and timer
             VStack(spacing: 8) {
-                WaveformView(
-                    audioLevel: recordingManager.audioLevel,
-                    isRecording: recordingManager.state == .recording
-                )
+                WaveformView()
                 .onChange(of: recordingManager.state) { oldValue, newValue in
                     AppLogger.shared.info("UI: Recording state changed from \(oldValue) to \(newValue)")
                 }
@@ -360,9 +357,11 @@ struct NewNoteView: View {
         }
         
         // Setup transcription callbacks
-        transcriptionService.onTranscriptionUpdate = { result in
+        transcriptionService.onTranscriptionUpdate = { transcript, isFinal in
             DispatchQueue.main.async {
-                self.content += result.text + " "
+                if isFinal {
+                    self.content += transcript + " "
+                }
             }
         }
         
@@ -403,18 +402,21 @@ struct NewNoteView: View {
     }
     
     private func tryStartTranscription() async -> Bool {
-        // Check if conditions are met for transcription
-        guard networkMonitor.isConnected && transcriptionService.hasValidAPIEndpoint else {
-            AppLogger.shared.info("Transcription not available - continuing with local recording only")
+        // Check if any transcription service is available
+        guard transcriptionService.isLocalAvailable || transcriptionService.isCloudAvailable else {
+            AppLogger.shared.info("No transcription service available - continuing with local recording only")
             return false
         }
-        
-        // Attempt to start transcription service
-        let success = await transcriptionService.startRealtimeTranscription()
-        if !success {
-            AppLogger.shared.info("Transcription service unavailable - continuing with local recording only")
+
+        // Attempt to start hybrid transcription service
+        do {
+            try await transcriptionService.startRealtimeTranscription()
+            AppLogger.shared.info("Hybrid transcription started - Active: \(transcriptionService.activeService)")
+            return true
+        } catch {
+            AppLogger.shared.info("Transcription service unavailable - continuing with local recording only: \(error.localizedDescription)")
+            return false
         }
-        return success
     }
     
     private func handleResumeOrPause() {
@@ -444,14 +446,16 @@ struct NewNoteView: View {
     
     private func resumeRecording() {
         recordingManager.resumeRecording()
-        
+
         if isOnlineMode {
             Task {
-                let success = await transcriptionService.startRealtimeTranscription()
-                if !success {
+                do {
+                    try await transcriptionService.startRealtimeTranscription()
+                    AppLogger.shared.info("Transcription reconnected - Active: \(transcriptionService.activeService)")
+                } catch {
                     // If transcription fails, switch to offline mode
                     isOnlineMode = false
-                    AppLogger.shared.info("Transcription reconnection failed - continuing in offline mode")
+                    AppLogger.shared.info("Transcription reconnection failed - continuing in offline mode: \(error.localizedDescription)")
                 }
             }
         }
@@ -482,14 +486,23 @@ struct NewNoteView: View {
         do {
             let conferenceValue = conferenceName.isEmpty ? nil : conferenceName
             let finalTitle = title.isEmpty ? "New Note" : title
-            
+
+            // Determine transcription status based on content and audio availability
             let transcriptionStatus: String
-            if isOnlineMode {
-                transcriptionStatus = content.isEmpty ? "failed" : "completed"
-            } else {
+            if !content.isEmpty {
+                // We got transcription during recording
+                transcriptionStatus = "completed"
+            } else if recordingManager.currentRecordingPath != nil {
+                // No transcription yet, but we have audio - try batch later
                 transcriptionStatus = "pending"
+            } else {
+                // No transcription and no audio
+                transcriptionStatus = "none"
             }
-            
+
+            // Save captured images to disk
+            let savedImagePaths = saveImagesToDisk()
+
             let note = Note(
                 title: finalTitle,
                 content: content,
@@ -499,14 +512,15 @@ struct NewNoteView: View {
                 isArchived: false,
                 audioFilePath: recordingManager.currentRecordingPath,
                 transcriptionStatus: transcriptionStatus,
-                duration: recordingManager.recordingDuration > 0 ? recordingManager.recordingDuration : nil
+                duration: recordingManager.recordingDuration > 0 ? recordingManager.recordingDuration : nil,
+                imagePaths: savedImagePaths.isEmpty ? nil : savedImagePaths
             )
-            
+
             modelContext.insert(note)
             try modelContext.save()
-            
-            // If we saved in offline mode, attempt batch transcription in background
-            if !isOnlineMode, let audioPath = recordingManager.currentRecordingPath {
+
+            // Attempt batch transcription if content is empty but we have audio
+            if content.isEmpty, let audioPath = recordingManager.currentRecordingPath {
                 Task {
                     await attemptBatchTranscription(for: note, audioPath: audioPath)
                 }
@@ -525,24 +539,25 @@ struct NewNoteView: View {
             AppLogger.shared.warning("Audio file not found for batch transcription: \(audioPath)")
             return
         }
-        
+
         AppLogger.shared.info("Attempting batch transcription for offline recording")
-        
-        if let transcript = await transcriptionService.transcribeAudioFile(url: audioURL) {
+
+        do {
+            let transcript = try await transcriptionService.transcribeAudioFile(url: audioURL)
             // Update the note with transcription
             await MainActor.run {
                 note.content = transcript
                 note.transcriptionStatus = "completed"
-                
+
                 do {
                     try modelContext.save()
-                    AppLogger.shared.info("Successfully transcribed offline recording")
+                    AppLogger.shared.info("Successfully transcribed offline recording (\(transcript.count) chars)")
                 } catch {
                     AppLogger.shared.error("Failed to save transcribed content", error: error)
                 }
             }
-        } else {
-            AppLogger.shared.info("Batch transcription not available - note remains with local recording only")
+        } catch {
+            AppLogger.shared.info("Batch transcription not available - note remains with local recording only: \(error.localizedDescription)")
         }
     }
     
@@ -587,7 +602,40 @@ struct NewNoteView: View {
         capturedImages.append(capturedImage)
         AppLogger.shared.info("Image captured at \(formatImageTimestamp(capturedImage.timestamp))")
     }
-    
+
+    private func saveImagesToDisk() -> [String] {
+        guard !capturedImages.isEmpty else { return [] }
+
+        var savedPaths: [String] = []
+
+        // Create images directory if it doesn't exist
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let imagesDirectory = documentsPath.appendingPathComponent("Images", isDirectory: true)
+
+        do {
+            try FileManager.default.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+
+            // Save each image
+            for (index, capturedImage) in capturedImages.enumerated() {
+                let timestamp = Int(capturedImage.timestamp.timeIntervalSince1970)
+                let filename = "img_\(timestamp)_\(index).jpg"
+                let fileURL = imagesDirectory.appendingPathComponent(filename)
+
+                // Convert to JPEG data (compress to 0.8 quality)
+                if let imageData = capturedImage.image.jpegData(compressionQuality: 0.8) {
+                    try imageData.write(to: fileURL)
+                    // Store relative path (just "Images/filename.jpg")
+                    savedPaths.append("Images/\(filename)")
+                    AppLogger.shared.info("Saved image to: \(filename)")
+                }
+            }
+        } catch {
+            AppLogger.shared.error("Failed to save images", error: error)
+        }
+
+        return savedPaths
+    }
+
     private func showError(_ message: String) {
         errorMessage = message
         showingError = true

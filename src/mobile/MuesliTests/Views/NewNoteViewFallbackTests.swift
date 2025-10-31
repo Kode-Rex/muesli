@@ -23,6 +23,7 @@ struct NewNoteViewFallbackTests {
     // MARK: - Recording State Tests
     
     @Test("Recording state initializes correctly regardless of API availability")
+    @MainActor
     func recordingStateInitializesCorrectlyRegardlessOfAPIAvailability() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -77,6 +78,7 @@ struct NewNoteViewFallbackTests {
     // MARK: - Note Saving Tests
     
     @Test("Note saving works in both online and offline modes")
+    @MainActor
     func noteSavingWorksInBothOnlineAndOfflineModes() throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -126,6 +128,7 @@ struct NewNoteViewFallbackTests {
     // MARK: - Batch Transcription Tests
     
     @Test("Batch transcription attempt doesn't crash for offline recordings")
+    @MainActor
     func batchTranscriptionAttemptDoesntCrashForOfflineRecordings() async throws {
         let container = try createTestModelContainer()
         let context = container.mainContext
@@ -181,11 +184,12 @@ struct NewNoteViewFallbackTests {
     func recordingModeIndicatorsWorkCorrectly() async throws {
         let transcriptionService = TranscriptionService.shared
         let networkMonitor = NetworkMonitor.shared
-        
+
         // Simulate the logic for determining online mode
-        let isOnlineMode = networkMonitor.isConnected && 
-                          transcriptionService.hasValidAPIEndpoint &&
-                          (await transcriptionService.startRealtimeTranscription())
+        var isOnlineMode = false
+        if networkMonitor.isConnected && transcriptionService.hasValidAPIEndpoint {
+            isOnlineMode = await transcriptionService.startRealtimeTranscription()
+        }
         
         // Clean up if we started transcription
         if transcriptionService.isTranscribing {

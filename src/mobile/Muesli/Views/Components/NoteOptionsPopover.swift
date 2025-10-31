@@ -14,9 +14,8 @@ struct NoteOptionsPopover: View {
     let onEditContent: () -> Void
     let onViewTranscript: () -> Void
     let onShowMyNotes: () -> Void
-    let onEditAISummary: () -> Void
-    let onCopyNotes: () -> Void
     let onArchive: () -> Void
+    let onDelete: () -> Void
     let onClose: () -> Void
     
     var body: some View {
@@ -32,7 +31,7 @@ struct NoteOptionsPopover: View {
             }
             
             Divider().background(Color.gray.opacity(0.5))
-            
+
             NoteOptionRow(
                 icon: "square.and.pencil",
                 title: "Edit content"
@@ -42,21 +41,9 @@ struct NoteOptionsPopover: View {
                     onEditContent()
                 }
             }
-            
+
             Divider().background(Color.gray.opacity(0.5))
-            
-            NoteOptionRow(
-                icon: "brain",
-                title: "Edit AI summary"
-            ) {
-                onClose()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    onEditAISummary()
-                }
-            }
-            
-            Divider().background(Color.gray.opacity(0.5))
-            
+
             NoteOptionRow(
                 icon: "doc.text",
                 title: "View transcript"
@@ -66,9 +53,9 @@ struct NoteOptionsPopover: View {
                     onViewTranscript()
                 }
             }
-            
+
             Divider().background(Color.gray.opacity(0.5))
-            
+
             NoteOptionRow(
                 icon: "square.on.square",
                 title: "Show my notes"
@@ -78,22 +65,9 @@ struct NoteOptionsPopover: View {
                     onShowMyNotes()
                 }
             }
-            
+
             Divider().background(Color.gray.opacity(0.5))
-            
-            NoteOptionRow(
-                icon: "doc.on.doc",
-                title: "Copy notes"
-            ) {
-                UIPasteboard.general.string = note.content
-                let impact = UIImpactFeedbackGenerator(style: .medium)
-                impact.impactOccurred()
-                AppLogger.shared.userAction("Copy Notes", context: note.title)
-                onClose()
-            }
-            
-            Divider().background(Color.gray.opacity(0.5))
-            
+
             NoteOptionRow(
                 icon: "archivebox",
                 title: "Archive note"
@@ -103,6 +77,30 @@ struct NoteOptionsPopover: View {
                     onArchive()
                 }
             }
+
+            Divider().background(Color.gray.opacity(0.5))
+
+            Button(action: {
+                onClose()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    onDelete()
+                }
+            }) {
+                HStack(spacing: 12) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                        .font(.system(size: 16))
+                        .frame(width: 20, height: 20)
+
+                    Text("Delete note")
+                        .foregroundColor(.red)
+                        .font(.system(size: 15))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(PlainButtonStyle())
         }
         .background(Color(red: 0.2, green: 0.2, blue: 0.2))
         .cornerRadius(12)

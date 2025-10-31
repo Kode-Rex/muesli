@@ -116,8 +116,7 @@ struct SimpleNoteDetailView: View {
                     }
 
                     // Captured images section (collapsable)
-                    if !note.imagePaths.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 12) {
                             // Header with collapse button
                             Button(action: {
                                 withAnimation {
@@ -191,11 +190,11 @@ struct SimpleNoteDetailView: View {
                                 }
                             }
                         }
-                        .padding(.bottom, 12)
-
-                        Divider()
-                            .background(Color.gray.opacity(0.3))
                     }
+                    .padding(.bottom, 12)
+
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
 
                     // AI Summary display
                     Group {
@@ -251,7 +250,6 @@ struct SimpleNoteDetailView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                }
             }
             .navigationTitle("Note")
             .navigationBarTitleDisplayMode(.inline)

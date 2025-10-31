@@ -1,3 +1,11 @@
+# IDE and Editor
+.vscode/
+.kiro/
+.idea/
+*.swp
+*.swo
+*~
+
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore

@@ -325,9 +325,14 @@ class AudioRecordingManager: NSObject {
                     self.averagePower = recorder.averagePower(forChannel: 0)
                     self.peakPower = recorder.peakPower(forChannel: 0)
                     
-                    // Normalize audio level (0.0 to 1.0) where -160 dB is silence
-                    let normalizedLevel = pow(10.0, (0.05 * self.averagePower))
-                    self.audioLevel = min(max(normalizedLevel, 0.0), 1.0)
+                    // Normalize audio level (0.0 to 1.0)
+                    // Average power ranges from -160 dB (silence) to 0 dB (max)
+                    // Map -50 dB to 0.0 and 0 dB to 1.0 for better visual range
+                    let minDB: Float = -50.0
+                    let maxDB: Float = 0.0
+                    let clampedPower = max(minDB, min(maxDB, self.averagePower))
+                    let normalizedLevel = (clampedPower - minDB) / (maxDB - minDB)
+                    self.audioLevel = normalizedLevel
                     
                     // Debug audio levels for first few seconds
                     if self.recordingDuration < 3.0 && callbackCount % 5 == 0 {

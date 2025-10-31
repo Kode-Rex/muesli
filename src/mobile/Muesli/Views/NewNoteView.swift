@@ -482,6 +482,11 @@ struct NewNoteView: View {
             // Save captured images to disk
             let savedImagePaths = saveImagesToDisk()
 
+            // Generate initial summary from user notes if present
+            let initialSummary = !content.isEmpty
+                ? SimpleSummaryGenerator.generateSummary(from: "", userNotes: content)
+                : nil
+
             let note = Note(
                 title: finalTitle,
                 content: "", // Transcript will be added later via transcription
@@ -493,7 +498,7 @@ struct NewNoteView: View {
                 transcriptionStatus: transcriptionStatus,
                 duration: recordingManager.recordingDuration > 0 ? recordingManager.recordingDuration : nil,
                 imagePaths: savedImagePaths,
-                aiSummary: nil,
+                aiSummary: initialSummary,
                 userNotes: content // Save user's notes separately
             )
 

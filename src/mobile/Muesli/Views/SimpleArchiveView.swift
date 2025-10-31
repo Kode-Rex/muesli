@@ -95,7 +95,7 @@ struct SimpleArchiveView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingNoteDetail) {
+        .fullScreenCover(isPresented: $showingNoteDetail) {
             if let note = selectedNote {
                 SimpleNoteDetailView(note: note)
             }

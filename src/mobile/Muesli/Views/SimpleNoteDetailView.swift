@@ -306,7 +306,7 @@ struct SimpleNoteDetailView: View {
         .sheet(isPresented: $showingEnhancedEditor) {
             EnhancedNoteEditorView(note: note)
         }
-        .sheet(isPresented: $showingImageViewer) {
+        .fullScreenCover(isPresented: $showingImageViewer) {
             if let imagePath = selectedImagePath, let image = loadImage(from: imagePath) {
                 FullscreenImageViewer(image: image, onDismiss: {
                     showingImageViewer = false

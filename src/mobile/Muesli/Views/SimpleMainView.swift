@@ -89,7 +89,7 @@ struct SimpleMainView: View {
         .sheet(isPresented: $showingArchive) {
             SimpleArchiveView()
         }
-        .sheet(isPresented: $showingNoteDetail) {
+        .fullScreenCover(isPresented: $showingNoteDetail) {
             if let note = selectedNote {
                 SimpleNoteDetailView(note: note)
             }

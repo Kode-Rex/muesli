@@ -43,9 +43,9 @@ struct SimpleSummaryGenerator {
         return formatter.string(from: Date())
     }
 
-    /// Generates a concise bullet-point summary from a transcript
-    static func generateSummary(from transcript: String) -> String {
-        guard !transcript.isEmpty else {
+    /// Generates a concise bullet-point summary from a transcript and user notes
+    static func generateSummary(from transcript: String, userNotes: String = "") -> String {
+        guard !transcript.isEmpty || !userNotes.isEmpty else {
             return "No content to summarize."
         }
 
@@ -80,12 +80,31 @@ struct SimpleSummaryGenerator {
             summary += "• \(last)\n"
         }
 
-        // Add word count
-        let wordCount = transcript.split(separator: " ").count
-        summary += "\n○ \(wordCount) words transcribed"
+        // Add word count for transcript
+        if !transcript.isEmpty {
+            let wordCount = transcript.split(separator: " ").count
+            summary += "\n○ \(wordCount) words transcribed"
 
-        if let duration = estimateDuration(wordCount: wordCount) {
-            summary += "\n○ ~\(duration) speaking time"
+            if let duration = estimateDuration(wordCount: wordCount) {
+                summary += "\n○ ~\(duration) speaking time"
+            }
+        }
+
+        // Add user notes section if present
+        if !userNotes.isEmpty {
+            summary += "\n\n# My Notes\n\n"
+            let noteLines = userNotes.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            for noteLine in noteLines {
+                // Add bullet if not already present
+                if noteLine.hasPrefix("•") || noteLine.hasPrefix("-") || noteLine.hasPrefix("*") {
+                    summary += "\(noteLine)\n"
+                } else {
+                    summary += "• \(noteLine)\n"
+                }
+            }
         }
 
         return summary

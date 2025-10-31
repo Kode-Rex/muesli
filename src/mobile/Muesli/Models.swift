@@ -25,6 +25,7 @@ final class Note {
     var imagePaths: [String] = [] // Array of local file paths to captured images
 
     var aiSummary: String? // AI-generated summary of the transcript
+    var userNotes: String = "" // User's personal notes added during or after recording
     
     init(
         id: UUID = UUID(),
@@ -38,7 +39,8 @@ final class Note {
         transcriptionStatus: String = "none",
         duration: TimeInterval? = nil,
         imagePaths: [String] = [],
-        aiSummary: String? = nil
+        aiSummary: String? = nil,
+        userNotes: String = ""
     ) {
         self.id = id
         self.title = title
@@ -52,6 +54,7 @@ final class Note {
         self.duration = duration
         self.imagePaths = imagePaths
         self.aiSummary = aiSummary
+        self.userNotes = userNotes
     }
     
     // Computed properties for UI display

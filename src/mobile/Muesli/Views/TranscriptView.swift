@@ -9,29 +9,33 @@ import SwiftUI
 
 struct TranscriptView: View {
     @Environment(\.dismiss) private var dismiss
-    let title: String
-    
+    @Environment(\.modelContext) private var modelContext
+    let note: Note
+    @State private var editedTranscript: String = ""
+
     var body: some View {
         NavigationView {
             ZStack {
                 Color.black.ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Meeting Transcript")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .padding(.bottom, 8)
-                        
-                        Text(ContentUtilities.sampleTranscript)
-                            .font(.body)
-                            .foregroundColor(.white)
-                            .lineSpacing(4)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Edit transcript:")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+
+                    TextEditor(text: $editedTranscript)
+                        .foregroundColor(.white)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal, 20)
+                        .onChange(of: editedTranscript) { _, newValue in
+                            saveTranscript(newValue)
+                        }
+
+                    Spacer()
                 }
             }
             .navigationTitle("Transcript")
@@ -46,5 +50,19 @@ struct TranscriptView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            editedTranscript = note.content
+        }
+    }
+
+    private func saveTranscript(_ newTranscript: String) {
+        note.content = newTranscript
+        // Regenerate summary with updated transcript
+        note.aiSummary = SimpleSummaryGenerator.generateSummary(from: newTranscript, userNotes: note.userNotes)
+        do {
+            try modelContext.save()
+        } catch {
+            AppLogger.shared.error("Failed to save transcript", error: error)
+        }
     }
 }

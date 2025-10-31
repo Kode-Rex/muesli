@@ -305,10 +305,10 @@ struct SimpleNoteDetailView: View {
             .presentationCompactAdaptation(.popover)
         }
         .sheet(isPresented: $showingTranscript) {
-            TranscriptView(title: note.title)
+            TranscriptView(note: note)
         }
         .sheet(isPresented: $showingMyNotes) {
-            MyNotesView(title: note.title, content: note.content)
+            MyNotesView(note: note)
         }
         .sheet(isPresented: $showingEnhancedEditor) {
             EnhancedNoteEditorView(note: note)
@@ -398,9 +398,9 @@ struct SimpleNoteDetailView: View {
                     note.content = transcript
                     note.transcriptionStatus = "completed"
 
-                    // Generate AI title and summary from transcript
+                    // Generate AI title and summary from transcript and user notes
                     note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
-                    note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript)
+                    note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript, userNotes: note.userNotes)
 
                     do {
                         try modelContext.save()

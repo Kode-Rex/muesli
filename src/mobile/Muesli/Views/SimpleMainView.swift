@@ -203,7 +203,7 @@ struct SimpleMainView: View {
                     note.content = transcript
                     note.transcriptionStatus = "completed"
                     note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
-                    note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript)
+                    note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript, userNotes: note.userNotes)
 
                     do {
                         try self.modelContext.save()

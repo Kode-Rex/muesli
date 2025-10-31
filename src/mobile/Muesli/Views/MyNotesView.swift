@@ -9,63 +9,33 @@ import SwiftUI
 
 struct MyNotesView: View {
     @Environment(\.dismiss) private var dismiss
-    let title: String
-    let content: String
-    
-    private var personalNotes: [String] {
-        ContentUtilities.extractPersonalNotes(from: content)
-    }
+    @Environment(\.modelContext) private var modelContext
+    let note: Note
+    @State private var editedNotes: String = ""
     
     var body: some View {
         NavigationView {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        if personalNotes.isEmpty {
-                            VStack(spacing: 16) {
-                                Image(systemName: "note.text")
-                                    .font(.system(size: 60))
-                                    .foregroundColor(.gray)
-                                
-                                Text("No Personal Notes Found")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.gray)
-                                
-                                Text("Personal notes and action items will appear here")
-                                    .font(.body)
-                                    .foregroundColor(.gray.opacity(0.7))
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 50)
-                        } else {
-                            Text("Personal Notes & Action Items")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .padding(.bottom, 8)
-                            
-                            ForEach(personalNotes, id: \.self) { note in
-                                HStack(alignment: .top, spacing: 8) {
-                                    Image(systemName: "checkmark.circle")
-                                        .foregroundColor(.teal)
-                                        .font(.body)
-                                        .frame(width: 20, height: 20)
-                                    
-                                    Text(note.trimmingCharacters(in: .whitespaces))
-                                        .font(.body)
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .padding(.vertical, 4)
-                            }
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Edit your personal notes:")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+
+                    TextEditor(text: $editedNotes)
+                        .foregroundColor(.white)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal, 20)
+                        .onChange(of: editedNotes) { _, newValue in
+                            saveNotes(newValue)
                         }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
+
+                    Spacer()
                 }
             }
             .navigationTitle("My Notes")
@@ -80,5 +50,19 @@ struct MyNotesView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            editedNotes = note.userNotes
+        }
+    }
+
+    private func saveNotes(_ newNotes: String) {
+        note.userNotes = newNotes
+        // Regenerate summary with updated user notes
+        note.aiSummary = SimpleSummaryGenerator.generateSummary(from: note.content, userNotes: newNotes)
+        do {
+            try modelContext.save()
+        } catch {
+            AppLogger.shared.error("Failed to save user notes", error: error)
+        }
     }
 }

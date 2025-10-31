@@ -484,7 +484,7 @@ struct NewNoteView: View {
 
             let note = Note(
                 title: finalTitle,
-                content: content,
+                content: "", // Transcript will be added later via transcription
                 timestamp: Date(),
                 conferenceName: conferenceValue,
                 sessionType: sessionType,
@@ -492,7 +492,9 @@ struct NewNoteView: View {
                 audioFilePath: recordingManager.currentRecordingPath,
                 transcriptionStatus: transcriptionStatus,
                 duration: recordingManager.recordingDuration > 0 ? recordingManager.recordingDuration : nil,
-                imagePaths: savedImagePaths
+                imagePaths: savedImagePaths,
+                aiSummary: nil,
+                userNotes: content // Save user's notes separately
             )
 
             modelContext.insert(note)
@@ -528,7 +530,7 @@ struct NewNoteView: View {
                 note.content = transcript
                 note.transcriptionStatus = "completed"
                 note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
-                note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript)
+                note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript, userNotes: note.userNotes)
 
                 do {
                     try modelContext.save()

@@ -15,7 +15,6 @@ struct SimpleArchiveView: View {
     private var archivedNotes: [Note]
     
     @State private var selectedNote: Note? = nil
-    @State private var showingNoteDetail = false
     
     private var groupedArchivedNotes: [(String, [Note])] {
         let groups = Dictionary(grouping: archivedNotes) { note in
@@ -62,10 +61,6 @@ struct SimpleArchiveView: View {
                                             time: note.timeString,
                                             onTap: {
                                                 selectedNote = note
-                                                // Small delay ensures sheet presents correctly on first tap
-                                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                                    showingNoteDetail = true
-                                                }
                                             },
                                             onUnarchive: {
                                                 unarchiveNote(note)
@@ -95,10 +90,8 @@ struct SimpleArchiveView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $showingNoteDetail) {
-            if let note = selectedNote {
-                SimpleNoteDetailView(note: note)
-            }
+        .sheet(item: $selectedNote) { note in
+            SimpleNoteDetailView(note: note)
         }
         .preferredColorScheme(.dark)
     }

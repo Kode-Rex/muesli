@@ -23,8 +23,8 @@ struct SimpleNoteDetailView: View {
     @State private var editedTitle = ""
     @State private var showingError = false
     @State private var errorMessage = ""
-    @State private var showingImageViewer = false
     @State private var selectedImagePath: String?
+    @State private var selectedImageWrapper: ImageWrapper?
     @State private var showingImagePicker = false
     @State private var imagesExpanded = true
 
@@ -169,8 +169,9 @@ struct SimpleNoteDetailView: View {
                                                         .cornerRadius(8)
                                                         .clipped()
                                                         .onTapGesture {
-                                                            selectedImagePath = imagePath
-                                                            showingImageViewer = true
+                                                            if let img = loadImage(from: imagePath) {
+                                                                selectedImageWrapper = ImageWrapper(image: img)
+                                                            }
                                                         }
 
                                                     // Delete button
@@ -306,12 +307,10 @@ struct SimpleNoteDetailView: View {
         .sheet(isPresented: $showingEnhancedEditor) {
             EnhancedNoteEditorView(note: note)
         }
-        .fullScreenCover(isPresented: $showingImageViewer) {
-            if let imagePath = selectedImagePath, let image = loadImage(from: imagePath) {
-                FullscreenImageViewer(image: image, onDismiss: {
-                    showingImageViewer = false
-                })
-            }
+        .fullScreenCover(item: $selectedImageWrapper) { wrapper in
+            FullscreenImageViewer(image: wrapper.image, onDismiss: {
+                selectedImageWrapper = nil
+            })
         }
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(isPresented: $showingImagePicker, onImagePicked: { image in
@@ -620,6 +619,12 @@ struct SimpleNoteDetailView: View {
         }
     }
 
+}
+
+// Helper struct to make UIImage identifiable for sheet(item:)
+private struct ImageWrapper: Identifiable {
+    let id = UUID()
+    let image: UIImage
 }
 
 #Preview {

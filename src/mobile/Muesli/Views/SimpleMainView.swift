@@ -17,7 +17,6 @@ struct SimpleMainView: View {
     @State private var showingNewNote = false
     @State private var showingSettings = false
     @State private var showingArchive = false
-    @State private var showingNoteDetail = false
     @State private var selectedNote: Note? = nil
     @State private var showingEditAlert = false
     @State private var editingNote: Note?
@@ -53,10 +52,6 @@ struct SimpleMainView: View {
                         notes: displayedNotes,
                         onNoteTap: { note in
                             selectedNote = note
-                            // Small delay ensures sheet presents correctly on first tap
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                showingNoteDetail = true
-                            }
                         },
                         onNoteEdit: { note in
                             editingNote = note
@@ -89,10 +84,8 @@ struct SimpleMainView: View {
         .sheet(isPresented: $showingArchive) {
             SimpleArchiveView()
         }
-        .fullScreenCover(isPresented: $showingNoteDetail) {
-            if let note = selectedNote {
-                SimpleNoteDetailView(note: note)
-            }
+        .sheet(item: $selectedNote) { note in
+            SimpleNoteDetailView(note: note)
         }
         .alert("Edit Title", isPresented: $showingEditAlert) {
             TextField("Note title", text: $editingTitle)

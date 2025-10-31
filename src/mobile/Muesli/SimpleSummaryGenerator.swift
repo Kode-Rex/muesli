@@ -49,50 +49,55 @@ struct SimpleSummaryGenerator {
             return "No content to summarize."
         }
 
-        // Split into sentences
-        let sentences = transcript.components(separatedBy: CharacterSet(charactersIn: ".!?"))
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && $0.count > 10 }
+        var summary = ""
 
-        guard !sentences.isEmpty else {
-            return "Recording is too short to summarize."
-        }
-
-        // Take key sentences (first, middle, last few)
-        var summary = "# Summary\n\n"
-
-        // Add first sentence (usually the topic)
-        if let first = sentences.first {
-            summary += "• \(first)\n"
-        }
-
-        // Add some middle sentences (key points)
-        if sentences.count > 3 {
-            let middleStart = sentences.count / 3
-            let middleEnd = min(middleStart + 2, sentences.count - 1)
-            for i in middleStart..<middleEnd {
-                summary += "• \(sentences[i])\n"
-            }
-        }
-
-        // Add last sentence (conclusion/action)
-        if sentences.count > 1, let last = sentences.last, last != sentences.first {
-            summary += "• \(last)\n"
-        }
-
-        // Add word count for transcript
+        // Add transcript summary if present
         if !transcript.isEmpty {
-            let wordCount = transcript.split(separator: " ").count
-            summary += "\n○ \(wordCount) words transcribed"
+            // Split into sentences
+            let sentences = transcript.components(separatedBy: CharacterSet(charactersIn: ".!?"))
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty && $0.count > 10 }
 
-            if let duration = estimateDuration(wordCount: wordCount) {
-                summary += "\n○ ~\(duration) speaking time"
+            if !sentences.isEmpty {
+                // Take key sentences (first, middle, last few)
+                summary += "# Summary\n\n"
+
+                // Add first sentence (usually the topic)
+                if let first = sentences.first {
+                    summary += "• \(first)\n"
+                }
+
+                // Add some middle sentences (key points)
+                if sentences.count > 3 {
+                    let middleStart = sentences.count / 3
+                    let middleEnd = min(middleStart + 2, sentences.count - 1)
+                    for i in middleStart..<middleEnd {
+                        summary += "• \(sentences[i])\n"
+                    }
+                }
+
+                // Add last sentence (conclusion/action)
+                if sentences.count > 1, let last = sentences.last, last != sentences.first {
+                    summary += "• \(last)\n"
+                }
+
+                // Add word count for transcript
+                let wordCount = transcript.split(separator: " ").count
+                summary += "\n○ \(wordCount) words transcribed"
+
+                if let duration = estimateDuration(wordCount: wordCount) {
+                    summary += "\n○ ~\(duration) speaking time"
+                }
             }
         }
 
         // Add user notes section if present
         if !userNotes.isEmpty {
-            summary += "\n\n# My Notes\n\n"
+            // Add separator if we already have transcript content
+            if !summary.isEmpty {
+                summary += "\n\n"
+            }
+            summary += "# My Notes\n\n"
             let noteLines = userNotes.components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }

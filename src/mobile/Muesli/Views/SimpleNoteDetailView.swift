@@ -27,7 +27,6 @@ struct SimpleNoteDetailView: View {
     @State private var selectedImageWrapper: ImageWrapper?
     @State private var showingImagePicker = false
     @State private var imagesExpanded = true
-    @State private var editedSummary = ""
 
     // Audio playback state
     @State private var audioPlayer: AVAudioPlayer?
@@ -213,16 +212,20 @@ struct SimpleNoteDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
                         } else if let summary = note.aiSummary, !summary.isEmpty {
-                            // Show editable AI-generated summary
+                            // Show rendered AI-generated summary (edit via menu)
                             VStack(alignment: .leading, spacing: 8) {
-                                TextEditor(text: $editedSummary)
+                                NoteContentView(content: summary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        } else if !note.userNotes.isEmpty {
+                            // Show user notes if no transcript yet
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("# My Notes")
+                                    .font(.headline)
                                     .foregroundColor(.white)
-                                    .scrollContentBackground(.hidden)
-                                    .background(Color.clear)
-                                    .frame(minHeight: 200)
-                                    .onChange(of: editedSummary) { _, newValue in
-                                        saveSummaryChanges(newValue)
-                                    }
+                                    .padding(.bottom, 8)
+
+                                NoteContentView(content: note.userNotes)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         } else if note.content.isEmpty {
@@ -340,7 +343,6 @@ struct SimpleNoteDetailView: View {
         .onAppear {
             setupAudioPlayer()
             checkAndTriggerPendingTranscription()
-            editedSummary = note.aiSummary ?? ""
         }
         .onDisappear {
             stopPlayback()
@@ -623,16 +625,6 @@ struct SimpleNoteDetailView: View {
             dismiss() // Close the detail view after deletion
         } catch {
             showError("Failed to delete note: \(error.localizedDescription)")
-        }
-    }
-
-    private func saveSummaryChanges(_ newSummary: String) {
-        // Debounce to avoid saving on every keystroke
-        note.aiSummary = newSummary
-        do {
-            try modelContext.save()
-        } catch {
-            AppLogger.shared.error("Failed to save summary changes", error: error)
         }
     }
 

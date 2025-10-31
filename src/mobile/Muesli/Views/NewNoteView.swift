@@ -27,7 +27,7 @@ struct NewNoteView: View {
     
     // Note properties
     @State private var title = ""
-    @State private var content = ""
+    @State private var userNotes = "" // User's typed notes during recording
     @State private var conferenceName = ""
     @State private var sessionType = "note"
     
@@ -136,7 +136,7 @@ struct NewNoteView: View {
                                 .background(Color.gray.opacity(0.3))
                                 .padding(.horizontal, 20)
                             
-                            TextField("Feel free to write notes here...", text: $content, axis: .vertical)
+                            TextField("Feel free to write notes here...", text: $userNotes, axis: .vertical)
                                 .foregroundColor(.white.opacity(0.9))
                                 .font(.body)
                                 .textFieldStyle(PlainTextFieldStyle())
@@ -331,11 +331,7 @@ struct NewNoteView: View {
         
         // Setup transcription callbacks
         transcriptionService.onTranscriptionUpdate = { transcript, isFinal in
-            DispatchQueue.main.async {
-                if isFinal {
-                    self.content += transcript + " "
-                }
-            }
+            // Live transcription not used - we do batch transcription after recording
         }
         
         transcriptionService.onError = { error in
@@ -458,20 +454,17 @@ struct NewNoteView: View {
     private func saveNote() {
         do {
             let conferenceValue = conferenceName.isEmpty ? nil : conferenceName
-            // Generate AI title from content or use timestamp
+            // Generate AI title from user notes or use timestamp
             let finalTitle: String
-            if !content.isEmpty {
-                finalTitle = SimpleSummaryGenerator.generateTitle(from: content)
+            if !userNotes.isEmpty {
+                finalTitle = SimpleSummaryGenerator.generateTitle(from: userNotes)
             } else {
                 finalTitle = SimpleSummaryGenerator.timestampTitle()
             }
 
-            // Determine transcription status based on content and audio availability
+            // Determine transcription status based on audio availability
             let transcriptionStatus: String
-            if !content.isEmpty {
-                // We got transcription during recording
-                transcriptionStatus = "completed"
-            } else if recordingManager.currentRecordingPath != nil {
+            if recordingManager.currentRecordingPath != nil {
                 // No transcription yet, but we have audio - try batch later
                 transcriptionStatus = "pending"
             } else {
@@ -483,8 +476,8 @@ struct NewNoteView: View {
             let savedImagePaths = saveImagesToDisk()
 
             // Generate initial summary from user notes if present
-            let initialSummary = !content.isEmpty
-                ? SimpleSummaryGenerator.generateSummary(from: "", userNotes: content)
+            let initialSummary = !userNotes.isEmpty
+                ? SimpleSummaryGenerator.generateSummary(from: "", userNotes: userNotes)
                 : nil
 
             let note = Note(
@@ -499,14 +492,14 @@ struct NewNoteView: View {
                 duration: recordingManager.recordingDuration > 0 ? recordingManager.recordingDuration : nil,
                 imagePaths: savedImagePaths,
                 aiSummary: initialSummary,
-                userNotes: content // Save user's notes separately
+                userNotes: userNotes // Save user's notes separately
             )
 
             modelContext.insert(note)
             try modelContext.save()
 
-            // Attempt batch transcription if content is empty but we have audio
-            if content.isEmpty, let audioPath = recordingManager.currentRecordingPath {
+            // Attempt batch transcription if we have audio
+            if let audioPath = recordingManager.currentRecordingPath {
                 Task {
                     await attemptBatchTranscription(for: note, audioPath: audioPath)
                 }

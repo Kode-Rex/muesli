@@ -192,7 +192,7 @@ class TranscriptionService {
             AppLogger.shared.info("[TranscriptionService.swift:179] startListening() - WebSocket connection lost - transcription will continue in offline mode")
             
             // Clean up the connection
-            DispatchQueue.main.async {
+            await MainActor.run {
                 self.isTranscribing = false
                 self.webSocketTask = nil
             }
@@ -240,7 +240,7 @@ class TranscriptionService {
                     timestamp: Date().timeIntervalSince1970
                 )
                 
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.currentTranscript = alternative.transcript
                     self.onTranscriptionUpdate?(result)
                 }

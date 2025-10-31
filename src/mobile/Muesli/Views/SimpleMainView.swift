@@ -53,7 +53,10 @@ struct SimpleMainView: View {
                         notes: displayedNotes,
                         onNoteTap: { note in
                             selectedNote = note
-                            showingNoteDetail = true
+                            // Small delay ensures sheet presents correctly on first tap
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                showingNoteDetail = true
+                            }
                         },
                         onNoteEdit: { note in
                             editingNote = note
@@ -206,6 +209,8 @@ struct SimpleMainView: View {
                 DispatchQueue.main.async {
                     note.content = transcript
                     note.transcriptionStatus = "completed"
+                    note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
+                    note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript)
 
                     do {
                         try self.modelContext.save()

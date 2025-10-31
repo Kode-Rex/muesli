@@ -64,38 +64,11 @@ struct NewNoteView: View {
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Coming up section (matching your screenshot)
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Coming up")
-                            .font(.title2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.gray)
-                            .padding(.horizontal, 20)
-                        
-                        HStack {
-                            Image(systemName: "calendar")
-                                .foregroundColor(.gray)
-                                .font(.system(size: 24))
-                            
-                            Text("No upcoming meetings found")
-                                .foregroundColor(.gray)
-                                .font(.body)
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(12)
-                        .padding(.horizontal, 20)
-                    }
-                    .padding(.top, 20)
-                    
                     Spacer()
-                    
-                    // Earlier today section header
+
+                    // Recording status header
                     HStack {
-                        Text("Earlier today")
+                        Text("New Recording")
                             .font(.title2)
                             .fontWeight(.medium)
                             .foregroundColor(.gray)
@@ -485,7 +458,13 @@ struct NewNoteView: View {
     private func saveNote() {
         do {
             let conferenceValue = conferenceName.isEmpty ? nil : conferenceName
-            let finalTitle = title.isEmpty ? "New Note" : title
+            // Generate AI title from content or use timestamp
+            let finalTitle: String
+            if !content.isEmpty {
+                finalTitle = SimpleSummaryGenerator.generateTitle(from: content)
+            } else {
+                finalTitle = SimpleSummaryGenerator.timestampTitle()
+            }
 
             // Determine transcription status based on content and audio availability
             let transcriptionStatus: String
@@ -513,7 +492,7 @@ struct NewNoteView: View {
                 audioFilePath: recordingManager.currentRecordingPath,
                 transcriptionStatus: transcriptionStatus,
                 duration: recordingManager.recordingDuration > 0 ? recordingManager.recordingDuration : nil,
-                imagePaths: savedImagePaths.isEmpty ? nil : savedImagePaths
+                imagePaths: savedImagePaths
             )
 
             modelContext.insert(note)
@@ -544,10 +523,12 @@ struct NewNoteView: View {
 
         do {
             let transcript = try await transcriptionService.transcribeAudioFile(url: audioURL)
-            // Update the note with transcription
+            // Update the note with transcription, title, and summary
             await MainActor.run {
                 note.content = transcript
                 note.transcriptionStatus = "completed"
+                note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
+                note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript)
 
                 do {
                     try modelContext.save()

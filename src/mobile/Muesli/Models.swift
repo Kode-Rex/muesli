@@ -20,7 +20,11 @@ final class Note {
     var audioFilePath: String? // Local path to audio file
     var transcriptionStatus: String // "none", "pending", "processing", "completed", "failed"
     var duration: TimeInterval? // Recording duration in seconds
-    var imagePaths: [String]? // Array of local file paths to captured images
+
+    // SwiftData doesn't handle Optional arrays well, use empty array as default
+    var imagePaths: [String] = [] // Array of local file paths to captured images
+
+    var aiSummary: String? // AI-generated summary of the transcript
     
     init(
         id: UUID = UUID(),
@@ -33,7 +37,8 @@ final class Note {
         audioFilePath: String? = nil,
         transcriptionStatus: String = "none",
         duration: TimeInterval? = nil,
-        imagePaths: [String]? = nil
+        imagePaths: [String] = [],
+        aiSummary: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -46,6 +51,7 @@ final class Note {
         self.transcriptionStatus = transcriptionStatus
         self.duration = duration
         self.imagePaths = imagePaths
+        self.aiSummary = aiSummary
     }
     
     // Computed properties for UI display
@@ -83,11 +89,11 @@ final class Note {
     }
 
     var hasImages: Bool {
-        return imagePaths != nil && !(imagePaths?.isEmpty ?? true)
+        return !imagePaths.isEmpty
     }
 
     var imageCount: Int {
-        return imagePaths?.count ?? 0
+        return imagePaths.count
     }
 }
 

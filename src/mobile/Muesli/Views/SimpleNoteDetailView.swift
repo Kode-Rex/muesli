@@ -23,6 +23,10 @@ struct SimpleNoteDetailView: View {
     @State private var editedTitle = ""
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var showingImageViewer = false
+    @State private var selectedImagePath: String?
+    @State private var showingImagePicker = false
+    @State private var imagesExpanded = true
 
     // Audio playback state
     @State private var audioPlayer: AVAudioPlayer?
@@ -30,10 +34,17 @@ struct SimpleNoteDetailView: View {
     @State private var playbackPosition: TimeInterval = 0
     @State private var audioDuration: TimeInterval = 0
     @State private var playbackTimer: Timer?
-    
+
     var body: some View {
-        NavigationView {
-            ScrollView {
+        content
+    }
+
+    private var content: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
@@ -104,23 +115,76 @@ struct SimpleNoteDetailView: View {
                             .background(Color.gray.opacity(0.3))
                     }
 
-                    // Captured images section
-                    if note.hasImages {
+                    // Captured images section (collapsable)
+                    if !note.imagePaths.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Attached Images (\(note.imageCount))")
-                                .font(.headline)
-                                .foregroundColor(.white)
+                            // Header with collapse button
+                            Button(action: {
+                                withAnimation {
+                                    imagesExpanded.toggle()
+                                }
+                            }) {
+                                HStack {
+                                    Text("Captured Images")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(note.imagePaths ?? [], id: \.self) { imagePath in
-                                        if let image = loadImage(from: imagePath) {
-                                            Image(uiImage: image)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 120, height: 160)
-                                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                                    Spacer()
+
+                                    Image(systemName: imagesExpanded ? "chevron.down" : "chevron.right")
+                                        .foregroundColor(.gray)
+                                        .font(.caption)
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+
+                            if imagesExpanded {
+                                // Image gallery
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 12) {
+                                        // Add new image button
+                                        Button(action: {
+                                            showingImagePicker = true
+                                        }) {
+                                            ZStack {
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(Color.gray.opacity(0.2))
+                                                    .frame(width: 100, height: 100)
+
+                                                Image(systemName: "plus")
+                                                    .font(.system(size: 32))
+                                                    .foregroundColor(.white.opacity(0.6))
+                                            }
+                                        }
+
+                                        // Existing images
+                                        ForEach(note.imagePaths, id: \.self) { imagePath in
+                                            if let image = loadImage(from: imagePath) {
+                                                ZStack(alignment: .topTrailing) {
+                                                    // Image thumbnail
+                                                    Image(uiImage: image)
+                                                        .resizable()
+                                                        .scaledToFill()
+                                                        .frame(width: 100, height: 100)
+                                                        .cornerRadius(8)
+                                                        .clipped()
+                                                        .onTapGesture {
+                                                            selectedImagePath = imagePath
+                                                            showingImageViewer = true
+                                                        }
+
+                                                    // Delete button
+                                                    Button(action: {
+                                                        deleteImage(imagePath)
+                                                    }) {
+                                                        Image(systemName: "xmark.circle.fill")
+                                                            .font(.system(size: 20))
+                                                            .foregroundColor(.white)
+                                                            .background(Circle().fill(Color.black.opacity(0.5)))
+                                                    }
+                                                    .padding(4)
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -132,7 +196,7 @@ struct SimpleNoteDetailView: View {
                             .background(Color.gray.opacity(0.3))
                     }
 
-                    // Content using simple text parsing
+                    // AI Summary display
                     Group {
                         if note.content.isEmpty && note.transcriptionStatus == "processing" {
                             // Show loading indicator while transcribing
@@ -147,6 +211,12 @@ struct SimpleNoteDetailView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
+                        } else if let summary = note.aiSummary, !summary.isEmpty {
+                            // Show AI-generated summary
+                            VStack(alignment: .leading, spacing: 8) {
+                                NoteContentView(content: summary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         } else if note.content.isEmpty {
                             // Show empty state
                             VStack(spacing: 12) {
@@ -168,6 +238,7 @@ struct SimpleNoteDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
                         } else {
+                            // Fallback: show raw content if no summary
                             VStack(alignment: .leading, spacing: 8) {
                                 NoteContentView(content: note.content)
                             }
@@ -179,8 +250,8 @@ struct SimpleNoteDetailView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
+                }
             }
-            .background(Color.black)
             .navigationTitle("Note")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -234,6 +305,18 @@ struct SimpleNoteDetailView: View {
         }
         .sheet(isPresented: $showingEnhancedEditor) {
             EnhancedNoteEditorView(note: note)
+        }
+        .sheet(isPresented: $showingImageViewer) {
+            if let imagePath = selectedImagePath, let image = loadImage(from: imagePath) {
+                FullscreenImageViewer(image: image, onDismiss: {
+                    showingImageViewer = false
+                })
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(isPresented: $showingImagePicker, onImagePicked: { image in
+                addNewImage(image)
+            })
         }
         .alert("Edit Title", isPresented: $showingEditTitle) {
             TextField("Note title", text: $editedTitle)
@@ -309,6 +392,10 @@ struct SimpleNoteDetailView: View {
                     note.content = transcript
                     note.transcriptionStatus = "completed"
 
+                    // Generate AI title and summary from transcript
+                    note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
+                    note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript)
+
                     do {
                         try modelContext.save()
                         AppLogger.shared.info("✅ Successfully saved transcribed note: '\(note.title)' (\(transcript.count) chars)")
@@ -359,7 +446,8 @@ struct SimpleNoteDetailView: View {
             audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
             audioPlayer?.prepareToPlay()
             audioDuration = audioPlayer?.duration ?? 0
-            AppLogger.shared.info("Audio player loaded successfully - duration: \(audioDuration)s, file size: \(try? FileManager.default.attributesOfItem(atPath: audioURL.path)[.size] ?? 0) bytes")
+            let fileSize = (try? FileManager.default.attributesOfItem(atPath: audioURL.path)[.size] as? Int) ?? 0
+            AppLogger.shared.info("Audio player loaded successfully - duration: \(audioDuration)s, file size: \(fileSize) bytes")
         } catch {
             AppLogger.shared.error("Failed to load audio file at \(audioURL.path)", error: error)
         }
@@ -457,6 +545,51 @@ struct SimpleNoteDetailView: View {
         }
     }
 
+    private func deleteImage(_ imagePath: String) {
+        // Delete file from disk
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let imageURL = documentsPath.appendingPathComponent(imagePath)
+        try? FileManager.default.removeItem(at: imageURL)
+
+        // Remove from note's imagePaths array
+        if let index = note.imagePaths.firstIndex(of: imagePath) {
+            note.imagePaths.remove(at: index)
+
+            do {
+                try modelContext.save()
+                AppLogger.shared.info("Deleted image: \(imagePath)")
+            } catch {
+                AppLogger.shared.error("Failed to save after deleting image", error: error)
+            }
+        }
+    }
+
+    private func addNewImage(_ image: UIImage) {
+        // Save image to disk
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let imagesDirectory = documentsPath.appendingPathComponent("Images", isDirectory: true)
+
+        do {
+            try FileManager.default.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+
+            let timestamp = Int(Date().timeIntervalSince1970)
+            let filename = "img_\(timestamp)_\(note.imagePaths.count).jpg"
+            let fileURL = imagesDirectory.appendingPathComponent(filename)
+
+            if let imageData = image.jpegData(compressionQuality: 0.8) {
+                try imageData.write(to: fileURL)
+                // Add to note's imagePaths array
+                note.imagePaths.append("Images/\(filename)")
+
+                try modelContext.save()
+                AppLogger.shared.info("Added new image: \(filename)")
+            }
+        } catch {
+            AppLogger.shared.error("Failed to add new image", error: error)
+            showError("Failed to add image: \(error.localizedDescription)")
+        }
+    }
+
     private func deleteNote() {
         // Delete associated files if they exist
         if let audioPath = note.audioFilePath,
@@ -466,13 +599,13 @@ struct SimpleNoteDetailView: View {
         }
 
         // Delete associated images
-        if let imagePaths = note.imagePaths {
+        if !note.imagePaths.isEmpty {
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            for imagePath in imagePaths {
+            for imagePath in note.imagePaths {
                 let imageURL = documentsPath.appendingPathComponent(imagePath)
                 try? FileManager.default.removeItem(at: imageURL)
             }
-            AppLogger.shared.info("Deleted \(imagePaths.count) image(s)")
+            AppLogger.shared.info("Deleted \(note.imagePaths.count) image(s)")
         }
 
         // Delete the note from the database

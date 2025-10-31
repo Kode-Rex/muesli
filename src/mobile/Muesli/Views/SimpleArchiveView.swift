@@ -62,7 +62,10 @@ struct SimpleArchiveView: View {
                                             time: note.timeString,
                                             onTap: {
                                                 selectedNote = note
-                                                showingNoteDetail = true
+                                                // Small delay ensures sheet presents correctly on first tap
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                                    showingNoteDetail = true
+                                                }
                                             },
                                             onUnarchive: {
                                                 unarchiveNote(note)

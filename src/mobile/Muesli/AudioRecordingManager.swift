@@ -273,7 +273,7 @@ class AudioRecordingManager: NSObject {
     
     private func setupAudioSession() {
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
             checkPermission()
         } catch {
             AppLogger.shared.error("Failed to setup audio session", error: error)
@@ -409,3 +409,4 @@ extension AudioRecordingManager: AVAudioRecorderDelegate {
         }
     }
 }
+

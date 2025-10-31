@@ -28,10 +28,11 @@ final class PerformanceMonitor: ObservableObject {
     /// Start timing a performance-critical operation
     func startTiming(operation: String) {
         operationTimers[operation] = Date()
-        AppLogger.shared.performanceStart(operation)
+        _ = AppLogger.shared.performanceStart(operation)
     }
     
     /// End timing and log the performance metric
+    @discardableResult
     func endTiming(operation: String, recordMetric: Bool = true) -> TimeInterval? {
         guard let startTime = operationTimers.removeValue(forKey: operation) else {
             AppLogger.shared.warning("No start time found for operation: \(operation)")
@@ -237,3 +238,4 @@ struct MemoryUsageMetric {
     let usageMB: Double
     let timestamp: Date
 }
+

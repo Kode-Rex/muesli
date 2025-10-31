@@ -143,22 +143,17 @@ class TranscriptionService {
         // Add timeout for connection
         request.timeoutInterval = 10.0
         
-        do {
-            webSocketTask = urlSession.webSocketTask(with: request)
-            webSocketTask?.resume()
-            
-            isTranscribing = true
-            currentTranscript = ""
-            
-            // Start listening for messages
-            await startListening()
-            
-            AppLogger.shared.info("Started real-time transcription via custom API at: \(wsURL)")
-            return true
-        } catch {
-            AppLogger.shared.warning("Failed to create WebSocket task: \(error) - falling back to local recording")
-            return false
-        }
+        webSocketTask = urlSession.webSocketTask(with: request)
+        webSocketTask?.resume()
+        
+        isTranscribing = true
+        currentTranscript = ""
+        
+        // Start listening for messages
+        await startListening()
+        
+        AppLogger.shared.info("Started real-time transcription via custom API at: \(wsURL)")
+        return true
     }
     
     func stopRealtimeTranscription() {
@@ -331,3 +326,4 @@ class TranscriptionService {
         return hasValidAPIEndpoint && NetworkMonitor.shared.isConnected
     }
 }
+

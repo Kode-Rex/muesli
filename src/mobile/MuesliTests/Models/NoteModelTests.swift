@@ -35,6 +35,44 @@ struct NoteModelTests {
         #expect(note.timestamp.timeIntervalSinceNow < 1) // Created recently
     }
     
+    @Test("Note userNotes defaults to empty string")
+    func noteUserNotesDefault() async throws {
+        let note = Note(
+            title: "Test",
+            content: "Content",
+            sessionType: "note"
+        )
+
+        #expect(note.userNotes == "")
+    }
+
+    @Test("Note userNotes can be set and persists")
+    func noteUserNotesPersistence() async throws {
+        let note = Note(
+            title: "Test",
+            content: "Transcript content",
+            sessionType: "note"
+        )
+
+        let userNotes = "Remember to follow up\nSchedule meeting"
+        note.userNotes = userNotes
+
+        #expect(note.userNotes == userNotes)
+        #expect(note.content == "Transcript content") // Verify content is separate
+    }
+
+    @Test("Note can have both content and userNotes")
+    func noteBothContentAndUserNotes() async throws {
+        let note = Note(
+            title: "Test",
+            content: "This is the transcript",
+            userNotes: "These are my notes"
+        )
+
+        #expect(note.content == "This is the transcript")
+        #expect(note.userNotes == "These are my notes")
+    }
+
     @Test("Note archive toggle functionality")
     func noteArchiveToggle() async throws {
         let note = Note(
@@ -43,9 +81,9 @@ struct NoteModelTests {
             conferenceName: "Conf",
             sessionType: "Session"
         )
-        
+
         #expect(note.isArchived == false)
-        
+
         note.isArchived = true
         #expect(note.isArchived == true)
         

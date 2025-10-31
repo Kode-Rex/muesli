@@ -27,6 +27,7 @@ struct SimpleNoteDetailView: View {
     @State private var selectedImageWrapper: ImageWrapper?
     @State private var showingImagePicker = false
     @State private var imagesExpanded = true
+    @State private var editedSummary = ""
 
     // Audio playback state
     @State private var audioPlayer: AVAudioPlayer?
@@ -212,9 +213,16 @@ struct SimpleNoteDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
                         } else if let summary = note.aiSummary, !summary.isEmpty {
-                            // Show AI-generated summary
+                            // Show editable AI-generated summary
                             VStack(alignment: .leading, spacing: 8) {
-                                NoteContentView(content: summary)
+                                TextEditor(text: $editedSummary)
+                                    .foregroundColor(.white)
+                                    .scrollContentBackground(.hidden)
+                                    .background(Color.clear)
+                                    .frame(minHeight: 200)
+                                    .onChange(of: editedSummary) { _, newValue in
+                                        saveSummaryChanges(newValue)
+                                    }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         } else if note.content.isEmpty {
@@ -332,6 +340,7 @@ struct SimpleNoteDetailView: View {
         .onAppear {
             setupAudioPlayer()
             checkAndTriggerPendingTranscription()
+            editedSummary = note.aiSummary ?? ""
         }
         .onDisappear {
             stopPlayback()
@@ -614,6 +623,16 @@ struct SimpleNoteDetailView: View {
             dismiss() // Close the detail view after deletion
         } catch {
             showError("Failed to delete note: \(error.localizedDescription)")
+        }
+    }
+
+    private func saveSummaryChanges(_ newSummary: String) {
+        // Debounce to avoid saving on every keystroke
+        note.aiSummary = newSummary
+        do {
+            try modelContext.save()
+        } catch {
+            AppLogger.shared.error("Failed to save summary changes", error: error)
         }
     }
 

@@ -68,12 +68,15 @@ The blend returns JSON conforming to:
 
 ```
 {
-  "blendedMarkdown": String,    // The final note body — see formatting rules
-  "imagePlacements": [          // Where each image should render in the markdown
-    { "imageId": String, "anchorText": String }  // anchorText is a short verbatim slice from blendedMarkdown after which the image is shown
-  ],
+  "blendedMarkdown": String,    // The final note body — plain markdown, no custom tags
   "userNoteSpans": [            // Char ranges in blendedMarkdown that came from the user verbatim
     { "start": Int, "end": Int }
+  ],
+  "quoteSpans": [               // Verbatim transcript quotes embedded in the blend
+    { "start": Int, "end": Int, "transcriptStart": Float, "transcriptEnd": Float, "speaker": String? }
+  ],
+  "imagePlacements": [          // Where photos drop into the markdown
+    { "imageId": String, "charOffset": Int }   // insert at this char offset
   ],
   "citations": [                // AI-claim provenance back to transcript word ranges
     { "blendStart": Int, "blendEnd": Int, "transcriptStart": Float, "transcriptEnd": Float }
@@ -81,14 +84,15 @@ The blend returns JSON conforming to:
 }
 ```
 
-#### Markdown formatting rules (enforced via prompt)
+The markdown body contains no custom tags or sentinels — it is real, valid markdown. All structural metadata (which spans are user-verbatim, which are quotes, where images go, which spans cite which transcript ranges) lives in the parallel arrays above. The renderer is the single consumer of these arrays and applies styling/insertions on top of the parsed markdown.
 
-- User notes appear verbatim, wrapped in a sentinel: `<u>user note text</u>`. The renderer styles these primary-color, normal weight.
-- AI-generated prose appears as plain markdown. The renderer styles these secondary/gray color.
-- Images are referenced as `![imageId](image://{imageId})` at the placement points the AI chose.
-- The AI does not invent quotes; if it wants to include one, it must come from the transcript and is wrapped in `<q ts="123.4-128.7">…</q>`.
+#### Rules enforced via prompt
 
-The renderer parses the markdown, applies styles based on tags, and replaces image refs with thumbnails.
+- User notes appear verbatim somewhere in `blendedMarkdown`, with their char ranges reported in `userNoteSpans`.
+- AI prose fills in around them.
+- Speaker quotes must be exact transcript text and reported in `quoteSpans`.
+- Photos are placed via `imagePlacements` at char offsets the AI chose based on what was being discussed at the photo's `capturedAt` timestamp.
+- The AI never invents quotes or facts beyond the transcript.
 
 ### Persistence (SwiftData)
 
@@ -129,14 +133,14 @@ Image files are stored content-addressed: filename = `{sha256}.jpg`. Solves the 
 
 ### Rendering (SwiftUI)
 
-`AugmentedNoteView` parses `blendedMarkdown` into segments and renders:
+`AugmentedNoteView` parses `blendedMarkdown` and overlays metadata from the parallel arrays:
 
-- Plain markdown → AI text (gray, secondary color, tappable to show citation sheet if `citations` covers that range)
-- `<u>…</u>` → user text (primary color, normal weight)
-- `<q ts="…">…</q>` → indented italic block with timestamp badge, tap to play audio at that timestamp
-- `![](image://id)` → inline thumbnail with caption "Slide: {photo.ocrText[:80]}", tap to fullscreen
+- Default: AI text (gray/secondary color, tappable on a `citations`-covered range to show transcript provenance)
+- Char ranges in `userNoteSpans` → primary color, normal weight
+- Char ranges in `quoteSpans` → indented italic block with timestamp badge, tap to play audio at `transcriptStart`
+- Char offsets in `imagePlacements` → inline thumbnail with caption "Slide: {photo.ocrText[:80]}", tap to fullscreen
 
-Implementation: `AttributedString` built from a small parser, rendered in a single `Text` (or `LazyVStack` of paragraph chunks for tappability).
+Implementation: build an `AttributedString` by walking `blendedMarkdown`, applying attributes from the span arrays, and splitting at `imagePlacements` offsets to inject thumbnail views. Render as a `LazyVStack` of paragraph chunks (so tappability works per-paragraph).
 
 ### Credit model (plumbed, not enforced)
 
@@ -161,7 +165,7 @@ Implementation: `AttributedString` built from a small parser, rendered in a sing
 | Sonnet blend | API error or invalid JSON | `blendStatus = .failed` with `blendError`, retry button visible, transcript and image extracts persisted, no Sonnet cost recorded (Deepgram + Haiku costs are still recorded since they completed) |
 | Validation (output JSON malformed) | Schema mismatch | Single retry with stricter prompt; if second attempt fails, mark `.failed` |
 
-Regenerate behavior: skip stages whose inputs haven't changed. If user added a photo, only the new photo's extract runs + the blend. If user only edited their notes, only the blend runs.
+Regenerate behavior: skip stages whose inputs haven't changed (transcript and per-image extracts are cached by audio file hash and image content hash). The Sonnet blend always runs and is always charged — there is no free regenerate. If the user added a photo, the new photo's extract runs + the blend, both charged. If the user only edited notes, only the blend runs, charged at full rate.
 
 ### Backend changes (`src/api`)
 
@@ -183,15 +187,18 @@ You are blending a transcript, photos with extracted text, and the user's typed
 notes into a single coherent set of session notes.
 
 Rules:
-1. Preserve the user's notes verbatim. Wrap each user-note passage in <u>...</u>.
+1. Preserve the user's notes verbatim somewhere in the output.
 2. Around the user's notes, write AI prose that fills in context from the transcript.
-3. When you make a factual claim, ground it in the transcript. If you want to quote
-   the speaker, use <q ts="START-END">exact transcript text</q>.
-4. Place each photo near the moment its content was being discussed. Reference photos
-   as ![photoId](image://photoId) on its own line.
-5. Output JSON exactly matching this schema: { blendedMarkdown, imagePlacements, userNoteSpans, citations }.
-6. Do not invent. If the transcript is silent on something the user noted, leave the
-   user note as-is without expansion.
+3. Output plain markdown — NO custom tags, NO sentinels. Just real markdown.
+4. Track structure with parallel arrays in the JSON output:
+   - userNoteSpans: char ranges in blendedMarkdown where user-verbatim text appears
+   - quoteSpans: char ranges of speaker quotes (must be exact transcript text), with their transcript timestamps
+   - imagePlacements: char offsets where each photo should be inserted
+   - citations: char ranges of AI claims with the transcript range they're grounded in
+5. Place each photo near the moment its content was being discussed (use the photo's capturedAt).
+6. Output JSON exactly matching this schema: { blendedMarkdown, userNoteSpans, quoteSpans, imagePlacements, citations }.
+7. Do not invent. If the transcript is silent on something the user noted, leave the
+   user note as-is without expansion. Do not fabricate speaker quotes.
 
 INPUTS:
 USER NOTES:
@@ -222,7 +229,7 @@ None blocking. Deferred:
 
 - Whether to track typing time per paragraph for true chronological weaving of user notes into the blend. v1 hands the AI all user notes as one block and trusts the AI to place them. Revisit if placement is consistently wrong.
 - Whether to expose a "credits this session" UI element in v1 even though there's no cap. Probably yes — bakes the user's mental model early.
-- Whether regenerate is free or charged. v1: free if cached inputs unchanged, charged at re-blend rate (~30% of original) if photos or notes changed. Reconsider in v2.
+- (resolved) Regenerate is always charged at full blend rate. Cached transcript/image extracts avoid re-paying those stages, but the Sonnet blend always runs and always debits.
 
 ## Acceptance criteria
 

@@ -1152,6 +1152,243 @@
     color: var(--ink-2);
   }
 
+  /* chapter strip */
+  .chapters {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin: 14px -22px 0;
+    padding: 4px 22px 8px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .chapters::-webkit-scrollbar { display: none; }
+
+  .chapter-chip {
+    flex: 0 0 auto;
+    padding: 8px 12px 9px;
+    background: var(--paper-raise);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    scroll-snap-align: start;
+    min-width: 110px;
+    max-width: 160px;
+  }
+
+  .chapter-chip.active {
+    background: var(--oxblood);
+    border-color: transparent;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--oxblood) 30%, transparent);
+  }
+
+  .chapter-chip .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .chapter-chip.active .num { color: color-mix(in srgb, var(--on-accent) 65%, transparent); }
+
+  .chapter-chip .title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 11.5px;
+    color: var(--ink);
+    line-height: 1.2;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .chapter-chip.active .title { color: var(--on-accent); }
+
+  .chapter-chip .ts {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--oxblood);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  .chapter-chip.active .ts { color: color-mix(in srgb, var(--on-accent) 80%, transparent); }
+
+  /* Scene 9 — chaptered playback */
+  .scrubber-screen {
+    background:
+      radial-gradient(ellipse 80% 30% at 50% 0%, color-mix(in srgb, var(--oxblood) 14%, transparent), transparent 60%),
+      var(--screen);
+  }
+
+  .scrubber-head {
+    margin-top: 12px;
+    padding-bottom: 10px;
+    text-align: center;
+  }
+
+  .scrubber-head .now-playing {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--oxblood);
+    font-weight: 700;
+  }
+
+  .scrubber-head h2 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.2;
+    margin-top: 6px;
+    color: var(--ink);
+  }
+
+  .scrubber-head .speaker {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .chapter-list {
+    margin-top: 14px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .chapter-list .label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .chapter-row {
+    display: grid;
+    grid-template-columns: 24px 42px 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .chapter-row:last-child { border-bottom: none; }
+
+  .chapter-row .marker {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-variation-settings: "opsz" 60;
+    font-weight: 300;
+    font-size: 14px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .chapter-row.active .marker { color: var(--oxblood); }
+
+  .chapter-row .ts {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink);
+    font-weight: 600;
+    padding-top: 2px;
+  }
+
+  .chapter-row.active .ts { color: var(--oxblood); }
+
+  .chapter-row .body strong {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--ink);
+    display: block;
+  }
+
+  .chapter-row.active .body strong { color: var(--oxblood); }
+
+  .chapter-row .body span {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.4;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* mini audio scrubber */
+  .mini-player {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--paper-raise);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mini-player .play-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--oxblood);
+    color: var(--on-accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px color-mix(in srgb, var(--oxblood) 30%, transparent);
+  }
+
+  .mini-player .scrubber {
+    flex: 1;
+  }
+
+  .mini-player .track {
+    height: 3px;
+    background: var(--rule);
+    border-radius: 2px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .mini-player .track .fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 38%;
+    background: linear-gradient(90deg, var(--oxblood), var(--oxblood-glow));
+    border-radius: 2px;
+  }
+
+  .mini-player .track .markers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .mini-player .track .markers span {
+    position: absolute;
+    top: -2px;
+    width: 2px;
+    height: 7px;
+    background: var(--ink);
+    opacity: 0.4;
+  }
+
+  .mini-player .times {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+  }
+
   /* augmented body */
   .blend-body {
     margin-top: 14px;
@@ -1830,7 +2067,7 @@
       <div class="tagline">Capture the talk. Snap the slide. Type a thought. The note writes itself — your words intact, the speaker's words sourced, the slides where they belong.</div>
     </div>
     <div class="meta">
-      <div class="num">VIII</div>
+      <div class="num">IX</div>
       Scenes · Capture + Chat<br>
       Spec v1 · 2026·05·04
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle color scheme">
@@ -2105,7 +2342,7 @@
     <article class="scene">
       <div class="scene-no">vi</div>
       <h2 class="scene-title">Your words, kept.<br>The rest, written.</h2>
-      <p class="scene-desc">User notes hold their place verbatim — bold, clear. AI prose fills in around them in lighter weight. Slides drop where the speaker was talking about them. Quotes link back to the audio.</p>
+      <p class="scene-desc">User notes hold their place verbatim — bold, clear. AI prose fills in around them in lighter weight. Slides drop where the speaker was talking about them. Quotes link back to the audio. Chapters across the top let you jump anywhere in the talk in one tap.</p>
       <div class="device">
         <div class="screen note-screen">
           <div class="island"></div>
@@ -2124,6 +2361,29 @@
             <div class="note-eyebrow">Talk · DataSummit 2026</div>
             <h1 class="note-h1">Eval as <em>engineering</em>, not research afterthought</h1>
             <div class="note-byline">By <em>Sarah Chen</em> · 47 min · Hall A · 11:14 AM</div>
+
+            <div class="chapters" aria-label="Chapters">
+              <div class="chapter-chip">
+                <div class="num">01</div>
+                <div class="title">Opening</div>
+                <div class="ts">0:00</div>
+              </div>
+              <div class="chapter-chip active">
+                <div class="num">02</div>
+                <div class="title">Three pillars</div>
+                <div class="ts">4:12</div>
+              </div>
+              <div class="chapter-chip">
+                <div class="num">03</div>
+                <div class="title">Live demo</div>
+                <div class="ts">18:55</div>
+              </div>
+              <div class="chapter-chip">
+                <div class="num">04</div>
+                <div class="title">Q &amp; A</div>
+                <div class="ts">41:20</div>
+              </div>
+            </div>
 
             <div class="blend-body">
               <p class="ai-text">Sarah opened with the case for treating LLM evaluation as a first-class engineering discipline. The team that ships fast on models without versioning their evals, she argued, is shipping vibes.</p>
@@ -2220,6 +2480,77 @@
                 <div class="note-title"><em>Keynote:</em> What models still can't do</div>
                 <div class="duration">62′</div>
                 <div class="note-meta">Hina Yoshida <span class="dot">·</span> Yesterday <span class="dot">·</span> <span class="photos">14 slides</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ SCENE 9: Chaptered playback ============ -->
+    <article class="scene">
+      <div class="scene-no">ix</div>
+      <h2 class="scene-title">Like YouTube chapters.<br>Built into the talk.</h2>
+      <p class="scene-desc">Tap "Listen" on any note → a scrubber appears with chapter markers. Skip the intro, find the demo, replay the Q&amp;A. The audio is the source of truth and the chapters are just shortcuts to it.</p>
+      <div class="device">
+        <div class="screen scrubber-screen">
+          <div class="island"></div>
+          <div class="status">
+            <span>11:46</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="content">
+            <div class="scrubber-head">
+              <div class="now-playing">Playing · Chapter 02</div>
+              <h2>Three pillars: coverage, calibration, cost</h2>
+              <div class="speaker">Eval as engineering · Sarah Chen</div>
+            </div>
+
+            <div class="mini-player">
+              <div class="play-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+              </div>
+              <div class="scrubber">
+                <div class="track">
+                  <div class="fill"></div>
+                  <div class="markers">
+                    <span style="left: 0%;"></span>
+                    <span style="left: 9%;"></span>
+                    <span style="left: 40%;"></span>
+                    <span style="left: 88%;"></span>
+                  </div>
+                </div>
+                <div class="times">
+                  <span>17:43</span>
+                  <span>47:12</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chapter-list">
+              <div class="label">All chapters</div>
+              <div class="chapter-row">
+                <div class="marker">i</div>
+                <div class="ts">0:00</div>
+                <div class="body"><strong>Opening</strong><span>Sarah introduces herself and the eval problem.</span></div>
+              </div>
+              <div class="chapter-row active">
+                <div class="marker">ii</div>
+                <div class="ts">4:12</div>
+                <div class="body"><strong>Three pillars</strong><span>Coverage, calibration, cost as the eval framework.</span></div>
+              </div>
+              <div class="chapter-row">
+                <div class="marker">iii</div>
+                <div class="ts">18:55</div>
+                <div class="body"><strong>Live demo</strong><span>Walking through a regression suite update.</span></div>
+              </div>
+              <div class="chapter-row">
+                <div class="marker">iv</div>
+                <div class="ts">41:20</div>
+                <div class="body"><strong>Q &amp; A</strong><span>Audience questions on cost and tooling.</span></div>
               </div>
             </div>
           </div>

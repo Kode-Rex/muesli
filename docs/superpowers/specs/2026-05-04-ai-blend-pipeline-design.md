@@ -47,20 +47,22 @@ These are tracked in the gap analysis (`2026-05-04-granola-gap-analysis.md`) for
 ```
 Stop tapped
   └─ Transcribe (Deepgram nova-3)            → transcript + word timings
-  └─ Per-image extract (Haiku 4.5, parallel) → { ocrText, description } per image
-  └─ Blend (Sonnet 4.6, single call)         → blendedMarkdown
+  ├─ Per-image extract (Haiku 4.5, parallel) → { ocrText, description } per image
+  ├─ Chapterize (Haiku 4.5)                  → ordered list of chapters with start times + titles
+  └─ Blend (Sonnet 4.6, single call)         → blendedMarkdown (sees chapters as context)
   └─ Persist + render
 ```
 
-Each stage is independently retryable. Cached outputs (transcript, per-image extracts) are reused on regenerate.
+The image-extract and chapterize stages run in parallel after transcription completes; both feed into the blend. Each stage is independently retryable. Cached outputs (transcript, per-image extracts, chapters) are reused on regenerate.
 
 ### Models
 
 - **Transcription**: Deepgram `nova-3` (already integrated). Returns full text and word-level timestamps.
 - **Per-image extraction**: Anthropic `claude-haiku-4-5-20251001`. One call per image, in parallel. Output: `{ ocrText: String, description: String }`. Cached by image content hash (sha256 of image bytes).
-- **Blend**: Anthropic `claude-sonnet-4-6`. Single call. Inputs: full transcript text, list of image extracts with timestamps, user notes verbatim. Output: structured JSON (see below).
+- **Chapterize**: Anthropic `claude-haiku-4-5-20251001`. One call. Input: full transcript with word timestamps + photo capture timestamps as topic-shift hints. Output: ordered array of `{ start: Float, title: String, summary: String }`. Cached by transcript hash.
+- **Blend**: Anthropic `claude-sonnet-4-6`. Single call. Inputs: full transcript text, list of image extracts with timestamps, user notes verbatim, chapters list (gives the AI structural anchors). Output: structured JSON (see below).
 
-Why this split: the per-image pass is cheap and parallel; the blend is one careful call with the long context. Caching per-image lets regenerate skip the vision spend if photos didn't change.
+Why this split: the per-image and chapterize passes are cheap and parallel; the blend is one careful call with the long context. Caching per-image and per-transcript lets regenerate skip the vision/chapter spend when those inputs didn't change.
 
 ### Output schema
 
@@ -84,6 +86,21 @@ The blend returns JSON conforming to:
 }
 ```
 
+The chapterize stage returns its own JSON, persisted separately on `Note.chaptersJSON`:
+
+```
+{
+  "chapters": [
+    { "start": 0.0,    "title": "Opening",       "summary": "Sarah introduces herself and the eval problem." },
+    { "start": 252.4,  "title": "Three pillars", "summary": "Coverage, calibration, cost as the eval framework." },
+    { "start": 1135.0, "title": "Live demo",     "summary": "Walking through a regression suite update." },
+    { "start": 2480.5, "title": "Q&A",           "summary": "Audience questions on cost and tooling." }
+  ]
+}
+```
+
+Chapter `start` values are seconds into the transcript. Each chapter is at least ~30 seconds long; the AI is prompted to produce 3–8 chapters for a typical talk.
+
 The markdown body contains no custom tags or sentinels — it is real, valid markdown. All structural metadata (which spans are user-verbatim, which are quotes, where images go, which spans cite which transcript ranges) lives in the parallel arrays above. The renderer is the single consumer of these arrays and applies styling/insertions on top of the parsed markdown.
 
 #### Rules enforced via prompt
@@ -106,6 +123,7 @@ Add to existing `Note`:
   var transcriptWordsJSON: Data?       // JSON-encoded [Word(text, start, end)]
   var blendedMarkdown: String?         // Final blended output with sentinels
   var blendCitationsJSON: Data?        // JSON-encoded citations + image placements + user spans
+  var chaptersJSON: Data?              // JSON-encoded [{ start, title, summary }]
   var blendStatus: BlendStatus         // .pending, .transcribing, .extracting, .blending, .complete, .failed
   var blendError: String?
   var blendCostMicros: Int?            // Cost of this blend in millionths of a USD, plumbed for credits
@@ -148,7 +166,8 @@ Implementation: build an `AttributedString` by walking `blendedMarkdown`, applyi
 - **Cost formula** (USD micros):
   - Deepgram: `seconds × $0.0043 / 60 = seconds × 71.7 micros/sec`
   - Haiku per image: flat ~`5000 micros` (≈ $0.005)
-  - Sonnet blend: `(input_tokens × 3 + output_tokens × 15) micros / 1000`
+  - Haiku chapterize: flat ~`5000 micros` (≈ $0.005, scales modestly with transcript length but bounded by Haiku output cap)
+  - Sonnet blend: `(input_tokens × 3 + output_tokens × 15) micros`
 - **Credit conversion** (rule-of-thumb for v1 UI display only): `1 credit = 30 minutes of audio + 5 images`. Translates to roughly:
   - 30 min × 71.7 µ/s × 60 = 129,060 µ Deepgram
   - 5 × 5,000 µ = 25,000 µ Haiku
@@ -162,7 +181,8 @@ Implementation: build an `AttributedString` by walking `blendedMarkdown`, applyi
 |---|---|---|
 | Deepgram | Network/API error | `blendStatus = .failed`, retry button visible, no cost recorded |
 | Image extract (any one) | API error or invalid image | That photo's `extractStatus = .failed`, others continue, blend proceeds with whatever extracts succeeded |
-| Sonnet blend | API error or invalid JSON | `blendStatus = .failed` with `blendError`, retry button visible, transcript and image extracts persisted, no Sonnet cost recorded (Deepgram + Haiku costs are still recorded since they completed) |
+| Chapterize | API error or invalid JSON | Persist whatever the blend produces with `chaptersJSON = nil`. The augmented note still renders; chapter strip simply hides. Cost not recorded for the failed Haiku call. |
+| Sonnet blend | API error or invalid JSON | `blendStatus = .failed` with `blendError`, retry button visible, transcript and image/chapter extracts persisted, no Sonnet cost recorded (Deepgram + Haiku costs are still recorded since they completed) |
 | Validation (output JSON malformed) | Schema mismatch | Single retry with stricter prompt; if second attempt fails, mark `.failed` |
 
 Regenerate behavior: skip stages whose inputs haven't changed (transcript and per-image extracts are cached by audio file hash and image content hash). The Sonnet blend always runs and is always charged — there is no free regenerate. If the user added a photo, the new photo's extract runs + the blend, both charged. If the user only edited notes, only the blend runs, charged at full rate.

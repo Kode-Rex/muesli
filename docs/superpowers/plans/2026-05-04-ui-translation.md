@@ -2098,6 +2098,235 @@ xcodebuild test -project src/mobile/Muesli.xcodeproj -scheme Muesli -destination
 git log --oneline | head -15
 ```
 
+### Task 12: Chapter strip + chaptered playback (TDD on the parser)
+
+**Files:**
+- Create: `src/mobile/Muesli/UI/Parsing/Chapter.swift`
+- Create: `src/mobile/Muesli/UI/Parsing/ChapterParser.swift`
+- Create: `src/mobile/MuesliTests/UI/Parsing/ChapterParserTests.swift`
+- Create: `src/mobile/Muesli/UI/Components/ChapterStrip.swift`
+- Create: `src/mobile/Muesli/UI/Views/ChapteredPlaybackView.swift`
+- Modify: `src/mobile/Muesli/UI/Views/AugmentedNoteView.swift` — render strip below byline; "Listen" button presents `ChapteredPlaybackView`
+
+The chapters arrive on the Note as `chaptersJSON: Data?` from the AI pipeline. Parse once into `[Chapter]`, render two views: an inline strip (Scene 6) and a fullscreen scrubber (Scene 9).
+
+- [ ] **Step 1: Define Chapter type**
+
+```swift
+// src/mobile/Muesli/UI/Parsing/Chapter.swift
+import Foundation
+
+struct Chapter: Codable, Equatable, Identifiable {
+    var id: String { "\(start)-\(title)" }
+    let start: Double      // seconds
+    let title: String
+    let summary: String?
+}
+```
+
+- [ ] **Step 2: TDD on the parser**
+
+```swift
+// src/mobile/MuesliTests/UI/Parsing/ChapterParserTests.swift
+import XCTest
+@testable import Muesli
+
+final class ChapterParserTests: XCTestCase {
+    func testReturnsEmptyArrayForNilData() {
+        XCTAssertEqual(ChapterParser.parse(json: nil), [])
+    }
+    func testReturnsEmptyArrayForMalformedJSON() {
+        XCTAssertEqual(ChapterParser.parse(json: Data("not-json".utf8)), [])
+    }
+    func testParsesValidChapters() {
+        let json = Data(#"{"chapters":[{"start":0,"title":"Opening","summary":"intro"},{"start":252.4,"title":"Three pillars"}]}"#.utf8)
+        let chapters = ChapterParser.parse(json: json)
+        XCTAssertEqual(chapters.count, 2)
+        XCTAssertEqual(chapters[0].title, "Opening")
+        XCTAssertEqual(chapters[0].summary, "intro")
+        XCTAssertNil(chapters[1].summary)
+    }
+    func testActiveIndexBeforeFirstChapterIsZero() {
+        let chapters = [Chapter(start: 100, title: "A", summary: nil), Chapter(start: 200, title: "B", summary: nil)]
+        XCTAssertEqual(ChapterParser.activeIndex(at: 50, in: chapters), 0)
+    }
+    func testActiveIndexBetweenChapters() {
+        let chapters = [
+            Chapter(start: 0, title: "A", summary: nil),
+            Chapter(start: 100, title: "B", summary: nil),
+            Chapter(start: 200, title: "C", summary: nil)
+        ]
+        XCTAssertEqual(ChapterParser.activeIndex(at: 99, in: chapters), 0)
+        XCTAssertEqual(ChapterParser.activeIndex(at: 100, in: chapters), 1)
+        XCTAssertEqual(ChapterParser.activeIndex(at: 250, in: chapters), 2)
+    }
+    func testActiveIndexInEmptyChaptersIsNil() {
+        XCTAssertNil(ChapterParser.activeIndex(at: 0, in: []))
+    }
+}
+```
+
+- [ ] **Step 3: Run, verify failures**
+
+```bash
+xcodebuild test -project src/mobile/Muesli.xcodeproj -scheme Muesli -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' -only-testing:MuesliTests/ChapterParserTests 2>&1 | tail -10
+```
+
+- [ ] **Step 4: Implement parser**
+
+```swift
+// src/mobile/Muesli/UI/Parsing/ChapterParser.swift
+import Foundation
+
+enum ChapterParser {
+    private struct Wrapper: Decodable { let chapters: [Chapter] }
+
+    static func parse(json data: Data?) -> [Chapter] {
+        guard let data else { return [] }
+        return (try? JSONDecoder().decode(Wrapper.self, from: data).chapters) ?? []
+    }
+
+    static func activeIndex(at seconds: Double, in chapters: [Chapter]) -> Int? {
+        guard !chapters.isEmpty else { return nil }
+        var idx = 0
+        for (i, c) in chapters.enumerated() {
+            if seconds >= c.start { idx = i } else { break }
+        }
+        return idx
+    }
+}
+```
+
+- [ ] **Step 5: Run, verify pass**
+
+```bash
+xcodebuild test -project src/mobile/Muesli.xcodeproj -scheme Muesli -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' -only-testing:MuesliTests/ChapterParserTests 2>&1 | tail -10
+```
+
+- [ ] **Step 6: ChapterStrip component**
+
+Translates the inline strip from Scene 6 of the mockup. Horizontal `ScrollView` of chips, the active chip auto-scrolls into view via `ScrollViewReader`. Active chip uses accent background; inactive uses paper-raise. Each chip shows: 2-digit index, chapter title (max 2 lines), and timestamp.
+
+```swift
+// src/mobile/Muesli/UI/Components/ChapterStrip.swift
+import SwiftUI
+
+struct ChapterStrip: View {
+    let chapters: [Chapter]
+    let activeIndex: Int?
+    let onTap: (Chapter) -> Void
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(chapters.enumerated()), id: \.offset) { i, ch in
+                        ChapterChip(index: i, chapter: ch, isActive: i == activeIndex)
+                            .id(i)
+                            .onTapGesture { onTap(ch) }
+                    }
+                }
+                .padding(.horizontal, 22)
+            }
+            .onChange(of: activeIndex) { _, new in
+                guard let new else { return }
+                withAnimation(.easeInOut) { proxy.scrollTo(new, anchor: .leading) }
+            }
+        }
+    }
+}
+
+private struct ChapterChip: View {
+    let index: Int
+    let chapter: Chapter
+    let isActive: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(String(format: "%02d", index + 1))
+                .font(MuesliTypography.timer)
+                .tracking(0.6)
+                .foregroundStyle(isActive ? MuesliColor.onAccent.opacity(0.65) : MuesliColor.muted)
+            Text(chapter.title)
+                .font(MuesliTypography.font(family: .fraunces, size: 11.5, opticalSize: 60, weight: 500))
+                .foregroundStyle(isActive ? MuesliColor.onAccent : MuesliColor.ink)
+                .lineLimit(2)
+            Text(timestampLabel(chapter.start))
+                .font(MuesliTypography.timer)
+                .foregroundStyle(isActive ? MuesliColor.onAccent.opacity(0.8) : MuesliColor.accent)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .frame(minWidth: 110, maxWidth: 160, alignment: .leading)
+        .background(isActive ? MuesliColor.accent : MuesliColor.paperRaise, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(isActive ? .clear : MuesliColor.rule, lineWidth: 1))
+        .shadow(color: isActive ? MuesliColor.accent.opacity(0.3) : .clear, radius: 12, y: 4)
+    }
+
+    private func timestampLabel(_ s: Double) -> String {
+        let t = Int(s); let h = t / 3600, m = (t % 3600) / 60, sec = t % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
+    }
+}
+```
+
+- [ ] **Step 7: Render strip in AugmentedNoteView**
+
+After the byline divider and before the body `ForEach`, conditionally insert:
+
+```swift
+if !chapters.isEmpty {
+    ChapterStrip(chapters: chapters, activeIndex: activeChapterIndex) { ch in
+        onChapterTap(ch.start)
+    }
+    .padding(.horizontal, -22)
+    .padding(.bottom, 12)
+}
+```
+
+`chapters` and `activeChapterIndex` come from the parent (which owns the audio player and current-time state). `onChapterTap` reuses the existing audio-seek handler.
+
+- [ ] **Step 8: ChapteredPlaybackView (Scene 9)**
+
+Full-screen view, shown via `.fullScreenCover` when "Listen" is tapped from the augmented note bottom bar. Layout:
+- Header: "PLAYING · CHAPTER 02" eyebrow, current chapter title (Fraunces), speaker line
+- Mini-player: round play/pause button, scrubber track with chapter markers, elapsed/total timecodes
+- Chapter list: roman-numeral marker, mono timecode, title + summary; current chapter highlighted in accent
+
+Audio is `AVPlayer` driven from the existing `AudioRecordingManager` recording URL. Tap on a chapter row → `player.seek(to:)`. Match Scene 9 mockup styles verbatim.
+
+- [ ] **Step 9: Wire "Listen" button in AugmentedNoteView**
+
+```swift
+.fullScreenCover(isPresented: $showingPlayback) {
+    ChapteredPlaybackView(
+        audioURL: audioURL,
+        chapters: chapters,
+        startAt: currentTime
+    )
+}
+```
+
+`onListenTap` toggles `showingPlayback = true`.
+
+- [ ] **Step 10: Build, smoke-test**
+
+Open a note with chapters → strip renders below byline → tap chapter → audio seeks (and strip auto-scrolls to keep active chip visible). Tap "Listen" → fullscreen scrubber appears → markers visible at chapter boundaries → tap row → audio jumps.
+
+- [ ] **Step 11: Commit**
+
+```bash
+git add src/mobile/Muesli/UI/Parsing/Chapter.swift src/mobile/Muesli/UI/Parsing/ChapterParser.swift src/mobile/MuesliTests/UI/Parsing/ChapterParserTests.swift src/mobile/Muesli/UI/Components/ChapterStrip.swift src/mobile/Muesli/UI/Views/ChapteredPlaybackView.swift src/mobile/Muesli/UI/Views/AugmentedNoteView.swift
+git commit -m "feat(ui): chapters — strip on note + chaptered playback (Scene 9)
+
+ChapterParser parses Note.chaptersJSON into [Chapter] and exposes
+activeIndex(at:in:) for highlighting the current chip. ChapterStrip
+auto-scrolls the active chip into view. Listen button now presents a
+ChapteredPlaybackView with a marker-equipped scrubber and a
+tappable chapter list."
+```
+
+---
+
 ## Out of scope (revisit after this lands)
 
 - **In-app camera** (Scene 4) — uses AVCaptureSession + UIViewControllerRepresentable. Substantial enough to be its own plan; the camera button in RecordingView wires up later.

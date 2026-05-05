@@ -34,6 +34,10 @@ struct MuesliApp: App {
         }
     }()
 
+    init() {
+        TranscriptionOrchestrator.shared.setContainer(sharedModelContainer)
+    }
+
     var body: some Scene {
         WindowGroup {
             SimpleMainView()

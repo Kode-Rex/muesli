@@ -6,9 +6,22 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { config } from '../config/index.js';
+import { redactConfig } from './redactConfig.js';
+
+// Walk the log info object and redact secret-shaped fields. Skip the
+// canonical fields (level, message, timestamp) that Winston manages.
+const redactFormat = winston.format((info) => {
+  const skip = new Set(['level', 'message', 'timestamp', Symbol.for('level'), Symbol.for('message'), Symbol.for('splat')]);
+  for (const k of Reflect.ownKeys(info)) {
+    if (skip.has(k)) continue;
+    info[k] = redactConfig(info[k]);
+  }
+  return info;
+})();
 
 // Custom log format for structured logging
 const logFormat = winston.format.combine(
+  redactFormat,
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
   winston.format.errors({ stack: true }),
   winston.format.json(),

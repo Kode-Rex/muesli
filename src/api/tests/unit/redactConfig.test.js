@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { redactConfig } from '../../src/utils/redactConfig.js';
+import { redactConfig, SECRET_PATTERN } from '../../src/utils/redactConfig.js';
 
 describe('redactConfig', () => {
   it('redacts top-level keys matching apiKey', () => {
@@ -46,5 +46,19 @@ describe('redactConfig', () => {
     const out = redactConfig(input);
     expect(input).toEqual({ apiKey: 'x', model: 'y' });
     expect(out).not.toBe(input);
+  });
+});
+
+describe('SECRET_PATTERN', () => {
+  it('matches common secret-shaped key names', () => {
+    expect('apiKey').toMatch(SECRET_PATTERN);
+    expect('jwtSecret').toMatch(SECRET_PATTERN);
+    expect('refresh_token').toMatch(SECRET_PATTERN);
+    expect('Password').toMatch(SECRET_PATTERN);
+  });
+
+  it('does not match unrelated names', () => {
+    expect('model').not.toMatch(SECRET_PATTERN);
+    expect('bundleId').not.toMatch(SECRET_PATTERN);
   });
 });

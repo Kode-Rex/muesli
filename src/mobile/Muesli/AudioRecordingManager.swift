@@ -371,16 +371,12 @@ class AudioRecordingManager: NSObject {
 
 extension AudioRecordingManager: AVAudioRecorderDelegate {
     
-    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
-        let elapsedSinceStart = recordingStartTime?.timeIntervalSinceNow ?? 0
-        AppLogger.shared.info("AVAudioRecorderDelegate: audioRecorderDidFinishRecording called - success: \(flag), duration: \(recordingDuration), elapsed since start: \(abs(elapsedSinceStart))s")
-        
-        // If recording finished almost immediately (< 0.5 seconds), it might be a false trigger
-        if let startTime = recordingStartTime, abs(startTime.timeIntervalSinceNow) < 0.5 {
+    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        if recorder.currentTime < 1.0 {
             AppLogger.shared.warning("Recording finished too quickly - possible audio session conflict or simulator limitation")
         }
-        
-        DispatchQueue.main.async {
+
+        Task { @MainActor in
             if flag {
                 AppLogger.shared.info("Recording finished successfully")
                 self.state = .finished
@@ -393,19 +389,21 @@ extension AudioRecordingManager: AVAudioRecorderDelegate {
             }
         }
     }
-    
-    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+
+    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
         AppLogger.shared.error("Recording encode error", error: error)
-        state = .idle
-        currentRecordingPath = nil
-        recordingDuration = 0
-        stopDurationTimer()
-        
-        // Try to deactivate audio session gracefully
-        do {
-            try audioSession.setActive(false)
-        } catch {
-            AppLogger.shared.warning("Failed to deactivate audio session after encode error: \(error)")
+
+        Task { @MainActor in
+            self.state = .idle
+            self.currentRecordingPath = nil
+            self.recordingDuration = 0
+            self.stopDurationTimer()
+
+            do {
+                try self.audioSession.setActive(false)
+            } catch {
+                AppLogger.shared.warning("Failed to deactivate audio session after encode error: \(error)")
+            }
         }
     }
 }

@@ -368,6 +368,25 @@ class DeepgramService {
   }
 
   /**
+   * Transcribe a buffer and return { transcript, words } for the pipeline
+   */
+  async transcribeBuffer(buffer, mimeType = 'audio/mp4') {
+    const { result } = await this.client.listen.prerecorded.transcribeFile(buffer, {
+      model: config.deepgram.model,
+      language: config.deepgram.language,
+      punctuate: true,
+      diarize: false,
+      utterances: false,
+    });
+    const channel = result?.results?.channels?.[0];
+    const transcript = channel?.alternatives?.[0]?.transcript ?? '';
+    const words = (channel?.alternatives?.[0]?.words ?? []).map(w => ({
+      text: w.word, start: w.start, end: w.end
+    }));
+    return { transcript, words };
+  }
+
+  /**
    * Clean up stale connections
    */
   cleanupStaleConnections(maxIdleTime = 300000) { // 5 minutes

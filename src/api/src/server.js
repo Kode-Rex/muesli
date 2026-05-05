@@ -22,6 +22,7 @@ import {
 } from './middleware/security.js';
 import healthRoutes from './routes/health.js';
 import transcriptionRoutes, { setupWebSocketServer } from './routes/transcription.js';
+import sessionsRouter from './routes/sessions.js';
 import deepgramService from './services/deepgramService.js';
 
 // Create Express application
@@ -89,6 +90,9 @@ app.use(apiPrefix, healthRoutes);
 
 // Main API routes
 app.use(apiPrefix, transcriptionRoutes);
+
+// Sessions pipeline routes
+app.use('/v1/sessions', sessionsRouter);
 
 // Root endpoint
 app.get('/', (req, res) => {

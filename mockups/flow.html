@@ -1152,73 +1152,6 @@
     color: var(--ink-2);
   }
 
-  /* chapter strip */
-  .chapters {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    margin: 14px -22px 0;
-    padding: 4px 22px 8px;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-  }
-
-  .chapters::-webkit-scrollbar { display: none; }
-
-  .chapter-chip {
-    flex: 0 0 auto;
-    padding: 8px 12px 9px;
-    background: var(--paper-raise);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    scroll-snap-align: start;
-    min-width: 110px;
-    max-width: 160px;
-  }
-
-  .chapter-chip.active {
-    background: var(--oxblood);
-    border-color: transparent;
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--oxblood) 30%, transparent);
-  }
-
-  .chapter-chip .num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 8px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-  }
-
-  .chapter-chip.active .num { color: color-mix(in srgb, var(--on-accent) 65%, transparent); }
-
-  .chapter-chip .title {
-    font-family: 'Fraunces', serif;
-    font-variation-settings: "opsz" 60;
-    font-weight: 500;
-    font-size: 11.5px;
-    color: var(--ink);
-    line-height: 1.2;
-    margin-top: 2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-
-  .chapter-chip.active .title { color: var(--on-accent); }
-
-  .chapter-chip .ts {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    color: var(--oxblood);
-    margin-top: 4px;
-    font-weight: 600;
-  }
-
-  .chapter-chip.active .ts { color: color-mix(in srgb, var(--on-accent) 80%, transparent); }
-
   /* Scene 9 — chaptered playback */
   .scrubber-screen {
     background:
@@ -2342,7 +2275,7 @@
     <article class="scene">
       <div class="scene-no">vi</div>
       <h2 class="scene-title">Your words, kept.<br>The rest, written.</h2>
-      <p class="scene-desc">User notes hold their place verbatim — bold, clear. AI prose fills in around them in lighter weight. Slides drop where the speaker was talking about them. Quotes link back to the audio. Chapters across the top let you jump anywhere in the talk in one tap.</p>
+      <p class="scene-desc">User notes hold their place verbatim — bold, clear. AI prose fills in around them in lighter weight. Slides drop where the speaker was talking about them. Quotes link back to the audio. Tap Listen for the chaptered scrubber.</p>
       <div class="device">
         <div class="screen note-screen">
           <div class="island"></div>
@@ -2361,29 +2294,6 @@
             <div class="note-eyebrow">Talk · DataSummit 2026</div>
             <h1 class="note-h1">Eval as <em>engineering</em>, not research afterthought</h1>
             <div class="note-byline">By <em>Sarah Chen</em> · 47 min · Hall A · 11:14 AM</div>
-
-            <div class="chapters" aria-label="Chapters">
-              <div class="chapter-chip">
-                <div class="num">01</div>
-                <div class="title">Opening</div>
-                <div class="ts">0:00</div>
-              </div>
-              <div class="chapter-chip active">
-                <div class="num">02</div>
-                <div class="title">Three pillars</div>
-                <div class="ts">4:12</div>
-              </div>
-              <div class="chapter-chip">
-                <div class="num">03</div>
-                <div class="title">Live demo</div>
-                <div class="ts">18:55</div>
-              </div>
-              <div class="chapter-chip">
-                <div class="num">04</div>
-                <div class="title">Q &amp; A</div>
-                <div class="ts">41:20</div>
-              </div>
-            </div>
 
             <div class="blend-body">
               <p class="ai-text">Sarah opened with the case for treating LLM evaluation as a first-class engineering discipline. The team that ships fast on models without versioning their evals, she argued, is shipping vibes.</p>

@@ -2098,17 +2098,16 @@ xcodebuild test -project src/mobile/Muesli.xcodeproj -scheme Muesli -destination
 git log --oneline | head -15
 ```
 
-### Task 12: Chapter strip + chaptered playback (TDD on the parser)
+### Task 12: Chaptered playback view (TDD on the parser)
 
 **Files:**
 - Create: `src/mobile/Muesli/UI/Parsing/Chapter.swift`
 - Create: `src/mobile/Muesli/UI/Parsing/ChapterParser.swift`
 - Create: `src/mobile/MuesliTests/UI/Parsing/ChapterParserTests.swift`
-- Create: `src/mobile/Muesli/UI/Components/ChapterStrip.swift`
 - Create: `src/mobile/Muesli/UI/Views/ChapteredPlaybackView.swift`
-- Modify: `src/mobile/Muesli/UI/Views/AugmentedNoteView.swift` — render strip below byline; "Listen" button presents `ChapteredPlaybackView`
+- Modify: `src/mobile/Muesli/UI/Views/AugmentedNoteView.swift` — wire "Listen" button to present `ChapteredPlaybackView`
 
-The chapters arrive on the Note as `chaptersJSON: Data?` from the AI pipeline. Parse once into `[Chapter]`, render two views: an inline strip (Scene 6) and a fullscreen scrubber (Scene 9).
+The chapters arrive on the Note as `chaptersJSON: Data?` from the AI pipeline. Parsed once into `[Chapter]` and surfaced **only** in the full-screen playback view (Scene 9). The augmented note itself stays focused on reading — it already has time-anchored quotes and slide thumbnails for in-context jumps; chapters live where they earn their keep, in the listening mode.
 
 - [ ] **Step 1: Define Chapter type**
 
@@ -2203,126 +2202,102 @@ enum ChapterParser {
 xcodebuild test -project src/mobile/Muesli.xcodeproj -scheme Muesli -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6' -only-testing:MuesliTests/ChapterParserTests 2>&1 | tail -10
 ```
 
-- [ ] **Step 6: ChapterStrip component**
+- [ ] **Step 6: ChapteredPlaybackView (Scene 9)**
 
-Translates the inline strip from Scene 6 of the mockup. Horizontal `ScrollView` of chips, the active chip auto-scrolls into view via `ScrollViewReader`. Active chip uses accent background; inactive uses paper-raise. Each chip shows: 2-digit index, chapter title (max 2 lines), and timestamp.
+Full-screen view, presented via `.fullScreenCover` when "Listen" is tapped from the augmented note's bottom bar. Layout (match Scene 9 mockup verbatim):
+
+- Header: "PLAYING · CHAPTER 02" eyebrow, current chapter title in Fraunces, speaker line in muted
+- Mini-player: round play/pause button, scrubber track with chapter-boundary markers, elapsed/total timecodes
+- Chapter list: each row shows roman-numeral marker, mono timecode, title + summary; current chapter highlighted in accent
+
+Audio is `AVPlayer` driven from the Note's recording URL. The current-time state drives both the scrubber position and the active-chapter highlight via `ChapterParser.activeIndex(at:in:)`. Tap on a chapter row → `player.seek(to:)`.
+
+The skeleton:
 
 ```swift
-// src/mobile/Muesli/UI/Components/ChapterStrip.swift
+// src/mobile/Muesli/UI/Views/ChapteredPlaybackView.swift
 import SwiftUI
+import AVFoundation
 
-struct ChapterStrip: View {
+struct ChapteredPlaybackView: View {
+    let audioURL: URL
     let chapters: [Chapter]
-    let activeIndex: Int?
-    let onTap: (Chapter) -> Void
+    let title: String
+    let speaker: String
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var player: AVPlayer?
+    @State private var currentTime: Double = 0
+    @State private var duration: Double = 0
+    @State private var isPlaying = false
+    private let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+
+    private var activeIndex: Int? {
+        ChapterParser.activeIndex(at: currentTime, in: chapters)
+    }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(chapters.enumerated()), id: \.offset) { i, ch in
-                        ChapterChip(index: i, chapter: ch, isActive: i == activeIndex)
-                            .id(i)
-                            .onTapGesture { onTap(ch) }
-                    }
-                }
-                .padding(.horizontal, 22)
-            }
-            .onChange(of: activeIndex) { _, new in
-                guard let new else { return }
-                withAnimation(.easeInOut) { proxy.scrollTo(new, anchor: .leading) }
-            }
+        VStack(spacing: 0) {
+            header
+            miniPlayer.padding(.horizontal, 22).padding(.top, 12)
+            chapterList
+        }
+        .background(MuesliColor.screen)
+        .onAppear { setupPlayer() }
+        .onDisappear { player?.pause() }
+        .onReceive(timer) { _ in
+            currentTime = player?.currentTime().seconds ?? 0
         }
     }
-}
 
-private struct ChapterChip: View {
-    let index: Int
-    let chapter: Chapter
-    let isActive: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(String(format: "%02d", index + 1))
-                .font(MuesliTypography.timer)
-                .tracking(0.6)
-                .foregroundStyle(isActive ? MuesliColor.onAccent.opacity(0.65) : MuesliColor.muted)
-            Text(chapter.title)
-                .font(MuesliTypography.font(family: .fraunces, size: 11.5, opticalSize: 60, weight: 500))
-                .foregroundStyle(isActive ? MuesliColor.onAccent : MuesliColor.ink)
-                .lineLimit(2)
-            Text(timestampLabel(chapter.start))
-                .font(MuesliTypography.timer)
-                .foregroundStyle(isActive ? MuesliColor.onAccent.opacity(0.8) : MuesliColor.accent)
-        }
-        .padding(.horizontal, 12).padding(.vertical, 8)
-        .frame(minWidth: 110, maxWidth: 160, alignment: .leading)
-        .background(isActive ? MuesliColor.accent : MuesliColor.paperRaise, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(isActive ? .clear : MuesliColor.rule, lineWidth: 1))
-        .shadow(color: isActive ? MuesliColor.accent.opacity(0.3) : .clear, radius: 12, y: 4)
-    }
-
-    private func timestampLabel(_ s: Double) -> String {
-        let t = Int(s); let h = t / 3600, m = (t % 3600) / 60, sec = t % 60
-        return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
-    }
+    // header, miniPlayer, chapterList — implementer fills in matching Scene 9 styles
+    // setupPlayer creates AVPlayer(url:), reads duration via AVAsset(url:).load(.duration)
+    // play/pause toggles isPlaying and calls player?.play() / player?.pause()
+    // chapter row tap: player?.seek(to: CMTime(seconds: ch.start, preferredTimescale: 600))
 }
 ```
 
-- [ ] **Step 7: Render strip in AugmentedNoteView**
+(Implementer expands the three sub-views following the mockup CSS as the visual spec. The `Chapter` and `ChapterParser` types from Steps 1–5 are everything needed.)
 
-After the byline divider and before the body `ForEach`, conditionally insert:
+- [ ] **Step 7: Wire "Listen" button in AugmentedNoteView**
 
-```swift
-if !chapters.isEmpty {
-    ChapterStrip(chapters: chapters, activeIndex: activeChapterIndex) { ch in
-        onChapterTap(ch.start)
-    }
-    .padding(.horizontal, -22)
-    .padding(.bottom, 12)
-}
-```
-
-`chapters` and `activeChapterIndex` come from the parent (which owns the audio player and current-time state). `onChapterTap` reuses the existing audio-seek handler.
-
-- [ ] **Step 8: ChapteredPlaybackView (Scene 9)**
-
-Full-screen view, shown via `.fullScreenCover` when "Listen" is tapped from the augmented note bottom bar. Layout:
-- Header: "PLAYING · CHAPTER 02" eyebrow, current chapter title (Fraunces), speaker line
-- Mini-player: round play/pause button, scrubber track with chapter markers, elapsed/total timecodes
-- Chapter list: roman-numeral marker, mono timecode, title + summary; current chapter highlighted in accent
-
-Audio is `AVPlayer` driven from the existing `AudioRecordingManager` recording URL. Tap on a chapter row → `player.seek(to:)`. Match Scene 9 mockup styles verbatim.
-
-- [ ] **Step 9: Wire "Listen" button in AugmentedNoteView**
+In `AugmentedNoteView`'s bottom bar, change the existing Listen action to present the playback view:
 
 ```swift
+@State private var showingPlayback = false
+
+// in the Listen button action:
+{ showingPlayback = true }
+
+// at the end of the view body:
 .fullScreenCover(isPresented: $showingPlayback) {
     ChapteredPlaybackView(
         audioURL: audioURL,
         chapters: chapters,
-        startAt: currentTime
+        title: title,
+        speaker: speakerLine
     )
 }
 ```
 
-`onListenTap` toggles `showingPlayback = true`.
+`chapters` is computed once from `ChapterParser.parse(json: note.chaptersJSON)` higher up in the view.
 
-- [ ] **Step 10: Build, smoke-test**
+- [ ] **Step 8: Build, smoke-test**
 
-Open a note with chapters → strip renders below byline → tap chapter → audio seeks (and strip auto-scrolls to keep active chip visible). Tap "Listen" → fullscreen scrubber appears → markers visible at chapter boundaries → tap row → audio jumps.
+Open a note with chapters → tap "Listen" → full-screen scrubber appears → chapter markers render along the track → tap a chapter row → audio jumps to that timestamp → currently-playing chapter highlights in accent. Note view itself does NOT show a chapter strip — chapters are exclusively a playback-mode concern.
 
-- [ ] **Step 11: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add src/mobile/Muesli/UI/Parsing/Chapter.swift src/mobile/Muesli/UI/Parsing/ChapterParser.swift src/mobile/MuesliTests/UI/Parsing/ChapterParserTests.swift src/mobile/Muesli/UI/Components/ChapterStrip.swift src/mobile/Muesli/UI/Views/ChapteredPlaybackView.swift src/mobile/Muesli/UI/Views/AugmentedNoteView.swift
-git commit -m "feat(ui): chapters — strip on note + chaptered playback (Scene 9)
+git add src/mobile/Muesli/UI/Parsing/Chapter.swift src/mobile/Muesli/UI/Parsing/ChapterParser.swift src/mobile/MuesliTests/UI/Parsing/ChapterParserTests.swift src/mobile/Muesli/UI/Views/ChapteredPlaybackView.swift src/mobile/Muesli/UI/Views/AugmentedNoteView.swift
+git commit -m "feat(ui): chaptered playback (Scene 9)
 
 ChapterParser parses Note.chaptersJSON into [Chapter] and exposes
-activeIndex(at:in:) for highlighting the current chip. ChapterStrip
-auto-scrolls the active chip into view. Listen button now presents a
-ChapteredPlaybackView with a marker-equipped scrubber and a
-tappable chapter list."
+activeIndex(at:in:) for highlighting. ChapteredPlaybackView is a
+full-screen scrubber surface with chapter-boundary markers and a
+tappable chapter list. Listen button on the augmented note presents
+it. The note view itself stays focused on reading — chapters live
+where they earn their keep, in the listening mode."
 ```
 
 ---

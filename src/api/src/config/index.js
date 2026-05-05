@@ -25,7 +25,15 @@ const configSchema = Joi.object({
   API_VERSION: Joi.string().default('v1'),
 
   // Security Configuration
-  CORS_ORIGIN: Joi.string().default('*'),
+  CORS_ORIGIN: Joi.string()
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().required().disallow('*').messages({
+        'any.required': 'CORS_ORIGIN is required in production and must not be "*"',
+        'any.invalid': 'CORS_ORIGIN must not be "*" in production'
+      }),
+      otherwise: Joi.string().default('http://localhost:3000')
+    }),
   API_RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000), // 15 minutes
   API_RATE_LIMIT_MAX_REQUESTS: Joi.number().default(100),
   TRANSCRIPTION_RATE_LIMIT_MAX_REQUESTS: Joi.number().default(20),

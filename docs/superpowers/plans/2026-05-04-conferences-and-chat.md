@@ -1644,6 +1644,166 @@ debits, compression for large conferences."
 
 ---
 
+### Task 13: Chat accessibility + scope chip data flow
+
+**Files:**
+- Modify: `src/mobile/Muesli/UI/Views/ChatSheetView.swift`
+- Modify: `src/mobile/Muesli/UI/Components/StreamingMessage.swift`
+
+These are the three findings from the chat UX research that have to be baked in before chat ships. Treat them as Definition-of-Done for the chat feature.
+
+#### 13a — Reduce Motion fallback for streaming text
+
+The token-by-token reveal is core to the "live answer" feel, but Apple's accessibility evaluation criteria explicitly flags multi-step character-by-character animations as a Reduce Motion trigger. When Reduce Motion is on, fall back to a single-step reveal: hold the buffer, render the full message at once when the `final` event arrives. The cursor blink animation also stops.
+
+- [ ] **Step 1: Read the env var**
+
+In `ChatSheetView.swift`, add:
+```swift
+@Environment(\.accessibilityReduceMotion) private var reduceMotion
+```
+
+- [ ] **Step 2: Gate the streaming buffer**
+
+In the `streamMessage` callback, change the `delta` handler to:
+
+```swift
+case .delta(let t):
+    if reduceMotion {
+        // Buffer silently — render only on `.final` or `.done`
+        bufferedText += t
+    } else {
+        streamingMessage += t
+    }
+```
+
+And on `.final` / `.done`:
+
+```swift
+case .done:
+    if reduceMotion {
+        streamingMessage = bufferedText
+    }
+    // commit message to SwiftData (existing behavior)
+```
+
+- [ ] **Step 3: Stop the cursor blink under Reduce Motion**
+
+In the cursor view component:
+
+```swift
+.opacity(reduceMotion ? 1 : (cursorOn ? 1 : 0))
+.animation(reduceMotion ? .default : .easeInOut(duration: 0.5).repeatForever(), value: cursorOn)
+```
+
+#### 13b — VoiceOver announcements for streaming content
+
+VoiceOver does not auto-announce `Text` content that mutates after the screen renders. Without explicit announcements, blind users hear nothing during a 10–20 second streamed response. Fix by chunking into sentences and posting each sentence to the accessibility notification API.
+
+- [ ] **Step 1: Add a sentence-buffering helper**
+
+In `ChatSheetView.swift` or a small helper file:
+
+```swift
+import UIKit
+
+private final class ChatA11yAnnouncer {
+    private var pending: String = ""
+
+    func append(_ delta: String) {
+        pending += delta
+        // flush at sentence boundaries — `.`, `?`, `!` followed by space/EOL
+        let pattern = #"[\.\?!](\s|$)"#
+        while let range = pending.range(of: pattern, options: .regularExpression) {
+            let sentence = String(pending[..<range.upperBound]).trimmingCharacters(in: .whitespaces)
+            UIAccessibility.post(notification: .announcement, argument: sentence)
+            pending = String(pending[range.upperBound...])
+        }
+    }
+
+    func flush() {
+        let tail = pending.trimmingCharacters(in: .whitespaces)
+        if !tail.isEmpty {
+            UIAccessibility.post(notification: .announcement, argument: tail)
+        }
+        pending = ""
+    }
+}
+```
+
+- [ ] **Step 2: Wire into the stream handler**
+
+In `ChatSheetView`:
+
+```swift
+@State private var announcer = ChatA11yAnnouncer()
+
+// in delta handler, after appending to streamingMessage / bufferedText:
+if UIAccessibility.isVoiceOverRunning { announcer.append(t) }
+
+// in done handler:
+if UIAccessibility.isVoiceOverRunning { announcer.flush() }
+```
+
+- [ ] **Step 3: Smoke test**
+
+Enable VoiceOver in iOS Settings → Accessibility → VoiceOver. Open chat. Send a question. Confirm the assistant's response is read sentence-by-sentence as it streams, not all at once after completion.
+
+#### 13c — Scope chip data flow
+
+Per UX research, the scope chip must be (a) prominent above the input, (b) pre-populated from the entry point, (c) tappable to switch scopes. This corrects the #1 UX failure mode in note-app chat.
+
+- [ ] **Step 1: Pass scope context through the constructor**
+
+The current `ChatSheetView` already takes `scope`, `noteId`, `conferenceId`, `scopeTitle`. Confirm the entry points populate it correctly:
+
+- From `AugmentedNoteView`'s ⋯ menu: `ChatSheetView(scope: .talk, conferenceId: nil, noteId: note.id, scopeTitle: note.title)`
+- From `ConferenceDetailView` CTA: `ChatSheetView(scope: .conference, conferenceId: conference.id, noteId: nil, scopeTitle: "\(conference.name) · \(conference.notes.count) talks")`
+
+- [ ] **Step 2: Render the chip per the mockup**
+
+Match `flow.html` Scene 8: rounded pill, accent-tinted background, scope-letter avatar (T or C), title text truncated, "switch" affordance on the trailing edge. Use the existing CSS as the spec for SwiftUI styles.
+
+- [ ] **Step 3: Implement the scope picker sheet**
+
+Tapping the chip opens a small picker sheet:
+
+```swift
+.sheet(isPresented: $showingScopePicker) {
+    ScopePickerSheet(
+        currentScope: scope,
+        currentNoteId: noteId,
+        currentConferenceId: conferenceId,
+        onPick: { newScope, newNoteId, newConferenceId, newTitle in
+            // create a new thread under the new scope, swap state
+        }
+    )
+}
+```
+
+The picker shows:
+- "This talk" (if currently in a Conference, shows the picker over the talks in that conference)
+- "This conference" (if currently in a talk, shows the talk's conference)
+- "Other conferences" → drills into a list
+
+Switching scope creates a NEW thread; existing thread is preserved (don't lose history when scope changes).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/mobile/Muesli/UI/Views/ChatSheetView.swift src/mobile/Muesli/UI/Components/StreamingMessage.swift
+git commit -m "feat(ui): chat accessibility — Reduce Motion + VoiceOver + scope chip
+
+Reduce Motion: hold the streaming buffer, render full message on
+final event; stop cursor blink. VoiceOver: post per-sentence
+.announcement notifications during streaming so blind users hear
+the response as it generates. Scope chip: pre-populated from entry
+point, tappable to switch via picker sheet that creates a fresh
+thread under the new scope."
+```
+
+---
+
 ## Out of scope (revisit later)
 
 - Cross-conference chat ("ask all my conferences")

@@ -52,9 +52,15 @@ CREATE INDEX ledger_entries_session_idx ON ledger_entries(session_id) WHERE sess
 
 ### Units
 
-The internal unit is **micros of USD** (one millionth of a dollar). All cost computations stay in micros to avoid floating-point math. UI converts micros to "credits" for display only.
+The internal unit is **micros of USD** (one millionth of a dollar). All cost computations stay in micros to avoid floating-point math.
 
-Display rule: `1 credit = 200,000 micros = $0.20` (matches the AI pipeline spec's per-session estimate). Pure UI mapping; can change without ledger migration.
+The user-facing display unit is **hours of recording** — a unit anchored to user behavior (planning a conference). The math is a simple division at the UI layer:
+
+- `1 hour = 400,000 micros` (covers a typical 1-hour recording-and-blend session, plus the chat traffic associated with it)
+- Hours-remaining displayed as `floor(microsBalance / 400_000)`
+- The legacy `1 credit = 200,000 micros` constant (from earlier drafts of this spec) is internal-only — used by the AI pipeline cost computation. The UI never says "credits."
+
+This is a display-layer change; the ledger schema, debit logic, and idempotency are all unchanged. Pricing/packaging can move between hours, credits, sessions, etc. without a migration as long as the underlying micros are correct.
 
 ### Cost computation (server-side, after each AI op)
 
@@ -121,7 +127,7 @@ v1: `config.credits.enforced = false`. Always returns `{ ok: true }` regardless 
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | `/v1/account/balance` | required | Returns `{ creditsAvailable: Int, microsBalance: Int, enforced: Bool }`. With enforcement off, `creditsAvailable = Int.MAX_SAFE_INTEGER`. |
+| GET | `/v1/account/balance` | required | Returns `{ hoursAvailable: Int, microsBalance: Int, enforced: Bool }`. With enforcement off, `hoursAvailable = Int.MAX_SAFE_INTEGER`. The iOS client formats this as "X hours of recording remaining." |
 | GET | `/v1/account/ledger?limit=50&before=...` | required | Paginated history of ledger entries for the user. |
 | POST | `/v1/account/grant` | admin only | Grant credits (positive delta). For dev, support, manual top-ups. |
 
@@ -162,7 +168,7 @@ Logs: every debit emits a structured Winston log (no secrets). Sample 100% in de
 
 - `APIClient` exposes a `balance: BalanceState` observable, refreshed on app foreground and after every blend.
 - A debug-only "Credits" screen shows: balance, last 20 entries, the last blend's cost breakdown.
-- v1 user-facing UI: small badge in the corner of the recording screen showing "estimated cost: ~1 credit" before recording starts. No hard cap, but the meter is visible.
+- v1 user-facing UI: small badge in the corner of the recording screen showing "estimated cost: ~30 min" before recording starts (i.e., the estimated hours-of-budget this session will consume). No hard cap, but the meter is visible.
 
 ### Environment variables
 
@@ -209,7 +215,7 @@ On user signup, if `NEW_USER_GRANT_MICROS > 0`, insert a `grant` ledger entry wi
 
 ## Open questions
 
-- (resolved) Display unit: 1 credit = $0.20 = 200,000 micros
+- (resolved) Display unit: HOURS. 1 hour = 400,000 micros. Backend stays in micros; "credits" is internal terminology only.
 - (resolved) Enforcement default: off in v1
 - (resolved) New-user grant: 5 credits
 - Whether to expose ledger history in user-facing UI v1 → recommend debug-only for v1, polish for v2

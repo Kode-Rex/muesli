@@ -381,6 +381,8 @@ struct SimpleNoteDetailView: View {
         }
 
         transcriptionTask = Task {
+            defer { transcriptionTask = nil }
+
             try? await Task.sleep(nanoseconds: 500_000_000)
 
             guard let audioURL = AudioRecordingManager.shared.getRecordingURL(fileName: audioPath) else {

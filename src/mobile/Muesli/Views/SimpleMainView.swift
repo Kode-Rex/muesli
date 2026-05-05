@@ -199,14 +199,14 @@ struct SimpleMainView: View {
             do {
                 let transcript = try await HybridTranscriptionService.shared.transcribeAudioFile(url: audioURL)
 
-                DispatchQueue.main.async {
+                await MainActor.run {
                     note.content = transcript
                     note.transcriptionStatus = "completed"
                     note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
                     note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript, userNotes: note.userNotes)
 
                     do {
-                        try self.modelContext.save()
+                        try modelContext.save()
                         AppLogger.shared.info("Successfully transcribed note: \(note.title) (\(transcript.count) chars)")
                     } catch {
                         AppLogger.shared.dataError("Save Transcription", error: error)
@@ -214,11 +214,10 @@ struct SimpleMainView: View {
                     }
                 }
             } catch {
-                // Mark transcription as failed if service is not available
-                DispatchQueue.main.async {
+                await MainActor.run {
                     note.transcriptionStatus = "failed"
                     do {
-                        try self.modelContext.save()
+                        try modelContext.save()
                     } catch {
                         AppLogger.shared.dataError("Update Failed Status", error: error)
                     }

@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Muesli — capture flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ===== DARK (default) — aubergine night ===== */
+  :root {
+    --paper: #150E1C;
+    --paper-2: #1F1528;
+    --ink: #F2E9DA;
+    --ink-2: #BFB1C9;
+    --muted: #A090B2;          /* WCAG AA on --screen at 12px */
+    --rule: #3A2D44;
+    --oxblood: #A93FCC;          /* dialed back from #C247E8 */
+    --oxblood-glow: #C969E8;     /* dialed back from #E879F9 */
+    --on-accent: #150E1C;        /* text/icon color when sitting on the accent */
+    --teal: #7B9F8A;
+    --device: #060309;
+    --device-2: #170F20;
+    --screen: #1A1124;
+    --screen-dark: #0C0712;
+    --rec-grad-1: #1A1124;
+    --rec-grad-2: #110918;
+    --bloom-1: rgba(169,63,204,0.16);
+    --bloom-2: rgba(123,159,138,0.04);
+    --noise-1: rgba(242,233,218,0.025);
+    --noise-2: rgba(169,63,204,0.018);
+    --noise-blend: screen;
+    --ctrl-bg: rgba(242,233,218,0.08);
+    --ctrl-border: rgba(242,233,218,0.10);
+    --quick-bg: rgba(242,233,218,0.04);
+  }
+
+  /* ===== LIGHT — cream paper ===== */
+  :root[data-theme="light"] {
+    --paper: #F4EDE0;
+    --paper-2: #EAE0CE;
+    --ink: #1A1614;
+    --ink-2: #423A33;
+    --muted: #7A716B;
+    --rule: #C9BEAA;
+    --oxblood: #5B2580;          /* deep plum reads cleanly on cream */
+    --oxblood-glow: #8A40B8;
+    --on-accent: #F4EDE0;
+    --teal: #4A6B61;
+    --device: #0F0C0A;
+    --device-2: #1F1B17;
+    --screen: #FBF7EF;
+    --screen-dark: #14110E;
+    --rec-grad-1: #FBF7EF;
+    --rec-grad-2: #F1E7D2;
+    --bloom-1: rgba(91,37,128,0.07);
+    --bloom-2: rgba(74,107,97,0.04);
+    --noise-1: rgba(26,22,20,0.04);
+    --noise-2: rgba(26,22,20,0.025);
+    --noise-blend: multiply;
+    --ctrl-bg: rgba(26,22,20,0.06);
+    --ctrl-border: rgba(26,22,20,0.08);
+    --quick-bg: rgba(255,255,255,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Manrope', sans-serif;
+    font-feature-settings: "ss01", "ss02";
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(var(--noise-1) 1px, transparent 1px),
+      radial-gradient(var(--noise-2) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 1px;
+    z-index: 1;
+    mix-blend-mode: var(--noise-blend);
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, var(--bloom-1), transparent 60%),
+      radial-gradient(ellipse 60% 80% at 100% 100%, var(--bloom-2), transparent 50%);
+    z-index: 0;
+  }
+
+  /* ===== Header ===== */
+  .masthead {
+    position: relative;
+    z-index: 2;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 64px 56px 32px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: end;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-weight: 400;
+    font-size: clamp(56px, 8vw, 120px);
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+  }
+
+  .brand em {
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+    color: var(--oxblood);
+  }
+
+  .tagline {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 14;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--ink-2);
+    margin-top: 16px;
+    max-width: 540px;
+    line-height: 1.4;
+  }
+
+  .meta {
+    text-align: right;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    line-height: 1.8;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  /* theme toggle */
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Manrope', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.3s;
+  }
+
+  .theme-toggle:hover { border-color: var(--oxblood); }
+
+  .theme-toggle .opt {
+    padding: 6px 12px;
+    color: var(--muted);
+    transition: color 0.3s, background 0.3s;
+    font-weight: 600;
+  }
+
+  :root[data-theme="light"] .theme-toggle .opt[data-theme="light"],
+  :root:not([data-theme="light"]) .theme-toggle .opt[data-theme="dark"] {
+    background: var(--oxblood);
+    color: var(--on-accent);
+  }
+
+  .meta .num {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 56px;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    text-transform: none;
+  }
+
+  /* ===== Storyboard ===== */
+  .storyboard {
+    position: relative;
+    z-index: 2;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 56px 56px 96px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 56px 48px;
+  }
+
+  .scene {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .scene:nth-child(2) { transform: translateY(28px); }
+  .scene:nth-child(5) { transform: translateY(28px); }
+
+  .scene-no {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    color: var(--oxblood);
+    letter-spacing: 0.04em;
+  }
+
+  .scene-no::before {
+    content: "Scene ";
+    font-style: normal;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    margin-right: 8px;
+    vertical-align: 3px;
+  }
+
+  .scene-title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-top: 2px;
+  }
+
+  .scene-desc {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 360px;
+  }
+
+  /* ===== iPhone frame ===== */
+  .device {
+    margin-top: 18px;
+    width: 100%;
+    aspect-ratio: 9 / 19.5;
+    background: var(--device);
+    border-radius: 42px;
+    padding: 10px;
+    position: relative;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.06) inset,
+      0 0 0 1.5px var(--device-2),
+      18px 22px 0 -2px rgba(0,0,0,0.25),
+      32px 38px 60px -10px var(--bloom-1);
+    transition: transform 0.4s cubic-bezier(0.2,0.8,0.2,1);
+  }
+
+  .device:hover { transform: translateY(-4px); }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    background: var(--screen);
+    border-radius: 32px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .screen.dark { background: var(--screen-dark); color: #EFE7D7; }
+
+  /* status bar */
+  .status {
+    height: 34px;
+    flex-shrink: 0;
+    padding: 12px 22px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--ink);
+    z-index: 5;
+  }
+
+  .screen.dark .status { color: #EFE7D7; }
+
+  .status-icons {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .status-icons svg { width: 14px; height: 10px; }
+
+  /* dynamic island */
+  .island {
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 26px;
+    background: #000;
+    border-radius: 16px;
+    z-index: 6;
+  }
+
+  .island.live {
+    width: 132px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 12px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .island.live .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--oxblood-glow);
+    animation: pulse 1.6s infinite;
+  }
+
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--oxblood-glow) 70%, transparent); }
+    70%  { box-shadow: 0 0 0 7px color-mix(in srgb, var(--oxblood-glow) 0%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--oxblood-glow) 0%, transparent); }
+  }
+
+  /* content area */
+  .content {
+    flex: 1;
+    overflow: hidden;
+    padding: 18px 22px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== Scene 1: Notes list ===== */
+  .home-head {
+    margin-top: 8px;
+    margin-bottom: 18px;
+  }
+
+  .home-head h1 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-weight: 400;
+    font-size: 38px;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+  }
+
+  .home-head h1 em {
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+    color: var(--oxblood);
+  }
+
+  .home-head .sub {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .conf-section {
+    margin-top: 14px;
+  }
+
+  .conf-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+
+  .conf-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  .note-row {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 12px;
+  }
+
+  .note-row:last-child { border-bottom: none; }
+
+  .note-title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+
+  .note-meta {
+    font-size: 10px;
+    color: var(--muted);
+    grid-column: 1 / -1;
+    margin-top: 2px;
+  }
+
+  .note-meta .dot {
+    margin: 0 6px;
+    color: var(--rule);
+  }
+
+  .note-meta .photos {
+    color: var(--oxblood);
+    font-weight: 600;
+  }
+
+  .note-meta .conf {
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .note-list { margin-top: 4px; }
+
+  .duration {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    color: var(--ink-2);
+    align-self: start;
+  }
+
+  /* floating record button */
+  .fab {
+    position: absolute;
+    right: 22px;
+    bottom: 28px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--oxblood);
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--oxblood) 18%, transparent),
+      0 8px 24px color-mix(in srgb, var(--oxblood) 45%, transparent),
+      0 0 40px color-mix(in srgb, var(--oxblood-glow) 28%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fab .core {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--on-accent);
+  }
+
+  /* ===== Scene 2: Recording ===== */
+  .rec-screen {
+    background:
+      radial-gradient(ellipse 100% 50% at 50% 0%, color-mix(in srgb, var(--oxblood) 18%, transparent), transparent 60%),
+      linear-gradient(180deg, var(--rec-grad-1) 0%, var(--rec-grad-2) 100%);
+  }
+
+  .rec-head {
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  .rec-time {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144;
+    font-weight: 300;
+    font-size: 56px;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--ink);
+    font-feature-settings: "tnum";
+  }
+
+  .rec-time .ms {
+    font-size: 28px;
+    color: var(--muted);
+  }
+
+  .rec-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--oxblood);
+    font-weight: 600;
+  }
+
+  .rec-status .pulse {
+    width: 8px; height: 8px;
+    background: var(--oxblood);
+    border-radius: 50%;
+    animation: pulse 1.6s infinite;
+  }
+
+  /* waveform */
+  .wave {
+    margin: 28px 0 18px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+  }
+
+  .wave .bar {
+    width: 3px;
+    background: var(--ink);
+    border-radius: 2px;
+    animation: wave 1.4s ease-in-out infinite;
+  }
+
+  @keyframes wave {
+    0%, 100% { height: 8px; }
+    50%      { height: var(--h, 32px); }
+  }
+
+  /* user notes input */
+  .quick-notes {
+    flex: 1;
+    background: var(--quick-bg);
+    border: 1px dashed var(--rule);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin: 8px 0 18px;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+  }
+
+  .quick-notes .placeholder {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-variation-settings: "opsz" 14;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .typed-note {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .typed-note .caret {
+    display: inline-block;
+    width: 1.5px;
+    height: 14px;
+    background: var(--oxblood);
+    vertical-align: -2px;
+    animation: blink 1s steps(2) infinite;
+    margin-left: 1px;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* control row */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px 8px;
+  }
+
+  .ctrl {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--ctrl-bg);
+    border: 1px solid var(--ctrl-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+  }
+
+  .ctrl.camera {
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--oxblood) 14%, transparent);
+    border-color: color-mix(in srgb, var(--oxblood) 30%, transparent);
+    color: var(--oxblood-glow);
+  }
+
+  .ctrl.stop {
+    width: 64px;
+    height: 64px;
+    background: var(--oxblood);
+    color: var(--on-accent);
+    border: none;
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--oxblood) 18%, transparent),
+      0 8px 24px color-mix(in srgb, var(--oxblood) 42%, transparent);
+  }
+
+  .ctrl.stop .square {
+    width: 18px; height: 18px;
+    background: currentColor;
+    border-radius: 3px;
+  }
+
+  /* ===== Scene 3: Background recording ===== */
+  .bg-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 17, 14, 0.18);
+    pointer-events: none;
+  }
+
+  .bg-banner {
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 132px;
+    height: 26px;
+    background: #000;
+    border-radius: 16px;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .bg-banner .pulse {
+    width: 7px; height: 7px;
+    background: var(--oxblood-glow);
+    border-radius: 50%;
+    animation: pulse 1.6s infinite;
+  }
+
+  .bg-banner .timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+
+  /* arrow annotation */
+  .annotation {
+    position: absolute;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .annotation .label {
+    background: var(--ink);
+    color: #F4EDE0;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+    margin-bottom: 4px;
+  }
+
+  .annotation svg { stroke: var(--ink); fill: none; stroke-width: 1.5; }
+
+  /* ===== Scene 3: iOS home screen ===== */
+  .homescreen {
+    background:
+      radial-gradient(ellipse 100% 50% at 50% 0%, color-mix(in srgb, var(--oxblood) 12%, transparent), transparent 60%),
+      linear-gradient(180deg, #1B1226, #0E0717);
+    padding: 32px 26px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px 10px;
+    margin-top: 8px;
+  }
+
+  .app-icon {
+    aspect-ratio: 1;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #4a3a55, #2a1f35);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ico-msg     { background: linear-gradient(135deg, #5DD163, #2FA838); }
+  .ico-mail    { background: linear-gradient(135deg, #5BA9F4, #2F7FE0); }
+  .ico-cal     { background: linear-gradient(180deg, #FFFFFF 28%, #f4f4f4 28%); }
+  .ico-cal::after { content: "12"; position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; color: #1A1614; }
+  .ico-cal::before { content: "WED"; position: absolute; top: 4px; left: 0; right: 0; text-align: center; font-size: 7px; font-weight: 700; color: #E0392F; letter-spacing: 0.06em; }
+  .ico-camera  { background: linear-gradient(135deg, #6A6A6E, #3A3A3E); }
+  .ico-camera::after { content: ""; position: absolute; inset: 30%; border: 1.5px solid #fff; border-radius: 50%; }
+  .ico-photos  { background:
+      conic-gradient(from 0deg, #FFD60A, #FF375F, #BF5AF2, #5BA9F4, #5DD163, #FFD60A);
+    -webkit-mask: radial-gradient(circle at center, transparent 30%, #000 31%);
+            mask: radial-gradient(circle at center, transparent 30%, #000 31%);
+    background-color: #1F1528;
+  }
+  .ico-maps    { background: linear-gradient(135deg, #b6e5a4, #4a7d9b); }
+  .ico-notes   { background: linear-gradient(180deg, #FFE070, #FFB930); }
+  .ico-music   { background: linear-gradient(135deg, #FF6589, #FB3672); }
+  .ico-safari  { background: radial-gradient(circle at 35% 35%, #6FB1FF, #1374D6 70%); }
+  .ico-settings{ background: linear-gradient(135deg, #B8B8C0, #6A6A75); }
+  .ico-files   { background: linear-gradient(135deg, #5BA9F4, #2F7FE0); }
+  .ico-clock   { background: #000; }
+  .ico-clock::after { content: ""; position: absolute; inset: 14%; border-radius: 50%; border: 1.5px solid #fff; }
+  .ico-weather { background: linear-gradient(180deg, #5BA9F4, #2F7FE0); }
+  .ico-stocks  { background: #000; }
+  .ico-stocks::after { content: ""; position: absolute; inset: 25% 22%; background: linear-gradient(45deg, #5DD163, #5DD163 50%, transparent 51%); }
+  .ico-x       { background: linear-gradient(135deg, #2A1F35, #0F0A14); }
+
+  .ico-muesli {
+    background: var(--oxblood);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--oxblood-glow) 50%, transparent),
+      0 4px 16px color-mix(in srgb, var(--oxblood) 60%, transparent);
+  }
+
+  .ico-muesli span {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+    font-weight: 500;
+    font-size: 28px;
+    color: var(--on-accent);
+    line-height: 1;
+  }
+
+  .ico-phone   { background: linear-gradient(135deg, #5DD163, #2FA838); }
+  .ico-safari-d{ background: radial-gradient(circle at 35% 35%, #6FB1FF, #1374D6 70%); }
+  .ico-msg-d   { background: linear-gradient(135deg, #5DD163, #2FA838); }
+  .ico-music-d { background: linear-gradient(135deg, #FF6589, #FB3672); }
+
+  .page-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 22px 0 12px;
+  }
+
+  .page-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(242,233,218,0.3);
+  }
+
+  .page-dots span.active {
+    background: rgba(242,233,218,0.9);
+  }
+
+  .dock {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    background: rgba(242,233,218,0.08);
+    backdrop-filter: blur(20px);
+    padding: 10px;
+    border-radius: 22px;
+    margin-top: auto;
+  }
+
+  /* ===== Scene 4: In-app camera ===== */
+  .cam-screen {
+    background: #0a0805;
+    color: #fff;
+  }
+
+  .cam-view {
+    flex: 1;
+    background:
+      radial-gradient(ellipse at top right, rgba(255,235,180,0.14), transparent 50%),
+      linear-gradient(140deg, #2a241a 0%, #0e0c08 100%);
+    border-radius: 16px;
+    margin: 8px 0 16px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .slide-mock {
+    width: 86%;
+    aspect-ratio: 16/9;
+    background: linear-gradient(180deg, #f5ecd8, #e2d3b5);
+    border-radius: 4px;
+    padding: 14px 18px;
+    color: #2a241a;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    transform: rotate(-1.2deg);
+  }
+
+  .slide-mock .slide-eyebrow {
+    font-size: 7px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--oxblood);
+    font-weight: 700;
+  }
+
+  .slide-mock .slide-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.1;
+    margin-top: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .slide-mock .slide-bullets {
+    font-size: 7px;
+    line-height: 1.6;
+    margin-top: 6px;
+    color: #5a4d36;
+  }
+
+  .cam-frame-marks {
+    position: absolute;
+    inset: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+
+  .cam-frame-marks::before,
+  .cam-frame-marks::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid #fff;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .cam-frame-marks::before { top: -1px; left: -1px; }
+  .cam-frame-marks::after  { bottom: -1px; right: -1px; transform: rotate(180deg); }
+
+  .cam-caption {
+    text-align: center;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 14px;
+    letter-spacing: 0.01em;
+  }
+
+  .cam-controls {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding-bottom: 8px;
+  }
+
+  .cam-shutter {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #fff;
+    border: 4px solid rgba(255,255,255,0.4);
+    background-clip: padding-box;
+    justify-self: center;
+  }
+
+  .cam-thumb {
+    justify-self: end;
+    width: 36px; height: 36px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #5e8a82, #3a544f);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    position: relative;
+  }
+
+  .cam-thumb::after {
+    content: "3";
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 16px; height: 16px;
+    background: var(--oxblood);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 9px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cam-cancel {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    justify-self: start;
+  }
+
+  /* ===== Scene 5: Blending ===== */
+  .blend-head {
+    margin-top: 24px;
+    text-align: left;
+  }
+
+  .blend-head h2 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .blend-head .sub {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  .stages {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 10px;
+    align-items: start;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .stage:last-child { border-bottom: none; }
+
+  .stage .num {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 18px;
+    color: var(--muted);
+    font-variation-settings: "opsz" 60;
+  }
+
+  .stage .body strong {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .stage .body span {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .stage .icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    align-self: start;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stage.done .num { color: var(--teal); }
+  .stage.done .icon {
+    background: var(--teal);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .stage.live .icon {
+    background: transparent;
+    border: 1.5px solid var(--oxblood);
+    border-top-color: transparent;
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .stage.live .num { color: var(--oxblood); }
+  .stage.live .body strong { color: var(--oxblood); }
+
+  .stage.pending .num { color: var(--rule); }
+  .stage.pending .body strong { color: var(--rule); }
+  .stage.pending .body span { color: var(--rule); }
+  .stage.pending .icon {
+    border: 1.5px dashed var(--rule);
+  }
+
+  .blend-progress {
+    margin-top: 12px;
+    height: 3px;
+    background: var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .blend-progress .fill {
+    width: 64%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--oxblood), var(--oxblood-glow));
+    animation: shimmer 1.6s ease-in-out infinite alternate;
+  }
+
+  @keyframes shimmer {
+    from { width: 60%; }
+    to   { width: 72%; }
+  }
+
+  .blend-cost {
+    margin-top: auto;
+    text-align: center;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .blend-cost strong {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink);
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* ===== Scene 6: Augmented note ===== */
+  .note-screen {
+    background:
+      radial-gradient(ellipse 80% 40% at 100% 0%, color-mix(in srgb, var(--oxblood) 10%, transparent), transparent 60%),
+      var(--screen);
+  }
+
+  .note-content {
+    flex: 1;
+    overflow: hidden;
+    padding: 8px 22px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .note-eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--oxblood);
+    font-weight: 600;
+    margin-top: 14px;
+  }
+
+  .note-h1 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-top: 6px;
+  }
+
+  .note-h1 em {
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+    color: var(--oxblood);
+  }
+
+  .note-byline {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .note-byline em {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--ink-2);
+  }
+
+  /* augmented body */
+  .blend-body {
+    margin-top: 14px;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .blend-body::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    height: 40px;
+    background: linear-gradient(180deg, transparent, var(--screen));
+    pointer-events: none;
+  }
+
+  .ai-text {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 14;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .user-text {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 12px 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--ink);
+    letter-spacing: -0.005em;
+  }
+
+  .quote-block {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+    font-weight: 400;
+    font-size: 13.5px;
+    line-height: 1.4;
+    color: var(--ink);
+    padding: 10px 0 10px 14px;
+    margin: 12px 0;
+    border-left: 2px solid var(--oxblood);
+    position: relative;
+  }
+
+  .quote-ts {
+    display: inline-block;
+    background: var(--oxblood);
+    color: var(--on-accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-style: normal;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 8px;
+    vertical-align: 1px;
+    font-weight: 600;
+  }
+
+  .slide-thumb {
+    margin: 14px 0;
+    padding: 10px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 12px;
+  }
+
+  .slide-thumb-img {
+    width: 64px;
+    aspect-ratio: 16/10;
+    background: linear-gradient(180deg, #f5ecd8, #d6c39d);
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+
+  .slide-thumb-img .lbl {
+    font-size: 4px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--oxblood);
+    font-weight: 700;
+  }
+
+  .slide-thumb-img .ttl {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 5.5px;
+    line-height: 1.1;
+    color: #2a241a;
+    margin-top: 1px;
+  }
+
+  .slide-cap {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+
+  .slide-cap strong {
+    color: var(--oxblood);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 700;
+  }
+
+  /* note bottom bar */
+  .note-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 48px;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    margin-top: 8px;
+  }
+
+  .note-action {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--ctrl-bg);
+    border: 1px solid var(--ctrl-border);
+    padding: 0 12px;
+    border-radius: 12px;
+  }
+
+  .note-action svg { width: 14px; height: 14px; opacity: 0.85; }
+
+  .note-action.primary {
+    background: var(--oxblood);
+    color: var(--on-accent);
+    border-color: transparent;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--oxblood) 30%, transparent);
+  }
+
+  .note-action.primary svg { opacity: 1; }
+
+  .note-more {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ctrl-bg);
+    border: 1px solid var(--ctrl-border);
+    border-radius: 12px;
+    color: var(--ink);
+    letter-spacing: 0.16em;
+    font-size: 14px;
+  }
+
+  /* edit affordance */
+  .edit-pill {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    background: var(--ctrl-bg);
+    border: 1px solid var(--ctrl-border);
+    border-radius: 999px;
+    padding: 6px 10px 6px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    z-index: 5;
+    backdrop-filter: blur(10px);
+  }
+
+  .edit-pill svg { width: 12px; height: 12px; }
+
+  /* paragraph hover affordance — shown on the second AI paragraph as a hint */
+  .ai-text.hint-edit {
+    position: relative;
+    padding-left: 12px;
+    margin-left: -12px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--oxblood) 8%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--oxblood) 40%, transparent);
+    transition: background 0.2s;
+  }
+
+  .ai-text.hint-edit::after {
+    content: "tap to edit";
+    position: absolute;
+    top: -8px;
+    right: 4px;
+    background: var(--oxblood);
+    color: var(--on-accent);
+    font-family: 'Manrope', sans-serif;
+    font-style: normal;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    opacity: 0;
+    animation: fadeInOut 4s ease-in-out 1s infinite;
+  }
+
+  @keyframes fadeInOut {
+    0%, 60%, 100% { opacity: 0; transform: translateY(2px); }
+    20%, 40%      { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== Footnotes ===== */
+  .footnotes {
+    position: relative;
+    z-index: 2;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 0 56px 96px;
+    border-top: 1px solid var(--rule);
+    padding-top: 48px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 56px;
+  }
+
+  .fn h3 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+  }
+
+  .fn p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+
+  .fn em {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--oxblood);
+  }
+
+  /* responsive */
+  @media (max-width: 1100px) {
+    .storyboard {
+      grid-template-columns: repeat(2, 1fr);
+      padding: 40px 32px 64px;
+    }
+    .scene:nth-child(2), .scene:nth-child(5) { transform: none; }
+    .scene:nth-child(2n) { transform: translateY(28px); }
+    .footnotes { grid-template-columns: 1fr; gap: 32px; padding: 32px; }
+    .masthead { padding: 40px 32px 24px; }
+  }
+
+  @media (max-width: 680px) {
+    .storyboard { grid-template-columns: 1fr; }
+    .scene:nth-child(2n) { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <div>
+      <div class="brand">Mu<em>e</em>sli</div>
+      <div class="tagline">Capture the talk. Snap the slide. Type a thought. The note writes itself — your words intact, the speaker's words sourced, the slides where they belong.</div>
+    </div>
+    <div class="meta">
+      <div class="num">VI</div>
+      Scenes · Capture flow<br>
+      Spec v1 · 2026·05·04
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle color scheme">
+        <span class="opt" data-theme="light">☀ Day</span>
+        <span class="opt" data-theme="dark">☾ Night</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="storyboard">
+
+    <!-- ============ SCENE 1: Notes list ============ -->
+    <article class="scene">
+      <div class="scene-no">i</div>
+      <h2 class="scene-title">Where you land. Where the work lives.</h2>
+      <p class="scene-desc">Your notes, grouped by conference. No ceremony. The record button is the only thing asking for attention.</p>
+      <div class="device">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="status">
+            <span>9:41</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 16 12"><path d="M8 2c2.4 0 4.6.9 6.3 2.4l1.4-1.5C13.7 1 10.9 0 8 0S2.3 1 .3 2.9l1.4 1.5C3.4 2.9 5.6 2 8 2z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/><rect x="23" y="5" width="2" height="2" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="content">
+            <div class="home-head">
+              <h1>Mu<em>e</em>sli</h1>
+              <div class="sub">Conference notes · 12 sessions</div>
+            </div>
+
+            <div class="note-list">
+              <div class="note-row">
+                <div class="note-title">Eval as engineering, not afterthought</div>
+                <div class="duration">47′</div>
+                <div class="note-meta"><span class="conf">DataSummit</span> <span class="dot">·</span> Sarah Chen <span class="dot">·</span> Today 11:14 <span class="dot">·</span> <span class="photos">8 slides</span></div>
+              </div>
+              <div class="note-row">
+                <div class="note-title">The retrieval-stack tax</div>
+                <div class="duration">38′</div>
+                <div class="note-meta"><span class="conf">DataSummit</span> <span class="dot">·</span> Devon Park <span class="dot">·</span> Today 09:30 <span class="dot">·</span> <span class="photos">5 slides</span></div>
+              </div>
+              <div class="note-row">
+                <div class="note-title"><em>Keynote:</em> What models still can't do</div>
+                <div class="duration">62′</div>
+                <div class="note-meta"><span class="conf">DataSummit</span> <span class="dot">·</span> Hina Yoshida <span class="dot">·</span> Yesterday <span class="dot">·</span> <span class="photos">14 slides</span></div>
+              </div>
+              <div class="note-row">
+                <div class="note-title">Hallway with the Anthropic crew</div>
+                <div class="duration">12′</div>
+                <div class="note-meta"><span class="conf">DataSummit</span> <span class="dot">·</span> Yesterday 14:07 <span class="dot">·</span> <span class="photos">2 photos</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="fab"><div class="core"></div></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ SCENE 2: Recording ============ -->
+    <article class="scene">
+      <div class="scene-no">ii</div>
+      <h2 class="scene-title">Tap once. Listen. Jot.</h2>
+      <p class="scene-desc">Recording is foreground when you want it: timer, waveform, a place to type your own shorthand. No buttons you don't need.</p>
+      <div class="device">
+        <div class="screen rec-screen">
+          <div class="island live">
+            <span class="pulse"></span>
+            <span style="font-family: 'JetBrains Mono', monospace;">REC · 12:47</span>
+          </div>
+          <div class="status">
+            <span>9:54</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="content">
+            <div class="rec-head">
+              <div class="rec-time">12:47<span class="ms">·02</span></div>
+              <div class="rec-status"><span class="pulse"></span> Recording · Talk 02</div>
+            </div>
+            <div class="wave">
+              <div class="bar" style="--h: 14px; animation-delay: 0.0s;"></div>
+              <div class="bar" style="--h: 22px; animation-delay: 0.1s;"></div>
+              <div class="bar" style="--h: 38px; animation-delay: 0.2s;"></div>
+              <div class="bar" style="--h: 28px; animation-delay: 0.0s;"></div>
+              <div class="bar" style="--h: 50px; animation-delay: 0.3s;"></div>
+              <div class="bar" style="--h: 64px; animation-delay: 0.15s;"></div>
+              <div class="bar" style="--h: 42px; animation-delay: 0.25s;"></div>
+              <div class="bar" style="--h: 56px; animation-delay: 0.05s;"></div>
+              <div class="bar" style="--h: 72px; animation-delay: 0.35s;"></div>
+              <div class="bar" style="--h: 48px; animation-delay: 0.2s;"></div>
+              <div class="bar" style="--h: 30px; animation-delay: 0.1s;"></div>
+              <div class="bar" style="--h: 58px; animation-delay: 0.4s;"></div>
+              <div class="bar" style="--h: 36px; animation-delay: 0.0s;"></div>
+              <div class="bar" style="--h: 22px; animation-delay: 0.3s;"></div>
+              <div class="bar" style="--h: 48px; animation-delay: 0.15s;"></div>
+              <div class="bar" style="--h: 60px; animation-delay: 0.05s;"></div>
+              <div class="bar" style="--h: 34px; animation-delay: 0.25s;"></div>
+              <div class="bar" style="--h: 26px; animation-delay: 0.1s;"></div>
+              <div class="bar" style="--h: 14px; animation-delay: 0.0s;"></div>
+              <div class="bar" style="--h: 20px; animation-delay: 0.2s;"></div>
+            </div>
+            <div class="quick-notes">
+              <div class="placeholder">Jot whatever. AI fills in the rest.</div>
+              <div class="typed-note">eval as ENG, not research afterthought<br>· coverage / calibration / cost<br>· version evals next to model<span class="caret"></span></div>
+            </div>
+            <div class="controls">
+              <div class="ctrl" aria-label="Background recording">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3"/><path d="M2 12h13"/><path d="M19 5h2a1 1 0 011 1v12a1 1 0 01-1 1h-2"/></svg>
+              </div>
+              <div class="ctrl stop" aria-label="Stop recording"><div class="square"></div></div>
+              <div class="ctrl camera" aria-label="Snap a slide">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9a2 2 0 012-2h2.5l1.5-2h6l1.5 2H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ SCENE 3: Background ============ -->
+    <article class="scene">
+      <div class="scene-no">iii</div>
+      <h2 class="scene-title">Recording in the background.</h2>
+      <p class="scene-desc">Lock the phone, switch apps, pull up the agenda — the recording keeps running. The Dynamic Island is your reminder. Tap to come back.</p>
+      <div class="device">
+        <div class="screen">
+          <div class="bg-banner">
+            <span class="pulse"></span>
+            <span class="timer">14:23</span>
+            <span style="opacity: 0.7;">·</span>
+            <span style="opacity: 0.85;">tap</span>
+          </div>
+          <div class="status">
+            <span>9:56</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="content homescreen">
+            <div class="home-grid">
+              <div class="app-icon ico-msg"></div>
+              <div class="app-icon ico-mail"></div>
+              <div class="app-icon ico-cal"></div>
+              <div class="app-icon ico-camera"></div>
+              <div class="app-icon ico-photos"></div>
+              <div class="app-icon ico-maps"></div>
+              <div class="app-icon ico-notes"></div>
+              <div class="app-icon ico-music"></div>
+              <div class="app-icon ico-safari"></div>
+              <div class="app-icon ico-settings"></div>
+              <div class="app-icon ico-files"></div>
+              <div class="app-icon ico-clock"></div>
+              <div class="app-icon ico-weather"></div>
+              <div class="app-icon ico-stocks"></div>
+              <div class="app-icon ico-muesli"><span>M</span></div>
+              <div class="app-icon ico-x"></div>
+            </div>
+
+            <div class="page-dots">
+              <span></span><span class="active"></span><span></span>
+            </div>
+
+            <div class="dock">
+              <div class="app-icon dock-ico ico-phone"></div>
+              <div class="app-icon dock-ico ico-safari-d"></div>
+              <div class="app-icon dock-ico ico-msg-d"></div>
+              <div class="app-icon dock-ico ico-music-d"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ SCENE 4: Camera ============ -->
+    <article class="scene">
+      <div class="scene-no">iv</div>
+      <h2 class="scene-title">Snap the slide.</h2>
+      <p class="scene-desc">A tap on the camera button while recording opens the in-app shutter. Each photo is timestamped against the audio — the AI knows what was on screen when.</p>
+      <div class="device">
+        <div class="screen cam-screen">
+          <div class="island live">
+            <span class="pulse"></span>
+            <span style="font-family: 'JetBrains Mono', monospace;">REC · 18:02</span>
+          </div>
+          <div class="status">
+            <span style="color: #fff;">10:04</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12" style="color:#fff;"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12" style="color:#fff;"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="content" style="padding: 14px 22px 22px;">
+            <div class="cam-view">
+              <div class="cam-frame-marks"></div>
+              <div class="slide-mock">
+                <div class="slide-eyebrow">PILLAR</div>
+                <div class="slide-title">Three pillars of LLM evals: coverage, calibration, cost</div>
+                <div class="slide-bullets">→ Coverage answers what · → Calibration answers how well · → Cost answers at what price</div>
+              </div>
+            </div>
+            <div class="cam-caption">Slide will attach at 18:02 in this note</div>
+            <div class="cam-controls">
+              <div class="cam-cancel">Cancel</div>
+              <div class="cam-shutter"></div>
+              <div class="cam-thumb"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ SCENE 5: Blending ============ -->
+    <article class="scene">
+      <div class="scene-no">v</div>
+      <h2 class="scene-title">Stop. Wait twenty seconds.</h2>
+      <p class="scene-desc">Transcribe, read each slide, blend. One credit, one note. You'll see the cost before it lands.</p>
+      <div class="device">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="status">
+            <span>10:23</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="content">
+            <div class="blend-head">
+              <h2>Blending<br>your note</h2>
+              <div class="sub">47 minutes · 8 photos · 14 lines typed</div>
+            </div>
+            <div class="stages">
+              <div class="stage done">
+                <div class="num">i</div>
+                <div class="body">
+                  <strong>Transcribed</strong>
+                  <span>Deepgram nova-3 · 6,148 words · 47:12</span>
+                </div>
+                <div class="icon">✓</div>
+              </div>
+              <div class="stage live">
+                <div class="num">ii</div>
+                <div class="body">
+                  <strong>Reading 8 slides</strong>
+                  <span>Claude Haiku · 5 of 8 done</span>
+                </div>
+                <div class="icon"></div>
+              </div>
+              <div class="stage pending">
+                <div class="num">iii</div>
+                <div class="body">
+                  <strong>Blending</strong>
+                  <span>Claude Sonnet · ~4 seconds</span>
+                </div>
+                <div class="icon"></div>
+              </div>
+            </div>
+            <div class="blend-progress"><div class="fill"></div></div>
+            <div class="blend-cost">This session · <strong>≈ 1.2 credits</strong></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ SCENE 6: Augmented note ============ -->
+    <article class="scene">
+      <div class="scene-no">vi</div>
+      <h2 class="scene-title">Your words, kept.<br>The rest, written.</h2>
+      <p class="scene-desc">User notes hold their place verbatim — bold, clear. AI prose fills in around them in lighter weight. Slides drop where the speaker was talking about them. Quotes link back to the audio.</p>
+      <div class="device">
+        <div class="screen note-screen">
+          <div class="island"></div>
+          <div class="status">
+            <span>10:24</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="edit-pill" aria-label="Edit note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4z"/></svg>
+            Edit
+          </div>
+          <div class="note-content">
+            <div class="note-eyebrow">Talk · DataSummit 2026</div>
+            <h1 class="note-h1">Eval as <em>engineering</em>, not research afterthought</h1>
+            <div class="note-byline">By <em>Sarah Chen</em> · 47 min · Hall A · 11:14 AM</div>
+
+            <div class="blend-body">
+              <p class="ai-text">Sarah opened with the case for treating LLM evaluation as a first-class engineering discipline. The team that ships fast on models without versioning their evals, she argued, is shipping vibes.</p>
+
+              <div class="user-text">eval as ENG, not research afterthought</div>
+
+              <p class="ai-text hint-edit">She framed the discipline around three pillars — what to measure, how confident the measurement is, and what it costs to run.</p>
+
+              <div class="slide-thumb">
+                <div class="slide-thumb-img">
+                  <div class="lbl">PILLAR</div>
+                  <div class="ttl">Three pillars of LLM evals</div>
+                </div>
+                <div class="slide-cap"><strong>Slide · 18:02</strong>Coverage · Calibration · Cost. The three columns the rest of the talk hangs from.</div>
+              </div>
+
+              <div class="user-text">· coverage / calibration / cost</div>
+
+              <p class="ai-text">The bulk of the middle section was a worked example of building a regression suite for a model upgrade — what coverage gaps showed up, how the team calibrated against human raters, and where they cut compute.</p>
+
+              <div class="quote-block">
+                <span class="quote-ts">12:34</span>If your eval suite isn't versioned alongside your model, you're not doing evals — you're doing vibes.
+              </div>
+
+              <div class="user-text">· version evals next to model</div>
+
+              <p class="ai-text">She closed on the hardest pillar: cost. Most teams underweight it. A suite that can't run on every PR is a suite that won't.</p>
+            </div>
+
+            <div class="note-bar">
+              <div class="note-action primary" aria-label="Share note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                Share
+              </div>
+              <div class="note-action" aria-label="Listen to recording">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 4 20 12 6 20 6 4" fill="currentColor"/></svg>
+                Listen
+              </div>
+              <div class="note-more" aria-label="More actions">⋯</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+  <section class="footnotes">
+    <div class="fn">
+      <h3>What's the wedge.</h3>
+      <p>Granola's signature is preserving the user's notes verbatim and letting AI fill in around them. We're doing the same, plus <em>vision-on-slides</em> — the photos you snap during the talk become structural context, not orphan attachments.</p>
+    </div>
+    <div class="fn">
+      <h3>What runs in the background.</h3>
+      <p>Recording continues when the app is backgrounded; the Dynamic Island shows live duration and is always tappable. <em>iCloud sync, calendar import, multi-day folders</em> are not in v1.</p>
+    </div>
+    <div class="fn">
+      <h3>What costs money.</h3>
+      <p>Audio transcription, vision per slide, the blend itself. The meter runs from the start; v1 is unlimited. Roughly <em>1 credit ≈ 30 min audio + 5 photos ≈ $0.20</em>. Packs of 20, 100, 500 once IAP lands.</p>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var stored = localStorage.getItem('muesli-theme');
+      if (stored) root.setAttribute('data-theme', stored);
+
+      var btn = document.getElementById('themeToggle');
+      btn.addEventListener('click', function (e) {
+        var picked = e.target.closest('.opt');
+        if (!picked) {
+          var current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+          var next = current === 'light' ? 'dark' : 'light';
+          if (next === 'dark') root.removeAttribute('data-theme');
+          else root.setAttribute('data-theme', 'light');
+          localStorage.setItem('muesli-theme', next);
+          return;
+        }
+        var t = picked.getAttribute('data-theme');
+        if (t === 'dark') root.removeAttribute('data-theme');
+        else root.setAttribute('data-theme', 'light');
+        localStorage.setItem('muesli-theme', t);
+      });
+    })();
+  </script>
+
+</body>
+</html>

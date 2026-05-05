@@ -40,6 +40,17 @@ final class TranscriptionOrchestrator {
                 return
             }
 
+            // Mark processing before the async network call so any other
+            // ModelContext (e.g. the detail view's) sees the status change
+            // and won't kick off a duplicate transcription.
+            note.transcriptionStatus = "processing"
+            do {
+                try context.save()
+            } catch {
+                AppLogger.shared.error("Orchestrator failed to mark note processing", error: error)
+                return
+            }
+
             AppLogger.shared.info("Orchestrator starting batch transcription for '\(note.title)'")
 
             do {

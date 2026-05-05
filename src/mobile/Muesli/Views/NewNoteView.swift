@@ -498,11 +498,14 @@ struct NewNoteView: View {
             modelContext.insert(note)
             try modelContext.save()
 
-            // Attempt batch transcription if we have audio
+            // Hand batch transcription off to the long-lived orchestrator;
+            // the view is about to dismiss and its modelContext should not
+            // be used from an async task that outlives it.
             if let audioPath = recordingManager.currentRecordingPath {
-                Task {
-                    await attemptBatchTranscription(for: note, audioPath: audioPath)
-                }
+                TranscriptionOrchestrator.shared.enqueueTranscription(
+                    noteId: note.persistentModelID,
+                    audioPath: audioPath
+                )
             }
             
             AppLogger.shared.info("Note saved - Duration: \(recordingManager.recordingDuration)s, Transcription: \(transcriptionStatus)")
@@ -510,35 +513,6 @@ struct NewNoteView: View {
             
         } catch {
             showError("Failed to save note: \(error.localizedDescription)")
-        }
-    }
-    
-    private func attemptBatchTranscription(for note: Note, audioPath: String) async {
-        guard let audioURL = recordingManager.getRecordingURL(fileName: audioPath) else {
-            AppLogger.shared.warning("Audio file not found for batch transcription: \(audioPath)")
-            return
-        }
-
-        AppLogger.shared.info("Attempting batch transcription for offline recording")
-
-        do {
-            let transcript = try await transcriptionService.transcribeAudioFile(url: audioURL)
-            // Update the note with transcription, title, and summary
-            await MainActor.run {
-                note.content = transcript
-                note.transcriptionStatus = "completed"
-                note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
-                note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript, userNotes: note.userNotes)
-
-                do {
-                    try modelContext.save()
-                    AppLogger.shared.info("Successfully transcribed offline recording (\(transcript.count) chars)")
-                } catch {
-                    AppLogger.shared.error("Failed to save transcribed content", error: error)
-                }
-            }
-        } catch {
-            AppLogger.shared.info("Batch transcription not available - note remains with local recording only: \(error.localizedDescription)")
         }
     }
     

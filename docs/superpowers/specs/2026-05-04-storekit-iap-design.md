@@ -24,17 +24,27 @@ Consumable in-app purchases for credit packs using StoreKit 2. Server-side recei
 
 ## Pack design
 
-Three consumable products. Names and ids final at first ship; price points are the design intent.
+Four consumable products at price points that emphasize accessible entry and reward bulk. Names and ids final at first ship.
 
-| Product Id | Display name | Credits | Micros | Price (USD) | Effective $/credit |
-|---|---|---|---|---|---|
-| `com.hydraflow.muesli.credits.20` | 20 credits | 20 | 4,000,000 | $4.99 | $0.250 |
-| `com.hydraflow.muesli.credits.100` | 100 credits | 100 | 20,000,000 | $19.99 | $0.200 |
-| `com.hydraflow.muesli.credits.500` | 500 credits | 500 | 100,000,000 | $79.99 | $0.160 |
+| Product Id | Display name | Credits | Micros | Price (USD) | App Store Tier | Effective $/credit | Net $/credit (post-30%) |
+|---|---|---|---|---|---|---|---|
+| `com.hydraflow.muesli.credits.10`  | 10 credits  | 10  | 2,000,000   | $4.99  | Tier 5  | $0.499 | $0.349 |
+| `com.hydraflow.muesli.credits.20`  | 20 credits  | 20  | 4,000,000   | $8.99  | Tier 9  | $0.450 | $0.315 |
+| `com.hydraflow.muesli.credits.50`  | 50 credits  | 50  | 10,000,000  | $19.99 | Tier 20 | $0.400 | $0.280 |
+| `com.hydraflow.muesli.credits.150` | 150 credits | 150 | 30,000,000  | $49.99 | Tier 50 | $0.333 | $0.233 |
 
-Price points map cleanly to App Store tiers (Tier 5, Tier 20, Tier 80). Per-credit cost decreases with bulk to encourage larger packs and offset Apple's 30%/15% take.
+Pricing rationale:
+- **Cost of goods ≈ $0.20/credit** (1 credit covers ~30 min audio + 5 photos + one Sonnet blend, per the AI pipeline spec)
+- The smallest pack ($4.99 entry) puts a low-friction ladder on the App Store — typical impulse-buy price point
+- Per-credit price decreases ~33% from the smallest to the largest pack, but never falls below cost: even after Apple's 30% take, the largest pack nets $0.233/credit vs $0.20 COGS — ~17% gross margin at the cheapest tier, scaling to ~75% at the entry tier
+- Tier 9 is non-standard but supported via App Store Connect's expanded pricing matrix; no special approval needed
 
-Apple takes 30% of the first year of revenue from a developer; for net economics on a 20-credit pack at $4.99 → ~$3.49 net → ~$0.175/credit net revenue, vs ~$0.20 cost-of-goods at the rule-of-thumb rate. Margins are thin on the smallest pack — accept it as a customer acquisition price; the 100/500 packs make the unit economics work.
+Notes on the math:
+- Apple takes 30% of revenue (15% if subscriber lapse exceeds the year, but we're shipping consumables — flat 30%)
+- A heavy user blowing through 20 credits/month on the 20-pack would pay $9/mo, equivalent to a soft subscription
+- Power users on the 150-pack get effective $0.33/credit, comparable to per-credit pricing of competing AI tools
+
+These price points are the design target, not a final commitment. Revisit after 90 days of real usage data — adjust if (a) attach rate on the 10-pack is too low (suggesting the entry price is wrong), or (b) the largest pack is selling so well it becomes the median (suggesting users want even bigger).
 
 ## Architecture
 
@@ -207,9 +217,10 @@ final class IAPStore: ObservableObject {
   @Published private(set) var purchaseInProgress = false
 
   private let productIds = [
+    "com.hydraflow.muesli.credits.10",
     "com.hydraflow.muesli.credits.20",
-    "com.hydraflow.muesli.credits.100",
-    "com.hydraflow.muesli.credits.500"
+    "com.hydraflow.muesli.credits.50",
+    "com.hydraflow.muesli.credits.150"
   ]
 
   func loadProducts() async throws {
@@ -288,9 +299,9 @@ The `appAccountToken` (UUID) is bundled into the signed transaction. Backend rea
 
 ## Acceptance criteria
 
-- Buy a 100-credit pack in sandbox → balance increases by 100 → ledger entry exists with `idempotency_key='iap:<transactionId>'`.
-- Force-quit during purchase, relaunch → transaction redelivered, balance still increases by exactly 100.
-- Trigger a TestFlight refund → webhook fires → ledger has reversal entry → balance decreases by 100 (may go negative).
+- Buy a 50-credit pack in sandbox → balance increases by 50 → ledger entry exists with `idempotency_key='iap:<transactionId>'`.
+- Force-quit during purchase, relaunch → transaction redelivered, balance still increases by exactly 50.
+- Trigger a TestFlight refund → webhook fires → ledger has reversal entry → balance decreases by 50 (may go negative).
 - Sign in on a second device with same Apple ID → balance shown is the same.
 - Replay a JWS from a different bundle id → 400, no credit.
 - Two-pack purchase in same session → two distinct ledger entries, both credited.
@@ -298,8 +309,8 @@ The `appAccountToken` (UUID) is bundled into the signed transaction. Backend rea
 
 ## Open questions
 
-- (resolved) Three packs at $4.99 / $19.99 / $79.99
+- (resolved) Four packs: 10/$4.99, 20/$8.99, 50/$19.99, 150/$49.99 — emphasis on accessible entry, modest bulk discount
 - (resolved) `appAccountToken` set to user UUID for cross-device linking
 - (resolved) Refunds push balance negative without clawback
-- Pricing tier review in 6 months once we see real usage; the per-credit cost may need adjustment if Sonnet pricing shifts
-- Whether to add a 1000- or 5000-credit "power user" pack later — defer until usage justifies it
+- Pricing review at 90 days on real usage; bigger pack (300/500) revisit if median sale is the 150 pack
+- Whether to introduce a small recurring subscription option ("Plus: 60 credits/mo for $24") later — defer; consumables are simpler legally and tax-wise to start

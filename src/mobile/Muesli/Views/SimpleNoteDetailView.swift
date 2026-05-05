@@ -34,6 +34,7 @@ struct SimpleNoteDetailView: View {
     @State private var playbackPosition: TimeInterval = 0
     @State private var audioDuration: TimeInterval = 0
     @State private var playbackTimer: Timer?
+    @State private var transcriptionTask: Task<Void, Never>?
 
     var body: some View {
         content
@@ -346,11 +347,16 @@ struct SimpleNoteDetailView: View {
         }
         .onDisappear {
             stopPlayback()
+            transcriptionTask?.cancel()
+            transcriptionTask = nil
         }
     }
 
     private func checkAndTriggerPendingTranscription() {
-        // If note content is empty but has audio and is pending, trigger transcription
+        guard transcriptionTask == nil else {
+            AppLogger.shared.debug("Transcription already in flight - skipping re-trigger")
+            return
+        }
         guard note.content.isEmpty else {
             AppLogger.shared.debug("Note has content (\(note.content.count) chars), skipping transcription")
             return
@@ -366,7 +372,6 @@ struct SimpleNoteDetailView: View {
 
         AppLogger.shared.info("🎯 Note opened with pending transcription - triggering now for '\(note.title)'")
 
-        // Update status to processing
         note.transcriptionStatus = "processing"
         do {
             try modelContext.save()
@@ -375,10 +380,12 @@ struct SimpleNoteDetailView: View {
             AppLogger.shared.error("❌ Failed to update transcription status", error: error)
         }
 
-        // Add a small delay to ensure UI updates
-        Task {
-            // Wait a moment to ensure permissions are ready
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        transcriptionTask = Task {
+            defer {
+                Task { @MainActor in transcriptionTask = nil }
+            }
+
+            try? await Task.sleep(nanoseconds: 500_000_000)
 
             guard let audioURL = AudioRecordingManager.shared.getRecordingURL(fileName: audioPath) else {
                 AppLogger.shared.warning("❌ Audio file not found for transcription: \(audioPath)")
@@ -393,14 +400,11 @@ struct SimpleNoteDetailView: View {
 
             do {
                 let transcript = try await HybridTranscriptionService.shared.transcribeAudioFile(url: audioURL)
-
                 AppLogger.shared.info("✅ Transcription completed: \(transcript.count) characters")
 
                 await MainActor.run {
                     note.content = transcript
                     note.transcriptionStatus = "completed"
-
-                    // Generate AI title and summary from transcript and user notes
                     note.title = SimpleSummaryGenerator.generateTitle(from: transcript)
                     note.aiSummary = SimpleSummaryGenerator.generateSummary(from: transcript, userNotes: note.userNotes)
 

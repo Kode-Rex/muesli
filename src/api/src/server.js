@@ -235,5 +235,10 @@ const startServer = async () => {
   }
 };
 
-// Start the server
-startServer();
+// Export app for testing
+export { app };
+
+// Start the server (skip in test environment)
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}

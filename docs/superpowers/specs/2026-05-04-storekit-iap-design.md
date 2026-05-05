@@ -24,27 +24,46 @@ Consumable in-app purchases for credit packs using StoreKit 2. Server-side recei
 
 ## Pack design
 
-Four consumable products at price points that emphasize accessible entry and reward bulk. Names and ids final at first ship.
+Four consumable products. Sold and displayed as **hours of recording** — the unit a user thinks in when planning a conference. Internally the ledger is unchanged (micros of USD); the hours label is a display layer over the existing balance math.
 
-| Product Id | Display name | Credits | Micros | Price (USD) | App Store Tier | Effective $/credit | Net $/credit (post-30%) |
+**Display conversion:** `1 hour = 400,000 micros` (= 2 internal credits). One hour covers a typical recording-plus-blend session (audio transcription + slide vision + Sonnet blend) and roughly 10 chat questions; everything tied to the recording is bundled.
+
+| Product Id | Display name | Hours | Micros | Price (USD) | App Store Tier | Effective $/hour | Net $/hour (post-30%) |
 |---|---|---|---|---|---|---|---|
-| `com.hydraflow.muesli.credits.10`  | 10 credits  | 10  | 2,000,000   | $4.99  | Tier 5  | $0.499 | $0.349 |
-| `com.hydraflow.muesli.credits.20`  | 20 credits  | 20  | 4,000,000   | $8.99  | Tier 9  | $0.450 | $0.315 |
-| `com.hydraflow.muesli.credits.50`  | 50 credits  | 50  | 10,000,000  | $19.99 | Tier 20 | $0.400 | $0.280 |
-| `com.hydraflow.muesli.credits.150` | 150 credits | 150 | 30,000,000  | $49.99 | Tier 50 | $0.333 | $0.233 |
+| `com.hydraflow.muesli.hours.5`   | 5 hours   | 5  | 2,000,000   | $4.99  | Tier 5  | $0.998 | $0.699 |
+| `com.hydraflow.muesli.hours.10`  | 10 hours  | 10 | 4,000,000   | $8.99  | Tier 9  | $0.899 | $0.629 |
+| `com.hydraflow.muesli.hours.25`  | 25 hours  | 25 | 10,000,000  | $19.99 | Tier 20 | $0.800 | $0.560 |
+| `com.hydraflow.muesli.hours.75`  | 75 hours  | 75 | 30,000,000  | $49.99 | Tier 50 | $0.667 | $0.467 |
+
+UI copy on the buy screen:
+
+> **5 hours · $4.99**
+> A workshop day. Bundled — recording, slides, and chat included.
+
+> **10 hours · $8.99**
+> A small conference. About a typical 1-day event.
+
+> **25 hours · $19.99**
+> A 3-day conference. Best value for a single event.
+
+> **75 hours · $49.99**
+> A year of talks. Best value per hour.
 
 Pricing rationale:
-- **Cost of goods ≈ $0.20/credit** (1 credit covers ~30 min audio + 5 photos + one Sonnet blend, per the AI pipeline spec)
-- The smallest pack ($4.99 entry) puts a low-friction ladder on the App Store — typical impulse-buy price point
-- Per-credit price decreases ~33% from the smallest to the largest pack, but never falls below cost: even after Apple's 30% take, the largest pack nets $0.233/credit vs $0.20 COGS — ~17% gross margin at the cheapest tier, scaling to ~75% at the entry tier
-- Tier 9 is non-standard but supported via App Store Connect's expanded pricing matrix; no special approval needed
+- **Cost of goods ≈ $0.40/hour** internal. Even the entry tier nets $0.30/hour after Apple — comfortable margin.
+- "Hours" anchors to user behavior: someone planning a 3-day conference at ~5 hours/day = 15 hours mentally maps to "the 25-hour pack covers this with room."
+- Per-hour price drops ~33% from entry to bulk; no tier falls below cost.
+- Tier 9 is non-standard but available via App Store Connect's expanded pricing matrix; no special approval needed.
 
 Notes on the math:
-- Apple takes 30% of revenue (15% if subscriber lapse exceeds the year, but we're shipping consumables — flat 30%)
-- A heavy user blowing through 20 credits/month on the 20-pack would pay $9/mo, equivalent to a soft subscription
-- Power users on the 150-pack get effective $0.33/credit, comparable to per-credit pricing of competing AI tools
+- Apple takes 30% of revenue (consumables — flat rate, no subscriber lapse benefit).
+- Backend stays in micros. A 5-hour pack = 2,000,000 micros credited to the user's `credit_balances.micros_balance` row. The hours-remaining UI is `floor(micros_balance / 400_000)`.
+- Photo capture and chat answers debit micros at their actual cost; the user sees their hour count tick down. A chat-heavy user with short recordings will outpace a pure-recording user at the same hour count — acceptable for v1.
 
-These price points are the design target, not a final commitment. Revisit after 90 days of real usage data — adjust if (a) attach rate on the 10-pack is too low (suggesting the entry price is wrong), or (b) the largest pack is selling so well it becomes the median (suggesting users want even bigger).
+These price points are the design target, not a final commitment. Revisit at 90 days on real usage:
+- If the 5-hour entry pack has low attach rate, raise hours per pack at entry tier
+- If the 75-hour pack is the median sale, add a 200-hour bulk tier
+- If chat usage outpaces recording faster than expected, consider unbundling chat into a separate metered unit
 
 ## Architecture
 
@@ -217,10 +236,10 @@ final class IAPStore: ObservableObject {
   @Published private(set) var purchaseInProgress = false
 
   private let productIds = [
-    "com.hydraflow.muesli.credits.10",
-    "com.hydraflow.muesli.credits.20",
-    "com.hydraflow.muesli.credits.50",
-    "com.hydraflow.muesli.credits.150"
+    "com.hydraflow.muesli.hours.5",
+    "com.hydraflow.muesli.hours.10",
+    "com.hydraflow.muesli.hours.25",
+    "com.hydraflow.muesli.hours.75"
   ]
 
   func loadProducts() async throws {
@@ -299,9 +318,9 @@ The `appAccountToken` (UUID) is bundled into the signed transaction. Backend rea
 
 ## Acceptance criteria
 
-- Buy a 50-credit pack in sandbox → balance increases by 50 → ledger entry exists with `idempotency_key='iap:<transactionId>'`.
-- Force-quit during purchase, relaunch → transaction redelivered, balance still increases by exactly 50.
-- Trigger a TestFlight refund → webhook fires → ledger has reversal entry → balance decreases by 50 (may go negative).
+- Buy a 25-hour pack in sandbox → ledger entry credits 10,000,000 micros, hours UI shows +25h → idempotency key `iap:<transactionId>`.
+- Force-quit during purchase, relaunch → transaction redelivered, balance still increases by exactly 10,000,000 micros (25 hours).
+- Trigger a TestFlight refund → webhook fires → ledger has reversal entry → balance decreases by 10,000,000 micros, hours UI shows -25h (may go negative).
 - Sign in on a second device with same Apple ID → balance shown is the same.
 - Replay a JWS from a different bundle id → 400, no credit.
 - Two-pack purchase in same session → two distinct ledger entries, both credited.
@@ -309,7 +328,7 @@ The `appAccountToken` (UUID) is bundled into the signed transaction. Backend rea
 
 ## Open questions
 
-- (resolved) Four packs: 10/$4.99, 20/$8.99, 50/$19.99, 150/$49.99 — emphasis on accessible entry, modest bulk discount
+- (resolved) Four packs sold as HOURS: 5/$4.99, 10/$8.99, 25/$19.99, 75/$49.99. Backend remains in micros (1h = 400,000 micros). Display layer only.
 - (resolved) `appAccountToken` set to user UUID for cross-device linking
 - (resolved) Refunds push balance negative without clawback
 - Pricing review at 90 days on real usage; bigger pack (300/500) revisit if median sale is the 150 pack

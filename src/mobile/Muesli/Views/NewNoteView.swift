@@ -498,11 +498,12 @@ struct NewNoteView: View {
             modelContext.insert(note)
             try modelContext.save()
 
-            // Hand batch transcription off to the long-lived orchestrator;
+            // Hand the blend pipeline off to the long-lived orchestrator;
             // the view is about to dismiss and its modelContext should not
             // be used from an async task that outlives it.
+            // TranscriptionOrchestrator is kept as a fallback for offline / legacy paths.
             if let audioPath = recordingManager.currentRecordingPath {
-                TranscriptionOrchestrator.shared.enqueueTranscription(
+                BlendOrchestrator.shared.enqueueBlend(
                     noteId: note.persistentModelID,
                     audioPath: audioPath
                 )

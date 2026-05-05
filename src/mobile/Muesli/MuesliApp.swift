@@ -37,6 +37,7 @@ struct MuesliApp: App {
 
     init() {
         TranscriptionOrchestrator.shared.setContainer(sharedModelContainer)
+        BlendOrchestrator.shared.setContainer(sharedModelContainer)
 
         if !PhotoMigration.hasRun {
             let context = ModelContext(sharedModelContainer)

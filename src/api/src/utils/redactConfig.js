@@ -5,7 +5,7 @@
  * leak credentials through structured logs.
  */
 
-const SECRET_PATTERN = /key|secret|token|password/i;
+export const SECRET_PATTERN = /key|secret|token|password/i;
 
 export function redactConfig(value) {
   if (value === null || value === undefined) return value;

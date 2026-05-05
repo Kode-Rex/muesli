@@ -1534,37 +1534,59 @@
 
   .chat-head {
     margin-top: 10px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--rule);
+    padding-bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
-  .chat-head .scope {
+  .scope-chip {
     flex: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 8px;
+    background: color-mix(in srgb, var(--oxblood) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--oxblood) 30%, transparent);
+    border-radius: 999px;
     overflow: hidden;
   }
 
-  .chat-head .scope .label {
-    font-size: 9px;
+  .scope-chip .icon {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--oxblood);
+    color: var(--on-accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .scope-chip .label {
+    font-size: 8px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--oxblood);
     font-weight: 700;
   }
 
-  .chat-head .scope .title {
-    font-family: 'Fraunces', serif;
-    font-variation-settings: "opsz" 60;
-    font-weight: 500;
-    font-size: 15px;
-    line-height: 1.15;
-    margin-top: 2px;
+  .scope-chip .title {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
     color: var(--ink);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+  }
+
+  .scope-chip .switch {
+    color: var(--oxblood);
+    font-size: 10px;
+    opacity: 0.7;
+    flex-shrink: 0;
   }
 
   .chat-close {
@@ -1625,30 +1647,95 @@
     animation: blink 1s steps(2) infinite;
   }
 
-  .citations {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 8px;
-  }
-
-  .citation-chip {
+  /* inline numbered citations — Perplexity pattern */
+  .cite-num {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 7px;
-    background: color-mix(in srgb, var(--oxblood) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--oxblood) 30%, transparent);
-    border-radius: 999px;
-    font-size: 9px;
-    font-weight: 600;
-    color: var(--oxblood);
-    letter-spacing: 0.02em;
+    justify-content: center;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 4px;
+    background: var(--oxblood);
+    color: var(--on-accent);
+    border-radius: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    vertical-align: 2px;
+    margin: 0 1px;
+    line-height: 1;
   }
 
-  .citation-chip .ts {
+  /* sources card — appears under message, expandable on tap */
+  .sources-card {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--paper-raise);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+  }
+
+  .sources-card .head {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .sources-card .row {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 0;
+  }
+
+  .sources-card .row + .row {
+    border-top: 1px solid color-mix(in srgb, var(--rule) 60%, transparent);
+  }
+
+  .sources-card .num {
+    background: var(--oxblood);
+    color: var(--on-accent);
+    border-radius: 4px;
     font-family: 'JetBrains Mono', monospace;
-    opacity: 0.85;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 0;
+    text-align: center;
+  }
+
+  .sources-card .label {
+    font-size: 11px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .sources-card .ts {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--oxblood);
+    font-weight: 600;
+  }
+
+  /* follow-up suggestion chips */
+  .followups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .followup-chip {
+    padding: 6px 10px;
+    background: var(--ctrl-bg);
+    border: 1px solid var(--ctrl-border);
+    border-radius: 999px;
+    font-size: 10px;
+    color: var(--ink);
+    font-weight: 500;
   }
 
   .msg-cost {
@@ -2158,23 +2245,45 @@
           <div class="content" style="padding-top: 4px;">
             <div class="chat-handle"></div>
             <div class="chat-head">
-              <div class="scope">
-                <div class="label">Conference</div>
+              <div class="scope-chip" aria-label="Scope: DataSummit 2026, 12 talks. Tap to switch.">
+                <div class="icon">C</div>
                 <div class="title">DataSummit 2026 · 12 talks</div>
+                <div class="switch">switch</div>
               </div>
-              <div class="chat-close">✕</div>
+              <div class="chat-close" aria-label="Close chat">✕</div>
             </div>
 
             <div class="chat-thread">
               <div class="msg user">What were the consensus points across speakers about LLM evaluation?</div>
 
               <div>
-                <div class="msg assistant">Three themes recurred. <strong style="font-family:Manrope; font-weight:600; color:var(--ink);">Versioning evals alongside models</strong> showed up in Sarah Chen's talk and again in Devon Park's retrieval-stack session. <strong style="font-family:Manrope; font-weight:600; color:var(--ink);">Calibration over coverage</strong> was Hina Yoshida's keynote thesis and was echoed by two panelists. Everyone agreed cost is the underweighted pillar — Sarah specifically called out evals that can't run on every PR<span class="stream-cursor"></span></div>
-                <div class="citations">
-                  <div class="citation-chip">Sarah Chen <span class="ts">12:34</span></div>
-                  <div class="citation-chip">Devon Park <span class="ts">19:08</span></div>
-                  <div class="citation-chip">Hina Yoshida <span class="ts">04:11</span></div>
+                <div class="msg assistant">Three themes recurred. <strong style="font-family:Manrope; font-weight:600; color:var(--ink);">Versioning evals alongside models</strong><span class="cite-num">1</span> showed up in Sarah Chen's talk and again in Devon Park's retrieval-stack session<span class="cite-num">2</span>. <strong style="font-family:Manrope; font-weight:600; color:var(--ink);">Calibration over coverage</strong> was Hina Yoshida's keynote thesis<span class="cite-num">3</span>. Everyone agreed cost is the underweighted pillar<span class="stream-cursor"></span></div>
+
+                <div class="sources-card">
+                  <div class="head">3 sources · tap to open</div>
+                  <div class="row">
+                    <div class="num">1</div>
+                    <div class="label">Eval as engineering — Sarah Chen</div>
+                    <div class="ts">12:34</div>
+                  </div>
+                  <div class="row">
+                    <div class="num">2</div>
+                    <div class="label">The retrieval-stack tax — Devon Park</div>
+                    <div class="ts">19:08</div>
+                  </div>
+                  <div class="row">
+                    <div class="num">3</div>
+                    <div class="label">Keynote — Hina Yoshida</div>
+                    <div class="ts">04:11</div>
+                  </div>
                 </div>
+
+                <div class="followups">
+                  <div class="followup-chip">Where did speakers disagree?</div>
+                  <div class="followup-chip">Pull quotes I should remember</div>
+                  <div class="followup-chip">Tools mentioned across talks</div>
+                </div>
+
                 <div class="msg-cost">Streaming · this answer ≈ 0.6 credits</div>
               </div>
             </div>

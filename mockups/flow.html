@@ -1418,6 +1418,305 @@
     color: var(--oxblood);
   }
 
+  /* ===== Scene 7: Conference detail ===== */
+  .conf-screen {
+    background:
+      radial-gradient(ellipse 80% 30% at 50% 0%, color-mix(in srgb, var(--oxblood) 12%, transparent), transparent 60%),
+      var(--screen);
+  }
+
+  .conf-hero {
+    margin-top: 12px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .conf-hero .eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--oxblood);
+    font-weight: 700;
+  }
+
+  .conf-hero h1 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-weight: 500;
+    font-style: italic;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-top: 8px;
+  }
+
+  .conf-hero .meta-line {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  .conf-hero .meta-line .num {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .conf-cta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: var(--oxblood);
+    color: var(--on-accent);
+    border-radius: 14px;
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--oxblood) 35%, transparent);
+  }
+
+  .conf-cta .icon {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--on-accent) 18%, transparent);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .conf-cta .label {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 14px;
+    flex: 1;
+  }
+
+  .conf-cta .label small {
+    display: block;
+    font-family: 'Manrope', sans-serif;
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    opacity: 0.75;
+    margin-top: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .conf-cta .arrow {
+    opacity: 0.7;
+  }
+
+  .conf-talks {
+    margin-top: 18px;
+  }
+
+  .talks-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  /* ===== Scene 8: Chat sheet ===== */
+  .chat-screen {
+    background:
+      radial-gradient(ellipse 80% 25% at 100% 0%, color-mix(in srgb, var(--oxblood) 10%, transparent), transparent 60%),
+      var(--screen);
+  }
+
+  .chat-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    margin: 8px auto 0;
+  }
+
+  .chat-head {
+    margin-top: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .chat-head .scope {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .chat-head .scope .label {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--oxblood);
+    font-weight: 700;
+  }
+
+  .chat-head .scope .title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.15;
+    margin-top: 2px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chat-close {
+    width: 28px; height: 28px;
+    border-radius: 14px;
+    background: var(--ctrl-bg);
+    border: 1px solid var(--ctrl-border);
+    color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .chat-thread {
+    flex: 1;
+    margin-top: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+  }
+
+  .msg {
+    max-width: 88%;
+  }
+
+  .msg.user {
+    align-self: flex-end;
+    background: var(--paper-raise);
+    border: 1px solid var(--rule);
+    padding: 10px 14px;
+    border-radius: 16px 16px 4px 16px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 500;
+    font-size: 12.5px;
+    color: var(--ink);
+    line-height: 1.45;
+  }
+
+  .msg.assistant {
+    align-self: flex-start;
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 14;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+    padding: 0 4px;
+  }
+
+  .msg.assistant .stream-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 14px;
+    background: var(--oxblood);
+    vertical-align: -2px;
+    margin-left: 1px;
+    animation: blink 1s steps(2) infinite;
+  }
+
+  .citations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  .citation-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 7px;
+    background: color-mix(in srgb, var(--oxblood) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--oxblood) 30%, transparent);
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--oxblood);
+    letter-spacing: 0.02em;
+  }
+
+  .citation-chip .ts {
+    font-family: 'JetBrains Mono', monospace;
+    opacity: 0.85;
+  }
+
+  .msg-cost {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+    font-weight: 600;
+  }
+
+  .chat-input {
+    margin-top: 14px;
+    padding: 10px;
+    background: var(--paper-raise);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    display: grid;
+    grid-template-columns: 1fr 36px;
+    gap: 8px;
+    align-items: end;
+  }
+
+  .chat-input .input {
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    color: var(--ink);
+    padding: 6px 8px;
+    line-height: 1.4;
+    min-height: 24px;
+  }
+
+  .chat-input .placeholder {
+    color: var(--muted);
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 14;
+  }
+
+  .chat-send {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--oxblood);
+    color: var(--on-accent);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--oxblood) 30%, transparent);
+  }
+
+  .chat-cost-line {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  .chat-cost-line strong {
+    color: var(--ink);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 11px;
+  }
+
   /* responsive */
   @media (max-width: 1100px) {
     .storyboard {
@@ -1444,8 +1743,8 @@
       <div class="tagline">Capture the talk. Snap the slide. Type a thought. The note writes itself — your words intact, the speaker's words sourced, the slides where they belong.</div>
     </div>
     <div class="meta">
-      <div class="num">VI</div>
-      Scenes · Capture flow<br>
+      <div class="num">VIII</div>
+      Scenes · Capture + Chat<br>
       Spec v1 · 2026·05·04
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle color scheme">
         <span class="opt" data-theme="light">☀ Day</span>
@@ -1783,6 +2082,115 @@
       </div>
     </article>
 
+    <!-- ============ SCENE 7: Conference detail ============ -->
+    <article class="scene">
+      <div class="scene-no">vii</div>
+      <h2 class="scene-title">The conference, all in one place.</h2>
+      <p class="scene-desc">Tap a conference name on any note → see the whole event. Every talk you captured. And the door to chat across all of them.</p>
+      <div class="device">
+        <div class="screen conf-screen">
+          <div class="island"></div>
+          <div class="status">
+            <span>11:42</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="content">
+            <div class="conf-hero">
+              <div class="eyebrow">Conference</div>
+              <h1>DataSummit 2026</h1>
+              <div class="meta-line">May 4 — May 6 <span class="dot">·</span> San Francisco <span class="dot">·</span> <span class="num">12 talks captured</span></div>
+            </div>
+
+            <div class="conf-cta">
+              <div class="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              </div>
+              <div class="label">
+                Chat with this conference
+                <small>Ask across all 12 talks</small>
+              </div>
+              <div class="arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+
+            <div class="conf-talks">
+              <div class="talks-label">Talks · Wed Day 2</div>
+              <div class="note-row">
+                <div class="note-title">Eval as engineering, not afterthought</div>
+                <div class="duration">47′</div>
+                <div class="note-meta">Sarah Chen <span class="dot">·</span> 11:14 <span class="dot">·</span> <span class="photos">8 slides</span></div>
+              </div>
+              <div class="note-row">
+                <div class="note-title">The retrieval-stack tax</div>
+                <div class="duration">38′</div>
+                <div class="note-meta">Devon Park <span class="dot">·</span> 09:30 <span class="dot">·</span> <span class="photos">5 slides</span></div>
+              </div>
+              <div class="note-row">
+                <div class="note-title"><em>Keynote:</em> What models still can't do</div>
+                <div class="duration">62′</div>
+                <div class="note-meta">Hina Yoshida <span class="dot">·</span> Yesterday <span class="dot">·</span> <span class="photos">14 slides</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ SCENE 8: Chat sheet ============ -->
+    <article class="scene">
+      <div class="scene-no">viii</div>
+      <h2 class="scene-title">Ask the talk. Or ask the whole event.</h2>
+      <p class="scene-desc">Same chat surface, two scopes. Citations chip back to the source — a transcript timestamp for one talk, a Note for a whole conference.</p>
+      <div class="device">
+        <div class="screen chat-screen">
+          <div class="island"></div>
+          <div class="status">
+            <span>11:43</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V2h-2zM17 11h-1V0h1z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 26 12"><rect x="0" y="2" width="22" height="8" rx="2" fill="none" stroke="currentColor"/><rect x="2" y="4" width="16" height="4" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+          <div class="content" style="padding-top: 4px;">
+            <div class="chat-handle"></div>
+            <div class="chat-head">
+              <div class="scope">
+                <div class="label">Conference</div>
+                <div class="title">DataSummit 2026 · 12 talks</div>
+              </div>
+              <div class="chat-close">✕</div>
+            </div>
+
+            <div class="chat-thread">
+              <div class="msg user">What were the consensus points across speakers about LLM evaluation?</div>
+
+              <div>
+                <div class="msg assistant">Three themes recurred. <strong style="font-family:Manrope; font-weight:600; color:var(--ink);">Versioning evals alongside models</strong> showed up in Sarah Chen's talk and again in Devon Park's retrieval-stack session. <strong style="font-family:Manrope; font-weight:600; color:var(--ink);">Calibration over coverage</strong> was Hina Yoshida's keynote thesis and was echoed by two panelists. Everyone agreed cost is the underweighted pillar — Sarah specifically called out evals that can't run on every PR<span class="stream-cursor"></span></div>
+                <div class="citations">
+                  <div class="citation-chip">Sarah Chen <span class="ts">12:34</span></div>
+                  <div class="citation-chip">Devon Park <span class="ts">19:08</span></div>
+                  <div class="citation-chip">Hina Yoshida <span class="ts">04:11</span></div>
+                </div>
+                <div class="msg-cost">Streaming · this answer ≈ 0.6 credits</div>
+              </div>
+            </div>
+
+            <div class="chat-input">
+              <div class="input"><span class="placeholder">Ask another question…</span></div>
+              <div class="chat-send">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </div>
+            </div>
+            <div class="chat-cost-line">Next answer · <strong>≈ 0.6 credits</strong></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
   </main>
 
   <section class="footnotes">
@@ -1796,7 +2204,7 @@
     </div>
     <div class="fn">
       <h3>What costs money.</h3>
-      <p>Audio transcription, vision per slide, the blend itself. The meter runs from the start; v1 is unlimited. Roughly <em>1 credit ≈ 30 min audio + 5 photos ≈ $0.20</em>. Packs of 20, 100, 500 once IAP lands.</p>
+      <p>Audio transcription, vision per slide, the blend, and each chat answer. v1 is unlimited but the meter runs. Roughly <em>1 credit ≈ 30 min audio + 5 photos ≈ $0.20</em>. A talk-scope chat answer ≈ 0.25 credits; a conference-scope answer ≈ 0.5–0.75 credits. Packs of 20, 100, 500 once IAP lands.</p>
     </div>
   </section>
 

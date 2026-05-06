@@ -16,11 +16,12 @@ concurrency:
 
 jobs:
   build-push:
-    name: Build & push API image
+    name: Build, scan & push API image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      security-events: write   # for uploading Trivy SARIF
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}-api
@@ -50,13 +51,42 @@ jobs:
             type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push
+      # Build locally first (load=true) so Trivy can scan it before any push.
+      - name: Build (load to local for scan)
         uses: docker/build-push-action@v5
         with:
           context: src/api
           file: src/api/Dockerfile
           platforms: linux/amd64
-          push: ${{ github.event_name != 'pull_request' }}
+          load: true
+          tags: muesli-api:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: muesli-api:scan
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Upload Trivy SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Push (tagged variants)
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: src/api
+          file: src/api/Dockerfile
+          platforms: linux/amd64
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

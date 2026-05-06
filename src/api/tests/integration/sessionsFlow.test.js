@@ -50,7 +50,10 @@ jest.unstable_mockModule('../../src/config/index.js', () => ({
     websocket: {
       heartbeatIntervalMs: 30000,
       connectionTimeoutMs: 60000
-    }
+    },
+    auth: { enabled: false, jwtSecret: 'x'.repeat(32), devUserId: 'local-dev', accessTokenTtlMin: 15, refreshTokenTtlDays: 30, googleClientId: '' },
+    credits: { enforced: false, pricingVersion: 1, newUserGrantMicros: 0 },
+    database: { databaseUrl: '' }
   }
 }));
 

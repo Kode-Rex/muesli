@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Muesli Transcription API
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init

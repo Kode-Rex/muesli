@@ -11,7 +11,7 @@
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
     "test:unit": "NODE_OPTIONS='--experimental-vm-modules' jest tests/unit --coverage",
     "test:integration": "NODE_OPTIONS='--experimental-vm-modules' jest tests/integration --coverage",
-    "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --ci --watchAll=false --passWithNoTests",
+    "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --ci --watchAll=false --passWithNoTests --forceExit --runInBand",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "health": "curl -f http://localhost:3000/health || exit 1",

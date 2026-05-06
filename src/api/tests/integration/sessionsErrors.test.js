@@ -29,7 +29,10 @@ jest.unstable_mockModule('../../src/config/index.js', () => ({
       maxFileSizeMB: 50, maxFileSizeBytes: 50 * 1024 * 1024,
       allowedMimeTypes: ['audio/wav', 'audio/mpeg', 'audio/mp4', 'image/jpeg']
     },
-    websocket: { heartbeatIntervalMs: 30000, connectionTimeoutMs: 60000 }
+    websocket: { heartbeatIntervalMs: 30000, connectionTimeoutMs: 60000 },
+    auth: { enabled: false, jwtSecret: 'x'.repeat(32), devUserId: 'local-dev', accessTokenTtlMin: 15, refreshTokenTtlDays: 30, googleClientId: '' },
+    credits: { enforced: false, pricingVersion: 1, newUserGrantMicros: 0 },
+    database: { databaseUrl: '' }
   }
 }));
 

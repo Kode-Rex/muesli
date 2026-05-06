@@ -23,6 +23,9 @@ import {
 import healthRoutes from './routes/health.js';
 import transcriptionRoutes, { setupWebSocketServer } from './routes/transcription.js';
 import sessionsRouter from './routes/sessions.js';
+import authRouter from './routes/auth.js';
+import accountRouter from './routes/account.js';
+import { requireAuth } from './middleware/auth.js';
 import deepgramService from './services/deepgramService.js';
 
 // Create Express application
@@ -91,8 +94,12 @@ app.use(apiPrefix, healthRoutes);
 // Main API routes
 app.use(apiPrefix, transcriptionRoutes);
 
-// Sessions pipeline routes
-app.use('/v1/sessions', sessionsRouter);
+// Auth (public) — must mount before any requireAuth-protected /v1 route
+app.use('/v1/auth', authRouter);
+
+// Sessions pipeline + account (requireAuth no-ops when AUTH_ENABLED=false)
+app.use('/v1/sessions', requireAuth, sessionsRouter);
+app.use('/v1/account', requireAuth, accountRouter);
 
 // Root endpoint
 app.get('/', (req, res) => {

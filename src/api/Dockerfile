@@ -1,6 +1,11 @@
 # Multi-stage Dockerfile for Muesli Transcription API
 FROM node:20-alpine AS builder
 
+# Pull in the latest alpine package fixes that haven't yet rolled into the
+# node:20-alpine tag. Without this we ship known-vulnerable libssl/libcrypto/
+# musl/zlib versions and Trivy fails the build.
+RUN apk upgrade --no-cache
+
 # Set working directory
 WORKDIR /app
 
@@ -13,8 +18,19 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Production stage
 FROM node:20-alpine AS production
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Same upgrade in the production stage — base layers are independent from
+# the builder stage's, so we need both to actually ship fixed binaries.
+RUN apk upgrade --no-cache && apk add --no-cache dumb-init
+
+# node:alpine ships npm bundled in /usr/local/lib/node_modules/npm, and that
+# bundle pins older transitives (tar/glob/minimatch/cross-spawn) that Trivy
+# correctly flags. We don't need npm at runtime — after `npm ci` finishes in
+# the builder stage, the prod image only runs `node`. Drop npm and the
+# corepack shim so the surface area shrinks and the scan goes clean.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+    /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg 2>/dev/null || true
 
 # Create app user
 RUN addgroup -g 1001 -S nodejs && \

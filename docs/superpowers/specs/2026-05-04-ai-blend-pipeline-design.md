@@ -251,6 +251,17 @@ None blocking. Deferred:
 - Whether to expose a "credits this session" UI element in v1 even though there's no cap. Probably yes — bakes the user's mental model early.
 - (resolved) Regenerate is always charged at full blend rate. Cached transcript/image extracts avoid re-paying those stages, but the Sonnet blend always runs and always debits.
 
+## Deferred from v1
+
+Tracked here, not blocking v1 ship. Surfaced during implementation review of `feat/ai-pipeline`.
+
+- **`GET /v1/account/balance` endpoint.** Listed in *Backend changes* but not implemented. v1 has no balance check anywhere, so the endpoint isn't load-bearing yet. Add it alongside the auth + credit-ledger work so it returns a real balance instead of `Int.max`.
+- **Cost recording on partial failure.** Spec says: "Deepgram + Haiku costs are still recorded since they completed" when Sonnet blend fails. Current `/v1/sessions/:id/blend` route bails on any error and records no cost entry. Fix when the credit ledger goes live — observe-only mode tolerates the under-count.
+- **Chapterize-failure cost handling.** Spec says: "Cost not recorded for the failed Haiku call" when chapterize errors. Current code returns a fallback chapter and still charges `hasChapterize: true`. Fold into the same partial-failure cost pass.
+- **Content-hash dedup in the sessions repo.** `contentHash` is computed on every photo upload but `InMemorySessionsRepo` appends duplicates instead of reusing prior extracts. Caching kicks in once the repo moves to Postgres (Task list under credit-ledger spec); the in-memory v1 just over-counts on regenerate.
+- **Audio MIME detection in `SessionsService.uploadAudio`.** Hardcodes `audio/mp4`. Fine for AVAudioRecorder defaults; revisit when we accept other formats.
+- **Sonnet model id.** `claude-sonnet-4-6` (no date stamp); Haiku uses the date-stamped form. Verify the bare alias resolves on the Anthropic side, or align both on the dated form.
+
 ## Acceptance criteria
 
 A working v1:

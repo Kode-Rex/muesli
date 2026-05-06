@@ -981,10 +981,10 @@ async transcribeBuffer(buffer, mimeType = 'audio/mp4') {
 - [ ] **Step 4: Build, smoke**
 
 ```bash
-cd src/api && npm run lint && npm test
+cd src/api && npm run lint && npm run test:ci
 ```
 
-Expected: existing tests pass, new tests pass.
+Expected: existing tests pass, new tests pass. (`npm test` runs the full suite including pre-existing flaky / broken integration suites; `test:ci` is the gate CI uses.)
 
 - [ ] **Step 5: Commit**
 
@@ -1138,7 +1138,7 @@ import SwiftData
 @MainActor
 final class PhotoMigrationTests: XCTestCase {
     private func makeContainer() throws -> ModelContainer {
-        let schema = Schema([Note.self, Photo.self, Conference.self, ChatThread.self, ChatMessage.self])
+        let schema = Schema([Note.self, Photo.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: [config])
     }
@@ -1158,8 +1158,8 @@ final class PhotoMigrationTests: XCTestCase {
 
         XCTAssertEqual(note.photos.count, 3)
         XCTAssertNotEqual(note.photos[0].contentHash, note.photos[1].contentHash)
-        // capturedAt defaults to note.createdAt
-        XCTAssertEqual(note.photos[0].capturedAt, note.createdAt)
+        // capturedAt defaults to note.timestamp
+        XCTAssertEqual(note.photos[0].capturedAt, note.timestamp)
     }
 
     func testIsIdempotent() throws {
@@ -1268,7 +1268,7 @@ enum PhotoMigration {
             for path in note.imagePaths where !existingPaths.contains(path) {
                 let bytes = fileBytesProvider(path) ?? Data(path.utf8)
                 let hash = SHA256.hash(data: bytes).compactMap { String(format: "%02x", $0) }.joined()
-                let photo = Photo(localPath: path, contentHash: hash, capturedAt: note.createdAt, note: note)
+                let photo = Photo(localPath: path, contentHash: hash, capturedAt: note.timestamp, note: note)
                 context.insert(photo)
                 note.photos.append(photo)
             }
@@ -1500,7 +1500,7 @@ the backend API spec exactly; TDD covers encode/decode round trip."
 
 **Files:**
 - Create: `src/mobile/Muesli/Services/BlendOrchestrator.swift`
-- Modify: `src/mobile/Muesli/Services/TranscriptionOrchestrator.swift` — defer to BlendOrchestrator when blend feature flag is on
+- Modify: `src/mobile/Muesli/Views/NewNoteView.swift` — replace the `TranscriptionOrchestrator.shared.enqueueTranscription(...)` call site with `BlendOrchestrator.shared.enqueueBlend(noteId:audioPath:)`. `TranscriptionOrchestrator` stays wired in `MuesliApp.init` as a fallback for the legacy local-only path; no feature flag in v1.
 
 The note's lifecycle goes idle → recording (existing) → on-stop the orchestrator: creates a Session, uploads audio, uploads each photo, runs blend, persists results back to the Note.
 
@@ -1620,7 +1620,7 @@ sets status .failed for the UI to surface a retry."
 
 - [ ] **All tests pass**
 ```bash
-cd src/api && npm test
+cd src/api && npm run test:ci
 cd src/mobile && xcodebuild test -project Muesli.xcodeproj -scheme Muesli -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.6'
 ```
 

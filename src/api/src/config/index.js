@@ -65,7 +65,20 @@ const configSchema = Joi.object({
 
   // Optional Database
   REDIS_URL: Joi.string().allow(''),
-  DATABASE_URL: Joi.string().allow('')
+  DATABASE_URL: Joi.string().allow(''),
+
+  // Auth (Google sign-in, JWT)
+  AUTH_ENABLED: Joi.boolean().default(false),
+  JWT_SECRET: Joi.string().min(32).default('dev-only-jwt-secret-change-me-in-prod-please'),
+  GOOGLE_CLIENT_ID: Joi.string().allow(''),
+  ACCESS_TOKEN_TTL_MIN: Joi.number().default(15),
+  REFRESH_TOKEN_TTL_DAYS: Joi.number().default(30),
+  DEV_USER_ID: Joi.string().default('local-dev'),
+
+  // Credits
+  CREDITS_ENFORCED: Joi.boolean().default(false),
+  PRICING_VERSION: Joi.number().default(1),
+  NEW_USER_GRANT_MICROS: Joi.number().default(1_000_000)
 }).unknown(true); // Allow other environment variables
 
 /**
@@ -161,6 +174,23 @@ export function loadConfig(env = process.env) {
     database: {
       redisUrl: envVars.REDIS_URL,
       databaseUrl: envVars.DATABASE_URL
+    },
+
+    // Auth
+    auth: {
+      enabled: envVars.AUTH_ENABLED,
+      jwtSecret: envVars.JWT_SECRET,
+      googleClientId: envVars.GOOGLE_CLIENT_ID,
+      accessTokenTtlMin: envVars.ACCESS_TOKEN_TTL_MIN,
+      refreshTokenTtlDays: envVars.REFRESH_TOKEN_TTL_DAYS,
+      devUserId: envVars.DEV_USER_ID
+    },
+
+    // Credits
+    credits: {
+      enforced: envVars.CREDITS_ENFORCED,
+      pricingVersion: envVars.PRICING_VERSION,
+      newUserGrantMicros: envVars.NEW_USER_GRANT_MICROS
     }
   };
 }

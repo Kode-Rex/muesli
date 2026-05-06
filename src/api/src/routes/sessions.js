@@ -11,13 +11,15 @@ import { chapterize } from '../services/chapterizeService.js';
 import { blend } from '../services/blendService.js';
 import { blendCostMicros } from '../services/blendCost.js';
 import { contentHash } from '../services/contentHash.js';
+import * as ledger from '../services/ledgerService.js';
 import deepgramService from '../services/deepgramService.js';
 import Logger from '../utils/logger.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 const router = express.Router();
 
-// HACK for v1: hardcoded user. Auth middleware swaps this in later.
+// req.userId is set by requireAuth middleware (real UUID when AUTH_ENABLED,
+// the dev-user string when not). Routes here don't care which.
 function userIdFor(req) { return req.userId ?? 'local-dev'; }
 
 router.post('/', async (req, res) => {
@@ -120,6 +122,32 @@ router.post('/:id/blend', express.json(), async (req, res) => {
       userId: s.userId, sessionId: id, microsDelta: -cost, reason: 'blend',
       metadata: { sonnetIn: result.tokensIn, sonnetOut: result.tokensOut, photoCount: s.photos.length, chapterCount: chap.chapters.length }
     });
+
+    // Best-effort ledger debit — real Postgres path. With AUTH_ENABLED=false
+    // and devUserId='local-dev', the FK fails and we log + carry on (the
+    // in-memory recordCost above is the v1 source of truth in dev).
+    try {
+      const audioHash = contentHash(s.audioPath ?? id);
+      const photoHashes = s.photos.map(p => p.contentHash);
+      const idempotencyKey = ledger.blendIdempotencyKey({ sessionId: id, audioHash, photoHashes, userNotes });
+      await ledger.recordBlend({
+        userId: s.userId, sessionId: id, microsCost: cost, idempotencyKey,
+        metadata: {
+          pricingVersion: 1,
+          blendDetails: {
+            deepgramSeconds: s.durationSeconds,
+            imageCount: s.photos.filter(p => p.extractStatus === 'complete').length,
+            sonnetModel: 'claude-sonnet-4-6',
+            haikuModel: 'claude-haiku-4-5-20251001',
+            sonnetInputTokens: result.tokensIn,
+            sonnetOutputTokens: result.tokensOut,
+          },
+          actualMicros: cost,
+        }
+      });
+    } catch (ledgerErr) {
+      Logger.warn('Ledger debit skipped (no DB or unknown user)', { msg: ledgerErr.message, userId: s.userId });
+    }
 
     res.json({
       blendedMarkdown: result.blendedMarkdown,

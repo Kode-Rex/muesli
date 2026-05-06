@@ -7,6 +7,9 @@
 
 import Foundation
 
+/// Convenience alias used by SessionsService and other consumers expecting `APIConfig`.
+typealias APIConfig = APIConfiguration
+
 struct APIConfiguration {
     
     // MARK: - Build-time Configuration
@@ -75,6 +78,19 @@ struct APIConfiguration {
         return false
     }
     
+    // MARK: - Typed Base URL (for SessionsService and other URL-typed consumers)
+
+    /// Base URL without the `/api/v1` path suffix — used by SessionsService which appends `/v1/...` itself.
+    static var baseURL: URL {
+        #if DEBUG
+        return URL(string: "http://localhost:3000")!
+        #elseif STAGING
+        return URL(string: "https://staging-api.muesli-app.com")!
+        #else
+        return URL(string: "https://api.muesli-app.com")!
+        #endif
+    }
+
     static func getCurrentAPIURL() async -> String {
         // In development, check if localhost is available
         if isDevelopment {

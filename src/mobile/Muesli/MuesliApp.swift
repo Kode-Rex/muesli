@@ -13,6 +13,7 @@ struct MuesliApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Note.self,
+            Photo.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -36,6 +37,16 @@ struct MuesliApp: App {
 
     init() {
         TranscriptionOrchestrator.shared.setContainer(sharedModelContainer)
+        BlendOrchestrator.shared.setContainer(sharedModelContainer)
+
+        if !PhotoMigration.hasRun {
+            let context = ModelContext(sharedModelContainer)
+            PhotoMigration.run(in: context, fileBytesProvider: { path in
+                // Best-effort read: returns nil if file is missing.
+                guard let url = AudioRecordingManager.shared.getRecordingURL(fileName: path) else { return nil }
+                return try? Data(contentsOf: url)
+            })
+        }
     }
 
     var body: some Scene {

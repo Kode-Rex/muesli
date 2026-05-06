@@ -11,6 +11,12 @@ dotenv.config();
 
 // Configuration schema validation
 const configSchema = Joi.object({
+  // Anthropic Configuration
+  ANTHROPIC_API_KEY: Joi.string().required().messages({
+    'any.required': 'ANTHROPIC_API_KEY is required',
+    'string.empty': 'ANTHROPIC_API_KEY cannot be empty'
+  }),
+
   // Deepgram Configuration
   DEEPGRAM_API_KEY: Joi.string().required().messages({
     'any.required': 'DEEPGRAM_API_KEY is required in environment variables',
@@ -80,6 +86,11 @@ export function loadConfig(env = process.env) {
   }
 
   return {
+    // Anthropic settings
+    anthropic: {
+      apiKey: envVars.ANTHROPIC_API_KEY,
+    },
+
     // Deepgram settings
     deepgram: {
       apiKey: envVars.DEEPGRAM_API_KEY,

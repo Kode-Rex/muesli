@@ -26,7 +26,25 @@ final class Note {
 
     var aiSummary: String? // AI-generated summary of the transcript
     var userNotes: String = "" // User's personal notes added during or after recording
-    
+
+    // Blend pipeline outputs (populated post-stop)
+    var transcript: String?
+    var transcriptWordsJSON: Data?
+    var blendedMarkdown: String?
+    var blendCitationsJSON: Data?
+    var chaptersJSON: Data?
+    var blendStatusRaw: String = "idle"
+    var blendError: String?
+    var blendCostMicros: Int?
+    var blendModelVersion: String?
+
+    @Relationship(deleteRule: .cascade, inverse: \Photo.note) var photos: [Photo] = []
+
+    var blendStatus: BlendStatus {
+        get { BlendStatus(rawValue: blendStatusRaw) ?? .idle }
+        set { blendStatusRaw = newValue.rawValue }
+    }
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -102,3 +120,7 @@ final class Note {
 
 // MARK: - Note Model Extensions and Utilities
 // All note functionality is now handled through SwiftData and the DataService
+
+enum BlendStatus: String, Codable {
+    case idle, transcribing, transcribed, extracting, blending, complete, failed
+}

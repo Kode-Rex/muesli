@@ -65,13 +65,16 @@ This is a display-layer change; the ledger schema, debit logic, and idempotency 
 ### Cost computation (server-side, after each AI op)
 
 ```js
-function blendCostMicros({ deepgramSeconds, imageCount, sonnetInputTokens, sonnetOutputTokens }) {
-  const deepgram = Math.ceil(deepgramSeconds * 71.7);
-  const haiku    = imageCount * 5_000;
-  const sonnet   = Math.ceil((sonnetInputTokens * 3 + sonnetOutputTokens * 15) / 1_000);
-  return deepgram + haiku + sonnet;
+function blendCostMicros({ deepgramSeconds, imageCount, hasChapterize, sonnetInputTokens, sonnetOutputTokens }) {
+  const deepgram   = Math.ceil(deepgramSeconds * 71.7);
+  const haikuImg   = imageCount * 5_000;
+  const haikuChap  = hasChapterize ? 5_000 : 0;
+  const sonnet     = sonnetInputTokens * 3 + sonnetOutputTokens * 15;
+  return deepgram + haikuImg + haikuChap + sonnet;
 }
 ```
+
+Sonnet rates are **per token, in micros** ($3/Mtok input → 3 µ/tok; $15/Mtok output → 15 µ/tok). An earlier draft of this spec divided by 1000, which would have under-billed Sonnet by 1000×. The AI pipeline design has the correct formula; this spec now matches.
 
 Rates live in `src/api/src/config/pricing.js` and are versioned (`PRICING_VERSION`). Changing rates requires bumping the version, which gets recorded in `metadata.pricingVersion` on every entry. Old entries remain valid history.
 
@@ -175,10 +178,8 @@ Logs: every debit emits a structured Winston log (no secrets). Sample 100% in de
 ```
 CREDITS_ENFORCED=false              # v1 default; flip to true to gate operations
 PRICING_VERSION=1
-DEEPGRAM_MICROS_PER_SEC=71.7
-HAIKU_MICROS_PER_IMAGE=5000
-SONNET_INPUT_MICROS_PER_KTOKEN=3000
-SONNET_OUTPUT_MICROS_PER_KTOKEN=15000
+# Rate constants live in src/api/src/services/blendCost.js, not env, so
+# tests stay deterministic. Bump PRICING_VERSION when you change them.
 NEW_USER_GRANT_MICROS=1000000       # 5 free credits ($1.00) on signup; 0 to disable
 ```
 

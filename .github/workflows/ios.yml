@@ -1,0 +1,70 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/mobile/**'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/mobile/**'
+      - '.github/workflows/ios.yml'
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build & test (iOS Simulator)
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      SCHEME: Muesli
+      PROJECT: src/mobile/Muesli.xcodeproj
+      DESTINATION: 'platform=iOS Simulator,name=iPhone 16,OS=latest'
+      COVERAGE_THRESHOLD: '70'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build & test with code coverage
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults.xcresult \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -200
+
+      - name: Coverage gate (line coverage >= COVERAGE_THRESHOLD%)
+        run: |
+          set -e
+          COV_JSON=$(xcrun xccov view --report --json TestResults.xcresult)
+          # Aggregate line coverage across all targets in the result bundle.
+          PCT=$(echo "$COV_JSON" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+covered = data.get("coveredLines", 0)
+total = data.get("executableLines", 0)
+print(0.0 if total == 0 else round(covered / total * 100, 2))
+          ')
+          echo "iOS line coverage: $PCT%"
+          awk -v p="$PCT" -v t="$COVERAGE_THRESHOLD" 'BEGIN { exit (p+0 >= t+0) ? 0 : 1 }' \
+            || { echo "Coverage $PCT% below threshold $COVERAGE_THRESHOLD%"; exit 1; }
+
+      - name: Upload xcresult bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcresult-${{ github.sha }}
+          path: TestResults.xcresult
+          retention-days: 14

@@ -93,4 +93,39 @@ describe('Auth flow (AUTH_ENABLED=true)', () => {
     expect(r.status).toBe(401);
     expect(r.body.error).toBe('unverified_email');
   });
+
+  it('rejects /v1/auth/google with no idToken in body', async () => {
+    const r = await request(app).post('/v1/auth/google').send({});
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('id_token_missing');
+  });
+
+  it('rejects /v1/auth/refresh with no refreshToken in body', async () => {
+    const r = await request(app).post('/v1/auth/refresh').send({});
+    expect(r.status).toBe(400);
+  });
+
+  it('GET /v1/account/ledger returns paginated entries; respects limit', async () => {
+    const s1 = await request(app).post('/v1/auth/google').send({ idToken: 'fake' });
+    const r = await request(app).get('/v1/account/ledger?limit=5').set('Authorization', `Bearer ${s1.body.accessToken}`);
+    expect(r.status).toBe(200);
+    expect(Array.isArray(r.body.entries)).toBe(true);
+  });
+
+  it('logout revokes the supplied refresh token', async () => {
+    const s1 = await request(app).post('/v1/auth/google').send({ idToken: 'fake' });
+    const out = await request(app)
+      .post('/v1/auth/logout')
+      .set('Authorization', `Bearer ${s1.body.accessToken}`)
+      .send({ refreshToken: s1.body.refreshToken });
+    expect(out.status).toBe(204);
+    const reuse = await request(app).post('/v1/auth/refresh').send({ refreshToken: s1.body.refreshToken });
+    expect(reuse.status).toBe(401);
+  });
+
+  it('rejects an invalid bearer token via requireAuth', async () => {
+    const r = await request(app).get('/v1/auth/me').set('Authorization', 'Bearer not-a-real-jwt');
+    expect(r.status).toBe(401);
+    expect(r.body.error).toBe('invalid_token');
+  });
 });

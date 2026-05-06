@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Muesli Transcription API
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 
 # Pull in the latest alpine package fixes that haven't yet rolled into the
 # node:20-alpine tag. Without this we ship known-vulnerable libssl/libcrypto/
@@ -16,7 +16,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:26-alpine AS production
 
 # Same upgrade in the production stage — base layers are independent from
 # the builder stage's, so we need both to actually ship fixed binaries.

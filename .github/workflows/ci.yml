@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   api:
-    name: API (lint + test)
+    name: API (lint + test + audit)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -37,3 +37,18 @@ jobs:
 
       - name: Test (unit + integration with mocks)
         run: npm run test:ci
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: src/api/coverage/
+          retention-days: 14
+
+      # Dependency vulnerability check. Fails CI on high or critical findings.
+      # Advisory-only (--audit-level=high) so moderate noise from transitive
+      # deps doesn't block PRs; bump to moderate once we triage the existing
+      # warnings.
+      - name: npm audit (high+critical)
+        run: npm audit --audit-level=high --omit=dev

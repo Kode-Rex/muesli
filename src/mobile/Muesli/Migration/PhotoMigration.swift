@@ -38,8 +38,12 @@ enum PhotoMigration {
                 note.photos.append(photo)
             }
         }
-        try? context.save()
-        UserDefaults.standard.set(true, forKey: runFlagKey)
+        do {
+            try context.save()
+            UserDefaults.standard.set(true, forKey: runFlagKey)
+        } catch {
+            AppLogger.shared.error("PhotoMigration save failed; will retry on next launch", error: error)
+        }
     }
 
     static var hasRun: Bool {

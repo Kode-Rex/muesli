@@ -7,7 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		055F8A194C2734CBBA8871A3 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 590505C9B1C30D0ADC30CDC3 /* Foundation.framework */; };
 		16E3F0DE2EB568A300E0D9B8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 16E3F0DD2EB568A300E0D9B8 /* Assets.xcassets */; };
+		E5A407DA9975CB54DBEC0FB9 /* MuesliRecordingLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 960D0CC117838C32F01ABDE6 /* MuesliRecordingLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EA00F30C6565A30E50380729 /* MuesliRecordingLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EC47B35166D92DFC5F86E2B /* MuesliRecordingLiveActivityBundle.swift */; };
+		F98F9A84DD10DCFCFD6AEFE6 /* RecordingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5757B378B63EDCD8247BB64 /* RecordingActivityAttributes.swift */; };
+		FFD049B1A63F218B29755A46 /* RecordingActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF1480EFE0A734C1A451B51 /* RecordingActivityWidget.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,28 +30,61 @@
 			remoteGlobalIDString = 163E2D702E5CF13D00C16B3C;
 			remoteInfo = Muesli;
 		};
+		8EC50F707E8046816A27C521 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 163E2D692E5CF13D00C16B3C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3B0F36A19C3023A839BA355A;
+			remoteInfo = MuesliRecordingLiveActivity;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5E354F1DDD311C9CC701C494 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E5A407DA9975CB54DBEC0FB9 /* MuesliRecordingLiveActivity.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		163E2D712E5CF13D00C16B3C /* Muesli.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Muesli.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		163E2D802E5CF13E00C16B3C /* MuesliTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MuesliTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		163E2D8A2E5CF13E00C16B3C /* MuesliUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MuesliUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		16E3F0DD2EB568A300E0D9B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2EC47B35166D92DFC5F86E2B /* MuesliRecordingLiveActivityBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MuesliRecordingLiveActivityBundle.swift; sourceTree = "<group>"; };
+		590505C9B1C30D0ADC30CDC3 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		5BF1480EFE0A734C1A451B51 /* RecordingActivityWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingActivityWidget.swift; sourceTree = "<group>"; };
+		960D0CC117838C32F01ABDE6 /* MuesliRecordingLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MuesliRecordingLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7CEF1D7908AB7222173BD5B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C5757B378B63EDCD8247BB64 /* RecordingActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RecordingActivityAttributes.swift; path = ../Muesli/LiveActivity/RecordingActivityAttributes.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		163E2D732E5CF13D00C16B3C /* Muesli */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = Muesli;
 			sourceTree = "<group>";
 		};
 		163E2D832E5CF13E00C16B3C /* MuesliTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = MuesliTests;
 			sourceTree = "<group>";
 		};
 		163E2D8D2E5CF13E00C16B3C /* MuesliUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = MuesliUITests;
 			sourceTree = "<group>";
 		};
@@ -74,6 +112,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F14DFC50F5BECC7D14362438 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				055F8A194C2734CBBA8871A3 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -85,6 +131,8 @@
 				163E2D8D2E5CF13E00C16B3C /* MuesliUITests */,
 				163E2D722E5CF13D00C16B3C /* Products */,
 				16E3F0DD2EB568A300E0D9B8 /* Assets.xcassets */,
+				E2BB1181CE69B56218714ED9 /* Frameworks */,
+				F0A79B93B725F1BC8653351D /* MuesliRecordingLiveActivity */,
 			);
 			sourceTree = "<group>";
 		};
@@ -94,8 +142,37 @@
 				163E2D712E5CF13D00C16B3C /* Muesli.app */,
 				163E2D802E5CF13E00C16B3C /* MuesliTests.xctest */,
 				163E2D8A2E5CF13E00C16B3C /* MuesliUITests.xctest */,
+				960D0CC117838C32F01ABDE6 /* MuesliRecordingLiveActivity.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E2BB1181CE69B56218714ED9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				FAE4CC8947B3954C8619362B /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F0A79B93B725F1BC8653351D /* MuesliRecordingLiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				2EC47B35166D92DFC5F86E2B /* MuesliRecordingLiveActivityBundle.swift */,
+				5BF1480EFE0A734C1A451B51 /* RecordingActivityWidget.swift */,
+				C5757B378B63EDCD8247BB64 /* RecordingActivityAttributes.swift */,
+				A7CEF1D7908AB7222173BD5B /* Info.plist */,
+			);
+			name = MuesliRecordingLiveActivity;
+			path = MuesliRecordingLiveActivity;
+			sourceTree = "<group>";
+		};
+		FAE4CC8947B3954C8619362B /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				590505C9B1C30D0ADC30CDC3 /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -108,17 +185,17 @@
 				163E2D6D2E5CF13D00C16B3C /* Sources */,
 				163E2D6E2E5CF13D00C16B3C /* Frameworks */,
 				163E2D6F2E5CF13D00C16B3C /* Resources */,
+				5E354F1DDD311C9CC701C494 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				BD9E279F25B53A9F69A07993 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				163E2D732E5CF13D00C16B3C /* Muesli */,
 			);
 			name = Muesli;
-			packageProductDependencies = (
-			);
 			productName = Muesli;
 			productReference = 163E2D712E5CF13D00C16B3C /* Muesli.app */;
 			productType = "com.apple.product-type.application";
@@ -140,8 +217,6 @@
 				163E2D832E5CF13E00C16B3C /* MuesliTests */,
 			);
 			name = MuesliTests;
-			packageProductDependencies = (
-			);
 			productName = MuesliTests;
 			productReference = 163E2D802E5CF13E00C16B3C /* MuesliTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -163,11 +238,26 @@
 				163E2D8D2E5CF13E00C16B3C /* MuesliUITests */,
 			);
 			name = MuesliUITests;
-			packageProductDependencies = (
-			);
 			productName = MuesliUITests;
 			productReference = 163E2D8A2E5CF13E00C16B3C /* MuesliUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		3B0F36A19C3023A839BA355A /* MuesliRecordingLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 46369A2C5FD5A76DD0D7D28A /* Build configuration list for PBXNativeTarget "MuesliRecordingLiveActivity" */;
+			buildPhases = (
+				3F387D6B8E913C5E9F6090C3 /* Sources */,
+				F14DFC50F5BECC7D14362438 /* Frameworks */,
+				A11970E784D52E1CDBAC4516 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MuesliRecordingLiveActivity;
+			productName = MuesliRecordingLiveActivity;
+			productReference = 960D0CC117838C32F01ABDE6 /* MuesliRecordingLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -209,6 +299,7 @@
 				163E2D702E5CF13D00C16B3C /* Muesli */,
 				163E2D7F2E5CF13E00C16B3C /* MuesliTests */,
 				163E2D892E5CF13E00C16B3C /* MuesliUITests */,
+				3B0F36A19C3023A839BA355A /* MuesliRecordingLiveActivity */,
 			);
 		};
 /* End PBXProject section */
@@ -230,6 +321,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		163E2D882E5CF13E00C16B3C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A11970E784D52E1CDBAC4516 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -260,6 +358,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3F387D6B8E913C5E9F6090C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA00F30C6565A30E50380729 /* MuesliRecordingLiveActivityBundle.swift in Sources */,
+				FFD049B1A63F218B29755A46 /* RecordingActivityWidget.swift in Sources */,
+				F98F9A84DD10DCFCFD6AEFE6 /* RecordingActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -272,6 +380,12 @@
 			isa = PBXTargetDependency;
 			target = 163E2D702E5CF13D00C16B3C /* Muesli */;
 			targetProxy = 163E2D8B2E5CF13E00C16B3C /* PBXContainerItemProxy */;
+		};
+		BD9E279F25B53A9F69A07993 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = MuesliRecordingLiveActivity;
+			target = 3B0F36A19C3023A839BA355A /* MuesliRecordingLiveActivity */;
+			targetProxy = 8EC50F707E8046816A27C521 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -415,8 +529,10 @@
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record voice notes for transcription.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to attach images to your notes.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to transcribe your voice notes locally on your device.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -450,8 +566,10 @@
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record voice notes for transcription.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs access to your photo library to attach images to your notes.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to transcribe your voice notes locally on your device.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -537,6 +655,59 @@
 			};
 			name = Release;
 		};
+		208F62F4F1BE609DE4DB07EB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MuesliRecordingLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.koderex.muesli.MuesliRecordingLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		DDB71F41A41AC248A38B49EA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MuesliRecordingLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.koderex.muesli.MuesliRecordingLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -572,6 +743,15 @@
 			buildConfigurations = (
 				163E2D9B2E5CF13E00C16B3C /* Debug */,
 				163E2D9C2E5CF13E00C16B3C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		46369A2C5FD5A76DD0D7D28A /* Build configuration list for PBXNativeTarget "MuesliRecordingLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDB71F41A41AC248A38B49EA /* Release */,
+				208F62F4F1BE609DE4DB07EB /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

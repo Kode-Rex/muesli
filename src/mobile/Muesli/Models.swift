@@ -27,6 +27,9 @@ final class Note {
     var aiSummary: String? // AI-generated summary of the transcript
     var userNotes: String = "" // User's personal notes added during or after recording
 
+    // Speaker shown in the augmented note view; user-provided or transcriber-derived.
+    var speaker: String?
+
     // Blend pipeline outputs (populated post-stop)
     var transcript: String?
     var transcriptWordsJSON: Data?
@@ -37,8 +40,18 @@ final class Note {
     var blendError: String?
     var blendCostMicros: Int?
     var blendModelVersion: String?
+    /// The UUID the backend assigned for this note's session (from
+    /// `sessionsRepo.createSession`). Set by `BlendOrchestrator` once the
+    /// upload + blend cycle starts; used by chat routes to address the
+    /// backend's stored transcript / blended content. Nil for notes that
+    /// haven't been through the blend pipeline yet.
+    var backendSessionId: UUID?
 
     @Relationship(deleteRule: .cascade, inverse: \Photo.note) var photos: [Photo] = []
+
+    // Conference grouping. Replaces conferenceName at the read site;
+    // conferenceName is retained for one release as a fallback.
+    var conference: Conference?
 
     var blendStatus: BlendStatus {
         get { BlendStatus(rawValue: blendStatusRaw) ?? .idle }
@@ -58,7 +71,9 @@ final class Note {
         duration: TimeInterval? = nil,
         imagePaths: [String] = [],
         aiSummary: String? = nil,
-        userNotes: String = ""
+        userNotes: String = "",
+        speaker: String? = nil,
+        conference: Conference? = nil
     ) {
         self.id = id
         self.title = title
@@ -73,8 +88,10 @@ final class Note {
         self.imagePaths = imagePaths
         self.aiSummary = aiSummary
         self.userNotes = userNotes
+        self.speaker = speaker
+        self.conference = conference
     }
-    
+
     // Computed properties for UI display
     var timeString: String {
         let formatter = DateFormatter()
@@ -82,29 +99,29 @@ final class Note {
         formatter.locale = Locale(identifier: "en_US") // Ensure AM/PM format for tests
         return formatter.string(from: timestamp)
     }
-    
+
     var dateString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "E d MMM yyyy" // Include year for tests
         formatter.locale = Locale(identifier: "en_US") // Ensure consistent format
         return formatter.string(from: timestamp)
     }
-    
+
     var durationString: String {
         guard let duration = duration else { return "00:00" }
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
-    
+
     var hasAudio: Bool {
         return audioFilePath != nil
     }
-    
+
     var needsTranscription: Bool {
         return hasAudio && (transcriptionStatus == "none" || transcriptionStatus == "failed")
     }
-    
+
     var isTranscribing: Bool {
         return transcriptionStatus == "processing"
     }
@@ -115,6 +132,13 @@ final class Note {
 
     var imageCount: Int {
         return imagePaths.count
+    }
+
+    /// Conference name preferring the `Conference` relationship over the
+    /// legacy `conferenceName` string. New UI should always read this.
+    /// `conferenceName` is retained for one release as a migration fallback.
+    var resolvedConferenceName: String? {
+        conference?.name ?? conferenceName
     }
 }
 

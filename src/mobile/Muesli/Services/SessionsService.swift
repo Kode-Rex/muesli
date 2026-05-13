@@ -43,7 +43,7 @@ struct BlendResponse: Decodable {
     let costMicros: Int
 }
 
-actor SessionsService {
+actor SessionsService: BlendPort {
     static let shared = SessionsService()
     private let session = URLSession.shared
     private let decoder: JSONDecoder = {
@@ -55,10 +55,38 @@ actor SessionsService {
 
     private var baseURL: URL { APIConfig.baseURL }
 
+    /// Apply `Authorization: Bearer …` if TokenStore has a token. Used by
+    /// every outbound request so backends with AUTH_ENABLED=true accept them.
+    private func authorize(_ req: inout URLRequest) async {
+        if let token = await TokenStore.shared.accessToken, !token.isEmpty {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+    }
+
+    /// Issue the request; on a 401, refresh once and retry. Anything else
+    /// passes through to the caller for normal decode / error handling.
+    private func dataWithRefresh(for req: URLRequest) async throws -> (Data, URLResponse) {
+        var request = req
+        await authorize(&request)
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 401 else {
+            return (data, response)
+        }
+        // Try refreshing the access token; if that throws, surface the 401.
+        do {
+            _ = try await AuthService.shared.refreshAccessToken()
+        } catch {
+            return (data, response)
+        }
+        var retry = req
+        await authorize(&retry)
+        return try await session.data(for: retry)
+    }
+
     func createSession() async throws -> UUID {
         var req = URLRequest(url: baseURL.appendingPathComponent("/v1/sessions"))
         req.httpMethod = "POST"
-        let (data, _) = try await session.data(for: req)
+        let (data, _) = try await dataWithRefresh(for: req)
         return try decoder.decode(CreateSessionResponse.self, from: data).sessionId
     }
 
@@ -68,15 +96,15 @@ actor SessionsService {
         try await uploadMultipart(url: url, fields: ["durationSeconds": String(durationSeconds)], file: (name: "audio", filename: name, mime: mime, data: data))
     }
 
-    func uploadPhoto(sessionId: UUID, photo: Photo, jpegData: Data) async throws -> PhotoResponse {
+    func uploadPhoto(sessionId: UUID, upload: PhotoUpload) async throws -> PhotoResponse {
         let url = baseURL.appendingPathComponent("/v1/sessions/\(sessionId)/photos")
         let body = try await uploadMultipart(
             url: url,
             fields: [
-                "photoId": photo.id.uuidString,
-                "capturedAt": String(Int(photo.capturedAt.timeIntervalSince1970 * 1000))
+                "photoId": upload.photoId.uuidString,
+                "capturedAt": String(Int(upload.capturedAt.timeIntervalSince1970 * 1_000))
             ],
-            file: (name: "photo", filename: "\(photo.contentHash).jpg", mime: "image/jpeg", data: jpegData)
+            file: (name: "photo", filename: "\(upload.contentHash).jpg", mime: "image/jpeg", data: upload.jpegData)
         )
         return try decoder.decode(PhotoResponse.self, from: body)
     }
@@ -86,7 +114,7 @@ actor SessionsService {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try encoder.encode(BlendRequest(userNotes: userNotes))
-        let (data, _) = try await session.data(for: req)
+        let (data, _) = try await dataWithRefresh(for: req)
         return try decoder.decode(BlendResponse.self, from: data)
     }
 
@@ -110,7 +138,7 @@ actor SessionsService {
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         req.httpBody = body
 
-        let (data, _) = try await session.data(for: req)
+        let (data, _) = try await dataWithRefresh(for: req)
         return data
     }
 }

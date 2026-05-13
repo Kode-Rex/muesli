@@ -1,5 +1,5 @@
 //
-//  DeveloperStatusView.swift  
+//  DeveloperStatusView.swift
 //  Muesli
 //
 //  Read-only view showing current API configuration (development only)
@@ -10,7 +10,7 @@ import SwiftUI
 #if DEBUG
 struct DeveloperStatusView: View {
     @State private var transcriptionService = TranscriptionService.shared
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -21,14 +21,14 @@ struct DeveloperStatusView: View {
                         Text(transcriptionService.environmentName)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     HStack {
                         Label("Endpoint", systemImage: "link")
                         Spacer()
                         Text(transcriptionService.isUsingLocalhost ? "Localhost" : "Remote")
                             .foregroundColor(transcriptionService.isUsingLocalhost ? .orange : .green)
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text("URL")
                             .font(.caption)

@@ -9,16 +9,16 @@ import SwiftUI
 
 struct MainHeaderView: View {
     let onSettingsTap: () -> Void
-    
+
     var body: some View {
         HStack {
             Text("My Notes")
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
-            
+
             Spacer()
-            
+
             Button(action: onSettingsTap) {
                 Image(systemName: "gearshape.fill")
                     .font(.title2)

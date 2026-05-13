@@ -10,12 +10,12 @@ import SwiftUI
 struct SearchBarView: View {
     @Binding var searchText: String
     let onSearchTextChange: (String) -> Void
-    
+
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.gray)
-            
+
             TextField("Search", text: $searchText)
                 .foregroundColor(.white)
                 .font(.system(size: 16))

@@ -19,18 +19,18 @@ struct CapturedImage: Identifiable {
 struct NewNoteView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    
+
     // Recording state
     @State private var recordingManager = AudioRecordingManager.shared
     @State private var transcriptionService = HybridTranscriptionService.shared
     @State private var networkMonitor = NetworkMonitor.shared
-    
+
     // Note properties
     @State private var title = ""
     @State private var userNotes = "" // User's typed notes during recording
     @State private var conferenceName = ""
     @State private var sessionType = "note"
-    
+
     // UI state
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -40,9 +40,9 @@ struct NewNoteView: View {
     @State private var capturedImages: [CapturedImage] = []
     @State private var userEndedRecording = false
     @State private var recordingStartTime: Date?
-    
+
     private let sessionTypes = ["note", "meeting", "session"]
-    
+
     // Computed property to show appropriate icon based on availability
     private var cameraIconName: String {
         #if targetEnvironment(simulator)
@@ -51,18 +51,18 @@ struct NewNoteView: View {
         return UIImagePickerController.isSourceTypeAvailable(.camera) ? "camera.fill" : "photo.on.rectangle"
         #endif
     }
-    
+
     // Prevent accidental pause button presses right after recording starts
     private var shouldDisablePauseButton: Bool {
         guard let startTime = recordingStartTime else { return false }
         return Date().timeIntervalSince(startTime) < 2.0 // Disable for first 2 seconds
     }
-    
+
     var body: some View {
         NavigationView {
             ZStack {
                 Color.black.ignoresSafeArea()
-                
+
                 VStack(spacing: 0) {
                     Spacer()
 
@@ -76,7 +76,7 @@ struct NewNoteView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 16)
-                    
+
                     // Note card (current recording)
                     VStack(spacing: 0) {
                         HStack {
@@ -86,25 +86,25 @@ struct NewNoteView: View {
                                 .frame(width: 40, height: 40)
                                 .background(Color.teal.opacity(0.2))
                                 .cornerRadius(8)
-                            
+
                             VStack(alignment: .leading, spacing: 4) {
                                 TextField("New Note", text: $title)
                                     .foregroundColor(.white)
                                     .font(.system(size: 16, weight: .medium))
                                     .textFieldStyle(PlainTextFieldStyle())
-                                
+
                                 HStack(spacing: 8) {
                                     Text(formatTime(recordingManager.recordingDuration))
                                         .foregroundColor(.gray)
                                         .font(.system(size: 14))
-                                    
+
                                     // Recording mode indicator
                                     if recordingManager.state == .recording || recordingManager.state == .paused {
                                         HStack(spacing: 4) {
                                             Image(systemName: isOnlineMode ? "wifi" : "wifi.slash")
                                                 .foregroundColor(isOnlineMode ? .green : .orange)
                                                 .font(.system(size: 12))
-                                            
+
                                             Text(isOnlineMode ? "Live transcription" : "Local recording")
                                                 .foregroundColor(isOnlineMode ? .green : .orange)
                                                 .font(.system(size: 12, weight: .medium))
@@ -112,9 +112,9 @@ struct NewNoteView: View {
                                     }
                                 }
                             }
-                            
+
                             Spacer()
-                            
+
                             // Camera Button
                             Button(action: {
                                 showingImagePicker = true
@@ -129,13 +129,13 @@ struct NewNoteView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
-                        
+
                         // Text input area
                         VStack(alignment: .leading, spacing: 8) {
                             Divider()
                                 .background(Color.gray.opacity(0.3))
                                 .padding(.horizontal, 20)
-                            
+
                             TextField("Feel free to write notes here...", text: $userNotes, axis: .vertical)
                                 .foregroundColor(.white.opacity(0.9))
                                 .font(.body)
@@ -145,19 +145,19 @@ struct NewNoteView: View {
                                 .padding(.horizontal, 20)
                                 .frame(minHeight: 80)
                         }
-                        
+
                         // Captured images section
                         if !capturedImages.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Divider()
                                     .background(Color.gray.opacity(0.3))
                                     .padding(.horizontal, 20)
-                                
+
                                 Text("Attached images")
                                     .foregroundColor(.gray)
                                     .font(.caption)
                                     .padding(.horizontal, 20)
-                                
+
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 12) {
                                         ForEach(capturedImages) { capturedImage in
@@ -167,7 +167,7 @@ struct NewNoteView: View {
                                                     .aspectRatio(contentMode: .fill)
                                                     .frame(width: 80, height: 100)
                                                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                                                
+
                                                 Text(formatImageTimestamp(capturedImage.timestamp))
                                                     .font(.caption2)
                                                     .foregroundColor(.gray)
@@ -178,15 +178,15 @@ struct NewNoteView: View {
                                 }
                             }
                         }
-                        
+
                         Spacer()
                     }
                     .background(Color.gray.opacity(0.15))
                     .cornerRadius(12)
                     .padding(.horizontal, 20)
-                    
+
                     Spacer()
-                    
+
                     // Recording controls
                     recordingControlsView
                 }
@@ -203,7 +203,7 @@ struct NewNoteView: View {
                             .font(.system(size: 18, weight: .medium))
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         // User profile placeholder
@@ -246,9 +246,9 @@ struct NewNoteView: View {
             }
         }
     }
-    
+
     // MARK: - Recording Controls View
-    
+
     @ViewBuilder
     private var recordingControlsView: some View {
         HStack(spacing: 30) {
@@ -267,19 +267,19 @@ struct NewNoteView: View {
                     )
             }
             .disabled(recordingManager.state == .idle || shouldDisablePauseButton)
-            
+
             // Waveform and timer
             VStack(spacing: 8) {
                 WaveformView()
-                .onChange(of: recordingManager.state) { oldValue, newValue in
-                    AppLogger.shared.info("UI: Recording state changed from \(oldValue) to \(newValue)")
-                }
-                .onChange(of: recordingManager.audioLevel) { oldValue, newValue in
-                    if abs(newValue - oldValue) > 0.1 {
-                        AppLogger.shared.info("UI: Audio level changed from \(oldValue) to \(newValue)")
+                    .onChange(of: recordingManager.state) { oldValue, newValue in
+                        AppLogger.shared.info("UI: Recording state changed from \(oldValue) to \(newValue)")
                     }
-                }
-                
+                    .onChange(of: recordingManager.audioLevel) { oldValue, newValue in
+                        if abs(newValue - oldValue) > 0.1 {
+                            AppLogger.shared.info("UI: Audio level changed from \(oldValue) to \(newValue)")
+                        }
+                    }
+
                 Text(formatTime(recordingManager.recordingDuration))
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(.green)
@@ -290,27 +290,27 @@ struct NewNoteView: View {
                         }
                     }
             }
-            
-            // End Button
+
+            // Stop Button — square stop icon matching the mockup.
             Button(action: {
                 endRecording()
             }) {
-                Text("End")
-                    .font(.system(size: 16, weight: .semibold))
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 16)
-                    .background(Color.teal)
-                    .cornerRadius(25)
+                    .frame(width: 56, height: 56)
+                    .background(Color.red)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .accessibilityLabel("Stop recording")
             }
             .disabled(recordingManager.state == .idle)
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 40)
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func setupRecording() {
         // Check permissions
         recordingManager.checkPermission()
@@ -328,48 +328,47 @@ struct NewNoteView: View {
                 await startRecording()
             }
         }
-        
+
         // Setup transcription callbacks
-        transcriptionService.onTranscriptionUpdate = { transcript, isFinal in
+        transcriptionService.onTranscriptionUpdate = { _, _ in
             // Live transcription not used - we do batch transcription after recording
         }
-        
+
         transcriptionService.onError = { error in
             DispatchQueue.main.async {
                 // Gracefully handle transcription errors without disrupting the user
                 AppLogger.shared.warning("Transcription service error - continuing with local recording: \(error.localizedDescription)")
-                
+
                 // Switch to offline mode instead of showing error
                 self.isOnlineMode = false
             }
         }
-        
+
         // Note: API endpoint should be configured programmatically or via settings
         // No need to prompt user for API keys on device
     }
-    
+
     private func startRecording() async {
         do {
             // Start recording (always works locally)
             _ = try await recordingManager.startRecording()
-            
+
             // Set recording start time for UI protection
             recordingStartTime = Date()
-            
+
             // Try to start real-time transcription if possible
             isOnlineMode = await tryStartTranscription()
-            
+
             // UI timer is handled by AudioRecordingManager
-            
+
             let mode = isOnlineMode ? "Online with transcription" : "Offline (local recording only)"
             AppLogger.shared.info("Recording started - Mode: \(mode)")
-            
         } catch {
             recordingStartTime = nil
             showError("Failed to start recording: \(error.localizedDescription)")
         }
     }
-    
+
     private func tryStartTranscription() async -> Bool {
         // Check if any transcription service is available
         guard transcriptionService.isLocalAvailable || transcriptionService.isCloudAvailable else {
@@ -387,11 +386,11 @@ struct NewNoteView: View {
             return false
         }
     }
-    
+
     private func handleResumeOrPause() {
         AppLogger.shared.info("handleResumeOrPause called - current state: \(recordingManager.state)")
         AppLogger.shared.info("Call Stack: \(Thread.callStackSymbols.prefix(3).joined(separator: "\n"))")
-        
+
         switch recordingManager.state {
         case .recording:
             AppLogger.shared.info("Pausing recording from handleResumeOrPause")
@@ -399,20 +398,19 @@ struct NewNoteView: View {
         case .paused:
             AppLogger.shared.info("Resuming recording from handleResumeOrPause")
             resumeRecording()
-        default:
+            default:
             AppLogger.shared.warning("handleResumeOrPause called with unexpected state: \(recordingManager.state)")
-            break
         }
     }
-    
+
     private func pauseRecording() {
         recordingManager.pauseRecording()
-        
+
         if isOnlineMode {
             transcriptionService.stopRealtimeTranscription()
         }
     }
-    
+
     private func resumeRecording() {
         recordingManager.resumeRecording()
 
@@ -429,28 +427,28 @@ struct NewNoteView: View {
             }
         }
     }
-    
+
     private func endRecording() {
         AppLogger.shared.info("endRecording called from NewNoteView - user initiated: \(userEndedRecording)")
         AppLogger.shared.info("Call Stack: \(Thread.callStackSymbols.prefix(5).joined(separator: "\n"))")
-        
+
         // Only proceed if we're actually recording
         guard recordingManager.state == .recording || recordingManager.state == .paused else {
             AppLogger.shared.warning("endRecording called but recording state is: \(recordingManager.state)")
             return
         }
-        
+
         userEndedRecording = true
         recordingManager.stopRecording()
-        
+
         if isOnlineMode {
             transcriptionService.stopRealtimeTranscription()
         }
-        
+
         // Save the note
         saveNote()
     }
-    
+
     private func saveNote() {
         do {
             let conferenceValue = conferenceName.isEmpty ? nil : conferenceName
@@ -508,18 +506,17 @@ struct NewNoteView: View {
                     audioPath: audioPath
                 )
             }
-            
+
             AppLogger.shared.info("Note saved - Duration: \(recordingManager.recordingDuration)s, Transcription: \(transcriptionStatus)")
             dismiss()
-            
         } catch {
             showError("Failed to save note: \(error.localizedDescription)")
         }
     }
-    
+
     private func cleanup() {
         AppLogger.shared.info("cleanup called - recording state: \(recordingManager.state), userEndedRecording: \(userEndedRecording)")
-        
+
         // Only cancel if user didn't properly end the recording
         if (recordingManager.state == .recording || recordingManager.state == .paused) && !userEndedRecording {
             AppLogger.shared.info("cancelling active recording in cleanup because user didn't end it properly")
@@ -528,31 +525,29 @@ struct NewNoteView: View {
             AppLogger.shared.info("recording is still active but user ended it - stopping normally")
             recordingManager.stopRecording()
         }
-        
+
         if transcriptionService.isTranscribing {
             AppLogger.shared.info("stopping transcription in cleanup")
             transcriptionService.stopRealtimeTranscription()
         }
-        
+
         // Reset flags
         userEndedRecording = false
         recordingStartTime = nil
     }
-    
 
-    
     private func formatTime(_ time: TimeInterval) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
-    
+
     private func formatImageTimestamp(_ timestamp: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
         return formatter.string(from: timestamp)
     }
-    
+
     private func addCapturedImage(_ image: UIImage) {
         let capturedImage = CapturedImage(image: image, timestamp: Date())
         capturedImages.append(capturedImage)

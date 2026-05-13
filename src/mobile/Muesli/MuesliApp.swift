@@ -14,6 +14,9 @@ struct MuesliApp: App {
         let schema = Schema([
             Note.self,
             Photo.self,
+            Conference.self,
+            ChatThread.self,
+            ChatMessage.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -22,7 +25,7 @@ struct MuesliApp: App {
         } catch {
             // Log the error but continue with in-memory fallback
             AppLogger.shared.error("SwiftData container creation failed, using in-memory fallback", error: error)
-            
+
             // Fallback to in-memory storage
             let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             do {
@@ -47,11 +50,16 @@ struct MuesliApp: App {
                 return try? Data(contentsOf: url)
             })
         }
+
+        if !ConferenceMigration.hasRun {
+            let context = ModelContext(sharedModelContainer)
+            ConferenceMigration.run(in: context)
+        }
     }
 
     var body: some Scene {
         WindowGroup {
-            SimpleMainView()
+            MainView()
         }
         .modelContainer(sharedModelContainer)
     }

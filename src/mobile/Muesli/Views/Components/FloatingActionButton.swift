@@ -11,7 +11,7 @@ struct FloatingActionButton: View {
     let action: () -> Void
     let systemImage: String
     let backgroundColor: Color
-    
+
     init(
         action: @escaping () -> Void,
         systemImage: String = "plus",
@@ -21,7 +21,7 @@ struct FloatingActionButton: View {
         self.systemImage = systemImage
         self.backgroundColor = backgroundColor
     }
-    
+
     var body: some View {
         VStack {
             Spacer()

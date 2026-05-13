@@ -59,7 +59,7 @@ final class BlendOrchestrator {
             return
         }
 
-        let svc = SessionsService.shared
+        let svc = World.current.blend
 
         do {
             // 1. Status → transcribing
@@ -68,9 +68,14 @@ final class BlendOrchestrator {
                 try? context.save()
             }
 
-            // 2. Create backend session
+            // 2. Create backend session and persist it on the Note so the
+            // chat routes can address this talk's stored transcript.
             let sessionId = try await svc.createSession()
             AppLogger.shared.info("BlendOrchestrator: session created \(sessionId)")
+            await MainActor.run {
+                note.backendSessionId = sessionId
+                try? context.save()
+            }
 
             // 3. Upload audio
             guard let audioURL = AudioRecordingManager.shared.getRecordingURL(fileName: audioPath) else {
@@ -97,15 +102,26 @@ final class BlendOrchestrator {
                 try? context.save()
             }
 
-            // 5. Upload each photo
-            let photos = await MainActor.run { note.photos }
-            for photo in photos {
-                guard let jpeg = try? Data(contentsOf: URL(fileURLWithPath: photo.localPath)) else {
-                    AppLogger.shared.warning("BlendOrchestrator: skipping photo with missing file \(photo.localPath)")
-                    continue
+            // 5. Upload each photo. Build a Sendable DTO on the main actor
+            // (the Photo @Model isn't safe to cross actor boundaries) and
+            // then await the actor-isolated upload with the value type.
+            let uploads: [PhotoUpload] = await MainActor.run {
+                note.photos.compactMap { p -> PhotoUpload? in
+                    guard let jpeg = try? Data(contentsOf: URL(fileURLWithPath: p.localPath)) else {
+                        AppLogger.shared.warning("BlendOrchestrator: skipping photo with missing file \(p.localPath)")
+                        return nil
+                    }
+                    return PhotoUpload(
+                        photoId: p.id,
+                        contentHash: p.contentHash,
+                        capturedAt: p.capturedAt,
+                        jpegData: jpeg
+                    )
                 }
+            }
+            for upload in uploads {
                 do {
-                    let resp = try await svc.uploadPhoto(sessionId: sessionId, photo: photo, jpegData: jpeg)
+                    let resp = try await svc.uploadPhoto(sessionId: sessionId, upload: upload)
                     AppLogger.shared.info("BlendOrchestrator: photo uploaded \(resp.photoId)")
                 } catch {
                     AppLogger.shared.warning("BlendOrchestrator: photo upload failed, continuing — \(error.localizedDescription)")
@@ -138,7 +154,6 @@ final class BlendOrchestrator {
                 note.blendError = nil
                 try? context.save()
             }
-
         } catch {
             // 9. On any error → status .failed
             await MainActor.run {

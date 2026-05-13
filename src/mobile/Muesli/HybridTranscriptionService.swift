@@ -42,8 +42,7 @@ enum HybridTranscriptionError: Error, LocalizedError {
 }
 
 @Observable
-class HybridTranscriptionService {
-
+class HybridTranscriptionService: HybridTranscriptionPort {
     static let shared = HybridTranscriptionService()
 
     // Service instances

@@ -9,6 +9,8 @@ import { sessionsRepo } from '../services/sessionsRepo.js';
 import { extractImage } from '../services/imageExtractService.js';
 import { chapterize } from '../services/chapterizeService.js';
 import { blend } from '../services/blendService.js';
+import { chat } from '../services/chatService.js';
+import { transcriptionRateLimit } from '../middleware/security.js';
 import { blendCostMicros } from '../services/blendCost.js';
 import { contentHash } from '../services/contentHash.js';
 import * as ledger from '../services/ledgerService.js';
@@ -162,6 +164,44 @@ router.post('/:id/blend', express.json(), async (req, res) => {
     Logger.error('Blend failed', e);
     await sessionsRepo.setStatus(id, 'failed', e.message);
     res.status(500).json({ error: 'blend_failed', detail: e.message });
+  }
+});
+
+router.post('/:id/chat', transcriptionRateLimit, express.json(), async (req, res) => {
+  const id = req.params.id;
+  const s = await sessionsRepo.getSession(id);
+  if (!s) return res.status(404).json({ error: 'session_not_found' });
+  if (s.userId !== userIdFor(req)) {
+    return res.status(403).json({ error: 'forbidden' });
+  }
+  const messages = req.body?.messages;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'messages_required' });
+  }
+  try {
+    const result = await chat({
+      scope: { kind: 'talk', sessionId: id },
+      messages,
+      sessions: [{
+        id: s.id, title: null, speaker: null,
+        transcript: s.transcript, blendedMarkdown: s.blendedMarkdown,
+        aiSummary: null,
+        photos: s.photos.filter(p => p.extractStatus === 'complete'),
+        createdAt: s.createdAt
+      }]
+    });
+    await sessionsRepo.recordCost({
+      userId: s.userId, sessionId: id, microsDelta: 0, reason: 'chat_talk',
+      metadata: { tokensIn: result.tokensIn, tokensOut: result.tokensOut, citations: result.citations.length }
+    });
+    res.json({
+      message: result.message,
+      citations: result.citations,
+      usage: { tokensIn: result.tokensIn, tokensOut: result.tokensOut }
+    });
+  } catch (e) {
+    Logger.error('chat (talk) failed', e);
+    res.status(502).json({ error: 'chat_failed', detail: e.message });
   }
 });
 

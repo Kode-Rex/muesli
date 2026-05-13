@@ -9,7 +9,6 @@ import Foundation
 import AVFoundation
 
 struct AppConstants {
-    
     // MARK: - Timing Constants
     struct Timing {
         static let recordingTimerInterval: TimeInterval = 0.1
@@ -17,17 +16,17 @@ struct AppConstants {
         static let healthCheckTimeout: TimeInterval = 2.0
         static let transcriptionProcessTimeout: TimeInterval = 300.0
     }
-    
+
     // MARK: - Audio Constants
     struct Audio {
-        static let defaultSampleRate: Double = 44100.0
-        static let bitRate: Int = 64000
+        static let defaultSampleRate: Double = 44_100.0
+        static let bitRate: Int = 64_000
         static let numberOfChannels: Int = 1
         static let audioQuality: AVAudioQuality = .high
         static let fileExtension: String = "m4a"
         static let contentType: String = "audio/mp4"
     }
-    
+
     // MARK: - UI Constants
     struct UI {
         static let defaultPadding: CGFloat = 16
@@ -37,14 +36,14 @@ struct AppConstants {
         static let buttonHeight: CGFloat = 44
         static let recordingButtonSize: CGFloat = 100
     }
-    
+
     // MARK: - Performance Constants
     struct Performance {
         static let maxCachedOperations: Int = 100
         static let logRetentionDays: Int = 7
-        static let maxFileSize: Int64 = 50 * 1024 * 1024 // 50MB
+        static let maxFileSize: Int64 = 50 * 1_024 * 1_024 // 50MB
     }
-    
+
     // MARK: - Transcription Configuration
     struct Transcription {
         // Duration threshold for switching from local to cloud (in seconds)
@@ -52,14 +51,14 @@ struct AppConstants {
 
         // Local transcription limits (iOS Speech framework)
         static let localDailyLimit: TimeInterval = 60 * 60 // ~1 hour per day (Apple limit)
-        static let localMaxFileSize: Int64 = 10 * 1024 * 1024 // 10MB
+        static let localMaxFileSize: Int64 = 10 * 1_024 * 1_024 // 10MB
 
         // Cloud transcription settings
-        static let cloudMinFileSize: Int64 = 1024 // 1KB
-        static let cloudMaxFileSize: Int64 = 50 * 1024 * 1024 // 50MB
+        static let cloudMinFileSize: Int64 = 1_024 // 1KB
+        static let cloudMaxFileSize: Int64 = 50 * 1_024 * 1_024 // 50MB
 
         // Real-time transcription
-        static let realtimeBufferSize: Int = 4096
+        static let realtimeBufferSize: Int = 4_096
         static let realtimeUpdateInterval: TimeInterval = 0.5
     }
 
@@ -81,7 +80,7 @@ struct AppConstants {
             }
         }
     }
-    
+
     // MARK: - Session Types
     enum SessionType: String, CaseIterable {
         case note = "note"
@@ -90,7 +89,7 @@ struct AppConstants {
         case voiceNote = "voice-note"
         case interview = "interview"
         case lecture = "lecture"
-        
+
         var displayName: String {
             switch self {
             case .note: return "Note"
@@ -101,7 +100,7 @@ struct AppConstants {
             case .lecture: return "Lecture"
             }
         }
-        
+
         var icon: String {
             switch self {
             case .note: return "note.text"
@@ -113,21 +112,21 @@ struct AppConstants {
             }
         }
     }
-    
+
     // MARK: - File Paths
     struct FilePaths {
         static let documentsDirectory = "Documents"
         static let audioDirectory = "Audio"
         static let logsDirectory = "Logs"
     }
-    
+
     // MARK: - Validation
     struct Validation {
         static let minTitleLength: Int = 1
         static let maxTitleLength: Int = 100
-        static let maxContentLength: Int = 50000
+        static let maxContentLength: Int = 50_000
         static let minRecordingDuration: TimeInterval = 1.0
-        static let maxRecordingDuration: TimeInterval = 7200.0 // 2 hours
+        static let maxRecordingDuration: TimeInterval = 7_200.0 // 2 hours
     }
 }
 

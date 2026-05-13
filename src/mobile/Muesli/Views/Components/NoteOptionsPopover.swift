@@ -17,7 +17,7 @@ struct NoteOptionsPopover: View {
     let onArchive: () -> Void
     let onDelete: () -> Void
     let onClose: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 0) {
             NoteOptionRow(
@@ -29,7 +29,7 @@ struct NoteOptionsPopover: View {
                     onEditTitle()
                 }
             }
-            
+
             Divider().background(Color.gray.opacity(0.5))
 
             NoteOptionRow(
@@ -112,7 +112,7 @@ struct NoteOptionRow: View {
     let icon: String
     let title: String
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
@@ -120,7 +120,7 @@ struct NoteOptionRow: View {
                     .foregroundColor(.white)
                     .font(.system(size: 16))
                     .frame(width: 20, height: 20)
-                
+
                 Text(title)
                     .foregroundColor(.white)
                     .font(.system(size: 15))

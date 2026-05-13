@@ -49,6 +49,23 @@ describe('Auth flow (AUTH_ENABLED=true)', () => {
     expect(r.body.error).toBe('missing_token');
   });
 
+  it('dev sign-in mints tokens for a given email outside production', async () => {
+    const r = await request(app).post('/v1/auth/dev').send({ email: 'dev@local.test', fullName: 'Dev' });
+    expect(r.status).toBe(200);
+    expect(r.body.accessToken).toBeTruthy();
+    expect(r.body.refreshToken).toBeTruthy();
+    expect(r.body.user.email).toBe('dev@local.test');
+    const me = await request(app).get('/v1/auth/me').set('Authorization', `Bearer ${r.body.accessToken}`);
+    expect(me.status).toBe(200);
+    expect(me.body.user.email).toBe('dev@local.test');
+  });
+
+  it('dev sign-in 400s on invalid email', async () => {
+    const r = await request(app).post('/v1/auth/dev').send({ email: 'not-an-email' });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('email_invalid');
+  });
+
   it('signs in with Google → returns access + refresh + user', async () => {
     const r = await request(app).post('/v1/auth/google').send({ idToken: 'fake' });
     expect(r.status).toBe(200);

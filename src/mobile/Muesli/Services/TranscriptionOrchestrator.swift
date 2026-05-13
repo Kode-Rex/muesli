@@ -54,7 +54,7 @@ final class TranscriptionOrchestrator {
             AppLogger.shared.info("Orchestrator starting batch transcription for '\(note.title)'")
 
             do {
-                let transcript = try await HybridTranscriptionService.shared.transcribeAudioFile(url: audioURL)
+                let transcript = try await World.current.hybridTranscription.transcribeAudioFile(url: audioURL)
 
                 note.content = transcript
                 note.transcriptionStatus = "completed"

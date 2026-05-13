@@ -15,9 +15,9 @@ struct ProfileView: View {
     @AppStorage("defaultSessionType") private var defaultSessionType = "note"
     @AppStorage("enableNotifications") private var enableNotifications = true
     @AppStorage("autoArchiveOldNotes") private var autoArchiveOldNotes = false
-    
+
     private let sessionTypes = ["note", "meeting", "session"]
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -27,28 +27,28 @@ struct ProfileView: View {
                         Image(systemName: "person.circle.fill")
                             .foregroundColor(.teal)
                             .font(.system(size: 50))
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text(displayName.isEmpty ? "Your Name" : displayName)
                                 .font(.title3)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
-                            
+
                             Text(email.isEmpty ? "your.email@example.com" : email)
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
                         }
-                        
+
                         Spacer()
                     }
                     .padding(.vertical, 8)
-                    
+
                     LabeledContent("Display Name") {
                         TextField("Enter your name", text: $displayName)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 200)
                     }
-                    
+
                     LabeledContent("Email") {
                         TextField("Enter your email", text: $email)
                             .textFieldStyle(.roundedBorder)
@@ -56,14 +56,14 @@ struct ProfileView: View {
                             .autocapitalization(.none)
                             .frame(maxWidth: 200)
                     }
-                    
+
                     LabeledContent("Organization") {
                         TextField("Enter organization", text: $organization)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 200)
                     }
                 }
-                
+
                 // Preferences Section
                 Section("Preferences") {
                     Picker("Default Session Type", selection: $defaultSessionType) {
@@ -72,12 +72,12 @@ struct ProfileView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    
+
                     Toggle("Enable Notifications", isOn: $enableNotifications)
-                    
+
                     Toggle("Auto-archive old notes", isOn: $autoArchiveOldNotes)
                 }
-                
+
                 // Statistics Section
                 Section("Statistics") {
                     StatisticRow(
@@ -86,14 +86,14 @@ struct ProfileView: View {
                         value: "Loading...",
                         color: .teal
                     )
-                    
+
                     StatisticRow(
                         icon: "archivebox",
-                        title: "Archived Notes", 
+                        title: "Archived Notes",
                         value: "Loading...",
                         color: .orange
                     )
-                    
+
                     StatisticRow(
                         icon: "calendar",
                         title: "Days Active",
@@ -101,14 +101,14 @@ struct ProfileView: View {
                         color: .green
                     )
                 }
-                
+
                 // Actions Section
                 Section("Actions") {
                     Button("Export All Notes") {
                         exportAllNotes()
                     }
                     .foregroundColor(.teal)
-                    
+
                     Button("Reset All Settings") {
                         resetSettings()
                     }
@@ -131,15 +131,15 @@ struct ProfileView: View {
             AppLogger.shared.userAction("View Profile")
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func exportAllNotes() {
         // TODO: Implement note export functionality
         AppLogger.shared.userAction("Export All Notes Requested")
         // For now, just log the action
     }
-    
+
     private func resetSettings() {
         displayName = ""
         email = ""
@@ -156,19 +156,19 @@ struct StatisticRow: View {
     let title: String
     let value: String
     let color: Color
-    
+
     var body: some View {
         HStack {
             Image(systemName: icon)
                 .foregroundColor(color)
                 .font(.system(size: 20))
                 .frame(width: 30)
-            
+
             Text(title)
                 .foregroundColor(.white)
-            
+
             Spacer()
-            
+
             Text(value)
                 .foregroundColor(.gray)
                 .font(.system(.body, design: .monospaced))

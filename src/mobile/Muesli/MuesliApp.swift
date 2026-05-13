@@ -15,6 +15,8 @@ struct MuesliApp: App {
             Note.self,
             Photo.self,
             Conference.self,
+            ChatThread.self,
+            ChatMessage.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

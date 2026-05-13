@@ -247,9 +247,46 @@ struct NoteModelTests {
                 content: "Test content",
                 duration: duration
             )
-            
+
             #expect(note.durationString == expected)
         }
+    }
+
+    @Test("Note speaker defaults to nil")
+    func noteSpeakerDefault() async throws {
+        let note = Note(title: "Talk")
+        #expect(note.speaker == nil)
+    }
+
+    @Test("Note speaker can be set")
+    func noteSpeakerSet() async throws {
+        let note = Note(title: "Talk", speaker: "Sarah Chen")
+        #expect(note.speaker == "Sarah Chen")
+    }
+
+    @Test("Note conference relationship is nil by default")
+    func noteConferenceDefault() async throws {
+        let note = Note(title: "Talk")
+        #expect(note.conference == nil)
+    }
+
+    @Test("Note can be attached to Conference")
+    func noteConferenceRelationship() async throws {
+        let schema = Schema([Note.self, Photo.self, Conference.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [config])
+        let context = ModelContext(container)
+
+        let conf = Conference(name: "DataSummit 2026")
+        let note = Note(title: "Talk")
+        note.conference = conf
+        context.insert(conf)
+        context.insert(note)
+        try context.save()
+
+        #expect(note.conference?.name == "DataSummit 2026")
+        #expect(conf.notes.count == 1)
+        #expect(conf.notes.first?.title == "Talk")
     }
 }
 

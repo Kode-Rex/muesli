@@ -27,6 +27,9 @@ final class Note {
     var aiSummary: String? // AI-generated summary of the transcript
     var userNotes: String = "" // User's personal notes added during or after recording
 
+    // Speaker shown in the augmented note view; user-provided or transcriber-derived.
+    var speaker: String?
+
     // Blend pipeline outputs (populated post-stop)
     var transcript: String?
     var transcriptWordsJSON: Data?
@@ -39,6 +42,10 @@ final class Note {
     var blendModelVersion: String?
 
     @Relationship(deleteRule: .cascade, inverse: \Photo.note) var photos: [Photo] = []
+
+    // Conference grouping. Replaces conferenceName at the read site;
+    // conferenceName is retained for one release as a fallback.
+    var conference: Conference?
 
     var blendStatus: BlendStatus {
         get { BlendStatus(rawValue: blendStatusRaw) ?? .idle }
@@ -58,7 +65,9 @@ final class Note {
         duration: TimeInterval? = nil,
         imagePaths: [String] = [],
         aiSummary: String? = nil,
-        userNotes: String = ""
+        userNotes: String = "",
+        speaker: String? = nil,
+        conference: Conference? = nil
     ) {
         self.id = id
         self.title = title
@@ -73,6 +82,8 @@ final class Note {
         self.imagePaths = imagePaths
         self.aiSummary = aiSummary
         self.userNotes = userNotes
+        self.speaker = speaker
+        self.conference = conference
     }
     
     // Computed properties for UI display

@@ -160,6 +160,153 @@ struct BlendRendererTests {
         }
     }
 
+    @Test("Renderer handles overlapping spans (last applied wins)")
+    @MainActor
+    func overlappingSpans() async throws {
+        let container = try makeContainer()
+        let note = Note(title: "x")
+        note.blendedMarkdown = "abcdefghij"
+        // Two userNoteSpans overlap on chars 3..6.
+        let bc = BlendCitations(
+            userNoteSpans: [UserNoteSpan(start: 0, end: 6), UserNoteSpan(start: 3, end: 9)],
+            quoteSpans: [], imagePlacements: [], citations: []
+        )
+        note.blendCitationsJSON = try JSONEncoder().encode(bc)
+        container.mainContext.insert(note)
+
+        let segments = BlendRenderer.render(note: note)
+        guard case .text(let attr) = segments[0] else {
+            Issue.record("expected text")
+            return
+        }
+        // Both ranges set the same attribute value so we can't observe "last wins"
+        // through stronglyEmphasized alone; what matters is no crash and the union
+        // is bolded. Verify chars 0..9 are all stronglyEmphasized.
+        for offset in 0..<9 {
+            let idx = attr.index(attr.startIndex, offsetByCharacters: offset)
+            let intent = attr.runs[idx].inlinePresentationIntent
+            #expect(intent == .stronglyEmphasized, "offset \(offset) should be bolded")
+        }
+    }
+
+    @Test("Renderer handles a photo at offset 0 (no leading text segment)")
+    @MainActor
+    func photoAtStart() async throws {
+        let container = try makeContainer()
+        let note = Note(title: "x")
+        note.blendedMarkdown = "After image."
+        container.mainContext.insert(note)
+        let photo = Photo(localPath: "/tmp/x.jpg", contentHash: "h", capturedAt: Date(), note: note)
+        container.mainContext.insert(photo)
+        note.photos.append(photo)
+        let bc = BlendCitations(
+            userNoteSpans: [], quoteSpans: [],
+            imagePlacements: [ImagePlacement(imageId: photo.id.uuidString, charOffset: 0)],
+            citations: []
+        )
+        note.blendCitationsJSON = try JSONEncoder().encode(bc)
+
+        let segments = BlendRenderer.render(note: note)
+        #expect(segments.count == 2)
+        if case .photo = segments[0] {} else { Issue.record("expected photo at [0]") }
+        if case .text(let a) = segments[1] {
+            #expect(String(a.characters) == "After image.")
+        } else {
+            Issue.record("expected text at [1]")
+        }
+    }
+
+    @Test("Renderer handles a photo at the end of the text (no trailing text segment)")
+    @MainActor
+    func photoAtEnd() async throws {
+        let container = try makeContainer()
+        let note = Note(title: "x")
+        note.blendedMarkdown = "Before image."
+        container.mainContext.insert(note)
+        let photo = Photo(localPath: "/tmp/x.jpg", contentHash: "h", capturedAt: Date(), note: note)
+        container.mainContext.insert(photo)
+        note.photos.append(photo)
+        let utf16Count = note.blendedMarkdown!.utf16.count
+        let bc = BlendCitations(
+            userNoteSpans: [], quoteSpans: [],
+            imagePlacements: [ImagePlacement(imageId: photo.id.uuidString, charOffset: utf16Count)],
+            citations: []
+        )
+        note.blendCitationsJSON = try JSONEncoder().encode(bc)
+
+        let segments = BlendRenderer.render(note: note)
+        #expect(segments.count == 2)
+        if case .text(let a) = segments[0] {
+            #expect(String(a.characters) == "Before image.")
+        } else {
+            Issue.record("expected text at [0]")
+        }
+        if case .photo = segments[1] {} else { Issue.record("expected photo at [1]") }
+    }
+
+    @Test("Renderer handles two photos at the same offset")
+    @MainActor
+    func twoPhotosAtSameOffset() async throws {
+        let container = try makeContainer()
+        let note = Note(title: "x")
+        note.blendedMarkdown = "Before. After."
+        container.mainContext.insert(note)
+        let photoA = Photo(localPath: "/tmp/a.jpg", contentHash: "a", capturedAt: Date(), note: note)
+        let photoB = Photo(localPath: "/tmp/b.jpg", contentHash: "b", capturedAt: Date(), note: note)
+        container.mainContext.insert(photoA)
+        container.mainContext.insert(photoB)
+        note.photos.append(contentsOf: [photoA, photoB])
+        let bc = BlendCitations(
+            userNoteSpans: [], quoteSpans: [],
+            imagePlacements: [
+                ImagePlacement(imageId: photoA.id.uuidString, charOffset: 7),
+                ImagePlacement(imageId: photoB.id.uuidString, charOffset: 7)
+            ],
+            citations: []
+        )
+        note.blendCitationsJSON = try JSONEncoder().encode(bc)
+
+        let segments = BlendRenderer.render(note: note)
+        #expect(segments.count == 4)
+        if case .text(let a) = segments[0] {
+            #expect(String(a.characters) == "Before.")
+        } else { Issue.record("[0] text") }
+        if case .photo(let p, _) = segments[1] { #expect(p.id == photoA.id) } else { Issue.record("[1] photoA") }
+        if case .photo(let p, _) = segments[2] { #expect(p.id == photoB.id) } else { Issue.record("[2] photoB") }
+        if case .text(let a) = segments[3] {
+            #expect(String(a.characters) == " After.")
+        } else { Issue.record("[3] text") }
+    }
+
+    @Test("Renderer maps UTF-16 offsets correctly through multi-unit characters (emoji)")
+    @MainActor
+    func utf16OffsetsThroughEmoji() async throws {
+        let container = try makeContainer()
+        let note = Note(title: "x")
+        // "Hi 👋 there" — the wave emoji is 2 UTF-16 code units (a surrogate pair).
+        // Selecting "there" via UTF-16 offsets: "Hi 👋 " is 6 UTF-16 units → 6..11.
+        let markdown = "Hi 👋 there"
+        note.blendedMarkdown = markdown
+        let bc = BlendCitations(
+            userNoteSpans: [UserNoteSpan(start: 6, end: 11)],
+            quoteSpans: [], imagePlacements: [], citations: []
+        )
+        note.blendCitationsJSON = try JSONEncoder().encode(bc)
+        container.mainContext.insert(note)
+
+        let segments = BlendRenderer.render(note: note)
+        guard case .text(let attr) = segments[0] else {
+            Issue.record("expected text")
+            return
+        }
+        // The bolded substring should be exactly "there".
+        let bolded = attr.runs.first { $0.inlinePresentationIntent == .stronglyEmphasized }
+        #expect(bolded != nil)
+        if let range = bolded?.range {
+            #expect(String(attr[range].characters) == "there")
+        }
+    }
+
     @Test("Renderer clamps out-of-range spans and skips unresolved photos")
     @MainActor
     func defensiveAgainstBadOffsets() async throws {

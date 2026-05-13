@@ -80,8 +80,21 @@ struct AugmentedNoteView: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 24)
         case .complete:
-            Text(note.transcript ?? note.content)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // Inconsistent state: pipeline reported complete but no markdown
+            // landed. Surface as an error rather than silently substituting
+            // raw transcript, which would hide the corruption.
+            VStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.title)
+                    .foregroundColor(.orange)
+                Text("Blend output is missing. Try blending again.")
+                    .font(.footnote)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 24)
+            .onAppear {
+                AppLogger.shared.error("AugmentedNoteView: note \(note.id) has blendStatus .complete but blendedMarkdown is nil")
+            }
         }
     }
 }

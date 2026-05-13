@@ -19,7 +19,7 @@
     "docker:run": "docker run -p 3000:3000 --env-file .env muesli-api"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.95.0",
+    "@anthropic-ai/sdk": "^0.95.1",
     "@deepgram/sdk": "^3.4.0",
     "compression": "^1.7.4",
     "cors": "^2.8.6",

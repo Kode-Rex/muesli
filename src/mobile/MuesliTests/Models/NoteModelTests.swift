@@ -174,7 +174,7 @@ struct NoteModelTests {
         #expect(noteWithoutAudio.hasAudio == false)
         #expect(noteWithoutAudio.audioFilePath == nil)
         #expect(noteWithoutAudio.transcriptionStatus == "none")
-        #expect(noteWithoutAudio.duration == 0)
+        #expect(noteWithoutAudio.duration == nil)
     }
     
     @Test("Note transcription status properties work correctly")

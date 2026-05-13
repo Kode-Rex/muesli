@@ -20,14 +20,17 @@ struct NoteRow: View {
                     Text(conf).font(.caption.weight(.semibold)).foregroundColor(.accentColor)
                     dot
                 }
-                if let speaker = note.speaker {
+                if let speaker = note.speaker, !speaker.isEmpty {
                     Text(speaker).font(.caption).foregroundColor(.secondary)
                     dot
                 }
                 Text(relativeDate(note.timestamp)).font(.caption).foregroundColor(.secondary)
-                if !note.photos.isEmpty {
+                // Use max of the SwiftData photos count and the legacy
+                // imagePaths array — older notes may have only the latter.
+                let slideCount = max(note.photos.count, note.imagePaths.count)
+                if slideCount > 0 {
                     dot
-                    Text("\(note.photos.count) slides").font(.caption).foregroundColor(.secondary)
+                    Text("\(slideCount) slides").font(.caption).foregroundColor(.secondary)
                 }
             }
         }

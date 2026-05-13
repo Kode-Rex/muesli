@@ -12,8 +12,12 @@ import SwiftUI
 struct ConferenceDetailView: View {
     let conference: Conference
 
+    // Mirror MainView's filter: archived talks don't appear on the conference
+    // page either. Archived notes can still be found via the archive screen.
     private var notes: [Note] {
-        conference.notes.sorted { $0.timestamp > $1.timestamp }
+        conference.notes
+            .filter { !$0.isArchived }
+            .sorted { $0.timestamp > $1.timestamp }
     }
 
     var body: some View {
@@ -72,20 +76,28 @@ struct ConferenceDetailView: View {
         }
     }
 
-    /// Builds a "Mar 14 – May 12, 2026" string from explicit conference dates,
-    /// falling back to min/max of attached note timestamps. Returns nil when
-    /// no date information is available.
+    /// Builds a date-range string from explicit conference dates, falling back
+    /// to min/max of attached note timestamps. Same-year ranges drop the start
+    /// year ("Mar 14 – May 12, 2026"); cross-year ranges keep both years
+    /// ("Dec 30, 2025 – Jan 2, 2026"). Returns nil when no date info exists.
     static func dateRangeString(conference: Conference) -> String? {
         let start = conference.startDate ?? conference.notes.map(\.timestamp).min()
         let end = conference.endDate ?? conference.notes.map(\.timestamp).max()
         guard let start, let end else { return nil }
-        if Calendar.current.isDate(start, inSameDayAs: end) {
+        let cal = Calendar.current
+        if cal.isDate(start, inSameDayAs: end) {
             return DateFormatter.localizedString(from: start, dateStyle: .medium, timeStyle: .none)
         }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        let s = formatter.string(from: start)
-        let e = DateFormatter.localizedString(from: end, dateStyle: .medium, timeStyle: .none)
-        return "\(s) – \(e)"
+        let sameYear = cal.component(.year, from: start) == cal.component(.year, from: end)
+        let endString = DateFormatter.localizedString(from: end, dateStyle: .medium, timeStyle: .none)
+        let startString: String
+        if sameYear {
+            let f = DateFormatter()
+            f.dateFormat = "MMM d"
+            startString = f.string(from: start)
+        } else {
+            startString = DateFormatter.localizedString(from: start, dateStyle: .medium, timeStyle: .none)
+        }
+        return "\(startString) – \(endString)"
     }
 }

@@ -65,10 +65,68 @@ struct MainViewTests {
         #expect(groups.first?.conference?.id == newer.id)
     }
 
-    @Test("partition returns an empty array for an empty notes list")
+    @Test("partition returns an empty array for an empty notes list and no conferences")
     @MainActor
     func partitionEmpty() async throws {
         let groups = MainView.partition(notes: [])
         #expect(groups.isEmpty)
+    }
+
+    @Test("partition surfaces conferences with no unarchived notes as empty sections")
+    @MainActor
+    func partitionKeepsEmptyConferenceSections() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let conf = Conference(name: "Past 2024")
+        context.insert(conf)
+        try context.save()
+
+        let groups = MainView.partition(notes: [], allConferences: [conf])
+        #expect(groups.count == 1)
+        #expect(groups.first?.conference?.id == conf.id)
+        #expect(groups.first?.notes.isEmpty == true)
+    }
+
+    @Test("partition uses conference name as a stable tiebreaker when timestamps match")
+    @MainActor
+    func partitionStableTieBreaker() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let shared = Date(timeIntervalSince1970: 1_750_000_000)
+        let beta = Conference(name: "Beta")
+        let alpha = Conference(name: "Alpha")
+        context.insert(beta)
+        context.insert(alpha)
+        let n1 = Note(title: "n1", timestamp: shared, conference: beta)
+        let n2 = Note(title: "n2", timestamp: shared, conference: alpha)
+        context.insert(n1)
+        context.insert(n2)
+        try context.save()
+
+        let groups = MainView.partition(notes: [n1, n2], allConferences: [alpha, beta])
+        #expect(groups.first?.conference?.name == "Alpha")
+        #expect(groups.last?.conference?.name == "Beta")
+    }
+
+    @Test("partition orders conference groups by most-recent note (older second)")
+    @MainActor
+    func conferenceGroupsOrderedByRecencyOlderSecond() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+
+        let older = Conference(name: "Older 2024")
+        let newer = Conference(name: "Newer 2026")
+        let n1 = Note(title: "Old", timestamp: Date(timeIntervalSinceNow: -1_000_000), conference: older)
+        let n2 = Note(title: "Recent", timestamp: Date(timeIntervalSinceNow: -1_000), conference: newer)
+        context.insert(older)
+        context.insert(newer)
+        context.insert(n1)
+        context.insert(n2)
+        try context.save()
+
+        let groups = MainView.partition(notes: [n1, n2], allConferences: [older, newer])
+        #expect(groups.count == 2)
+        #expect(groups[0].conference?.id == newer.id)
+        #expect(groups[1].conference?.id == older.id)
     }
 }

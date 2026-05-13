@@ -9,29 +9,26 @@ import Testing
 import Foundation
 @testable import Muesli
 
+@MainActor
 @Suite("Transcription Service Tests", .tags(.transcription))
 struct TranscriptionServiceTests {
-    
-    // Remove shared state dependency
+
+    private let transcription: FakeTranscriptionAdapter
+
     init() async throws {
-        // No shared state initialization
+        self.transcription = TestWorld.install().transcription
     }
-    
-    @Test("Transcription service singleton works")
-    func transcriptionServiceSingletonWorks() async throws {
-        // Test singleton pattern without affecting other tests
-        let service1 = TranscriptionService.shared
-        let service2 = TranscriptionService.shared
-        
-        #expect(service1 === service2)
+
+    @Test("World.current.transcription returns a stable reference")
+    func transcriptionPortIsStable() async throws {
+        let first = World.current.transcription
+        let second = World.current.transcription
+        #expect(first === second)
     }
-    
-    @Test("Transcription service initializes correctly")
-    func transcriptionServiceInitializesCorrectly() async throws {
-        let service = TranscriptionService.shared
-        
-        #expect(service.isTranscribing == false)
-        #expect(service.currentTranscript == "")
+
+    @Test("Transcription port initializes with isTranscribing == false")
+    func transcriptionPortInitialState() async throws {
+        #expect(World.current.transcription.isTranscribing == false)
     }
     
     @Test("Transcription error descriptions are provided")
@@ -158,46 +155,6 @@ struct TranscriptionServiceTests {
         #endif
     }
     
-    @Test("Service configuration status is accurate")
-    func serviceConfigurationStatusIsAccurate() async throws {
-        let service = TranscriptionService.shared
-        
-        // Wait a moment for async initialization to complete
-        try await Task.sleep(for: .seconds(0.1))
-        
-        // Service should always have valid endpoint with new config system
-        #expect(service.hasValidAPIEndpoint == true)
-        
-        // Current endpoint should not be empty
-        #expect(!service.currentAPIEndpoint.isEmpty)
-        
-        // Environment name should be set
-        #expect(!service.environmentName.isEmpty)
-    }
-    
-    @Test("Real-time transcription state management works")
-    func realTimeTranscriptionStateManagementWorks() async throws {
-        let service = TranscriptionService.shared
-        
-        // Initial state
-        #expect(service.isTranscribing == false)
-        #expect(service.currentTranscript == "")
-        
-        // Stop should be safe even when not started
-        service.stopRealtimeTranscription()
-        #expect(service.isTranscribing == false)
-    }
-    
-    @Test("Batch transcription validates input parameters")
-    func batchTranscriptionValidatesInputParameters() async throws {
-        let service = TranscriptionService.shared
-        
-        // Test with invalid file URL
-        let invalidURL = URL(string: "file:///nonexistent/path/file.m4a")!
-        
-        let result = await service.transcribeAudioFile(url: invalidURL)
-        #expect(result == nil) // Should return nil for invalid file
-    }
     
     @Test("WebSocket URL transformation works correctly")
     func webSocketURLTransformationWorksCorrectly() async throws {

@@ -50,6 +50,11 @@ struct MuesliApp: App {
                 return try? Data(contentsOf: url)
             })
         }
+
+        if !ConferenceMigration.hasRun {
+            let context = ModelContext(sharedModelContainer)
+            ConferenceMigration.run(in: context)
+        }
     }
 
     var body: some Scene {

@@ -34,7 +34,7 @@ struct EnhancedNoteEditorViewTests {
             ("", 0),
             ("single", 1),
             ("two words", 2),
-            ("multiple words in a sentence", 6),
+            ("multiple words in a sentence", 5),
             ("  extra   spaces  between   words  ", 4),
             ("line\nbreaks\ncount\nwords", 4),
             ("mixed\twhitespace\n\tcharacters", 3)

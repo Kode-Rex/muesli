@@ -58,10 +58,9 @@ struct SimpleSummaryGenerator {
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty && $0.count > 10 }
 
-            if !sentences.isEmpty {
-                // Take key sentences (first, middle, last few)
-                summary += "# Summary\n\n"
+            summary += "# Summary\n\n"
 
+            if !sentences.isEmpty {
                 // Add first sentence (usually the topic)
                 if let first = sentences.first {
                     summary += "• \(first)\n"
@@ -80,14 +79,17 @@ struct SimpleSummaryGenerator {
                 if sentences.count > 1, let last = sentences.last, last != sentences.first {
                     summary += "• \(last)\n"
                 }
+            } else {
+                // Short transcript fallback: include the whole transcript as one bullet.
+                let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+                summary += "• \(trimmed)\n"
+            }
 
-                // Add word count for transcript
-                let wordCount = transcript.split(separator: " ").count
-                summary += "\n○ \(wordCount) words transcribed"
-
-                if let duration = estimateDuration(wordCount: wordCount) {
-                    summary += "\n○ ~\(duration) speaking time"
-                }
+            // Always emit word count + duration for any non-empty transcript.
+            let wordCount = transcript.split(separator: " ").count
+            summary += "\n○ \(wordCount) words transcribed"
+            if let duration = estimateDuration(wordCount: wordCount) {
+                summary += "\n○ ~\(duration) speaking time"
             }
         }
 

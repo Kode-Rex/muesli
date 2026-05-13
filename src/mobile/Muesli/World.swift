@@ -18,9 +18,13 @@ struct World {
 }
 
 extension World {
-    /// Mutable accessor. Production is initialized to `.live` at launch.
-    /// Tests overwrite this in setUp and restore the prior value in tearDown.
-    static var current: World = .live
+    /// Mutable accessor. Production is initialized to `.live` at launch and
+    /// never mutated thereafter. Tests overwrite this in setUp and restore
+    /// the prior value in tearDown. The `nonisolated(unsafe)` annotation
+    /// reflects this contract: writes are confined to test setUp on the main
+    /// actor; reads happen from any context (including detached Tasks in
+    /// orchestrators). Production code must NOT mutate `World.current`.
+    nonisolated(unsafe) static var current: World = .live
 
     /// Real adapters wired against production services.
     static var live: World {

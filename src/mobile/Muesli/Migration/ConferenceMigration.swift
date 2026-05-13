@@ -61,8 +61,12 @@ enum ConferenceMigration {
             conf.endDate = timestamps.max() ?? conf.endDate
         }
 
-        try? context.save()
-        UserDefaults.standard.set(true, forKey: runFlagKey)
+        do {
+            try context.save()
+            UserDefaults.standard.set(true, forKey: runFlagKey)
+        } catch {
+            AppLogger.shared.error("ConferenceMigration save failed; will retry on next launch", error: error)
+        }
     }
 
     static var hasRun: Bool {

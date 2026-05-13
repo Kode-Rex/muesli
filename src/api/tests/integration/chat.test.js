@@ -151,4 +151,33 @@ describe('POST /v1/chat (multi-session scope)', () => {
       .send({ sessionIds: [sess1, '00000000-0000-0000-0000-000000000000'], messages: [{ role: 'user', content: 'q' }] });
     expect(res.status).toBe(404);
   });
+
+  it('400s when sessionIds exceeds the cap', async () => {
+    const many = Array.from({ length: 51 }, () => sess1);
+    const res = await request(app)
+      .post('/v1/chat')
+      .send({ sessionIds: many, messages: [{ role: 'user', content: 'q' }] });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('too_many_sessions');
+  });
+
+  it('403s when a session belongs to another user', async () => {
+    const otherSession = await sessionsRepo.createSession({ userId: 'someone-else' });
+    await sessionsRepo.saveTranscript(otherSession, { text: 't', words: [] });
+    const res = await request(app)
+      .post('/v1/chat')
+      .send({ sessionIds: [sess1, otherSession], messages: [{ role: 'user', content: 'q' }] });
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('Ownership on POST /v1/sessions/:id/chat', () => {
+  it('403s when the session belongs to another user', async () => {
+    const otherSession = await sessionsRepo.createSession({ userId: 'someone-else' });
+    await sessionsRepo.saveTranscript(otherSession, { text: 't', words: [] });
+    const res = await request(app)
+      .post(`/v1/sessions/${otherSession}/chat`)
+      .send({ messages: [{ role: 'user', content: 'q' }] });
+    expect(res.status).toBe(403);
+  });
 });

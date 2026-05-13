@@ -26,6 +26,10 @@ Rules:
 const REQUIRED_FIELDS = ['answer', 'references'];
 const FULL_BLEND_RECENT_N = 3;
 
+// Approximate token budget for the input message. ~4 chars/token is the
+// industry rule of thumb; we cap input at ~150k tokens ≈ 600k chars.
+const INPUT_CHAR_BUDGET = 600_000;
+
 function compactSession(s) {
   return `## Session ${s.id} — ${s.title ?? '(untitled)'}
 Speaker: ${s.speaker ?? '(unknown)'}
@@ -51,16 +55,30 @@ function buildContext(scope, sessions) {
   if (scope.kind === 'talk') {
     return sessions.map(fullSession).join('\n\n');
   }
-  // Conference scope: full blends only for the N most recent sessions.
-  const sorted = [...sessions].sort((a, b) =>
+  // Conference scope: full blends for the N most recent sessions, demoting
+  // from oldest-of-the-full set if total context exceeds the budget.
+  const sortedDesc = [...sessions].sort((a, b) =>
     new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
   );
-  const recent = new Set(sorted.slice(0, FULL_BLEND_RECENT_N).map(s => s.id));
-  return sessions.map(s => (recent.has(s.id) ? fullSession(s) : compactSession(s))).join('\n\n');
+  let fullIds = new Set(sortedDesc.slice(0, FULL_BLEND_RECENT_N).map(s => s.id));
+  const render = () =>
+    sessions.map(s => (fullIds.has(s.id) ? fullSession(s) : compactSession(s))).join('\n\n');
+
+  let rendered = render();
+  // Demote the oldest full session until we fit. Stop if no full sessions remain.
+  const fullByOldestFirst = [...sortedDesc].reverse().filter(s => fullIds.has(s.id));
+  while (rendered.length > INPUT_CHAR_BUDGET && fullByOldestFirst.length > 0) {
+    const next = fullByOldestFirst.shift();
+    fullIds.delete(next.id);
+    rendered = render();
+  }
+  return rendered;
 }
 
 function stripCitationTokens(answer) {
-  return answer.replace(/\s*\[\[c:\d+\]\]\s*/g, ' ').replace(/\s+/g, ' ').trim();
+  // Only collapse whitespace adjacent to the stripped token; leave paragraph
+  // breaks and other whitespace alone so the answer stays readable.
+  return answer.replace(/[ \t]*\[\[c:\d+\]\][ \t]*/g, ' ').trim();
 }
 
 function resolveCitations(references, sessions) {

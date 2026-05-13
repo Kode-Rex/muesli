@@ -127,6 +127,13 @@ final class Note {
     var imageCount: Int {
         return imagePaths.count
     }
+
+    /// Conference name preferring the `Conference` relationship over the
+    /// legacy `conferenceName` string. New UI should always read this.
+    /// `conferenceName` is retained for one release as a migration fallback.
+    var resolvedConferenceName: String? {
+        conference?.name ?? conferenceName
+    }
 }
 
 // MARK: - Note Model Extensions and Utilities

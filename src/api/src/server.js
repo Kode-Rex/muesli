@@ -13,6 +13,7 @@ import {
   corsMiddleware,
   helmetMiddleware,
   generalRateLimit,
+  transcriptionRateLimit,
   slowDownMiddleware,
   requestIdMiddleware,
   requestLogger,
@@ -100,7 +101,8 @@ app.use('/v1/auth', authRouter);
 
 // Sessions pipeline + account (requireAuth no-ops when AUTH_ENABLED=false)
 app.use('/v1/sessions', requireAuth, sessionsRouter);
-app.use('/v1/chat', requireAuth, chatRouter);
+// Chat shares the stricter transcription-tier rate limit (per spec).
+app.use('/v1/chat', requireAuth, transcriptionRateLimit, chatRouter);
 app.use('/v1/account', requireAuth, accountRouter);
 
 // Root endpoint

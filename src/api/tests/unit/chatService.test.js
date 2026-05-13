@@ -96,17 +96,17 @@ describe('chat (talk scope)', () => {
 });
 
 describe('chat (conference scope)', () => {
-  it('keeps full blends only for the N most recent sessions; older ones get summaries', async () => {
+  it('keeps full blends only for the 3 most recent sessions; older ones get compact summaries', async () => {
     const fakeAnthropic = { messages: { create: jest.fn().mockResolvedValue({
       content: [{ type: 'text', text: JSON.stringify({ answer: 'ok', references: [] }) }],
       usage: { input_tokens: 1, output_tokens: 1 }
     }) } };
-    const longBlend = 'X'.repeat(50_000);
+    const distinctiveBlend = 'BLENDED_BODY_MARKER';
     const sessions = Array.from({ length: 6 }, (_, i) => ({
       id: `sess-${i}`,
       title: `Talk ${i}`,
-      transcript: 't',
-      blendedMarkdown: longBlend,
+      transcript: `TRANSCRIPT_OF_${i}`,
+      blendedMarkdown: `${distinctiveBlend}_${i}`,
       aiSummary: `summary ${i}`,
       createdAt: new Date(2026, 0, i + 1).toISOString(),
       photos: []
@@ -116,15 +116,72 @@ describe('chat (conference scope)', () => {
       messages: [{ role: 'user', content: 'across talks' }],
       sessions
     }, { anthropic: fakeAnthropic });
-    const call = fakeAnthropic.messages.create.mock.calls[0][0];
-    const userContent = call.messages[0].content;
-    // 3 most recent (talks 3, 4, 5 by createdAt) keep their headers.
+    const userContent = fakeAnthropic.messages.create.mock.calls[0][0].messages[0].content;
+
+    // The 3 most recent (Talk 3, 4, 5) should include full blend body + transcript.
+    for (const i of [3, 4, 5]) {
+      expect(userContent).toContain(`${distinctiveBlend}_${i}`);
+      expect(userContent).toContain(`TRANSCRIPT_OF_${i}`);
+    }
+    // The 3 oldest (Talk 0, 1, 2) should appear only in compact form — no
+    // Transcript / Blended notes body for them.
+    for (const i of [0, 1, 2]) {
+      expect(userContent).not.toContain(`${distinctiveBlend}_${i}`);
+      expect(userContent).not.toContain(`TRANSCRIPT_OF_${i}`);
+      // Compact section header still appears for them.
+      expect(userContent).toContain(`Talk ${i}`);
+      expect(userContent).toContain(`summary ${i}`);
+    }
+  });
+
+  it('demotes additional sessions when the 3-recent full blends exceed the budget', async () => {
+    const fakeAnthropic = { messages: { create: jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: JSON.stringify({ answer: 'ok', references: [] }) }],
+      usage: { input_tokens: 1, output_tokens: 1 }
+    }) } };
+    // Three big blends — each well past 200k chars. Default rule would render
+    // all three; budget rule should demote until under 600k input chars.
+    const bigBlend = 'X'.repeat(250_000);
+    const sessions = [3, 4, 5].map(i => ({
+      id: `sess-${i}`,
+      title: `Talk ${i}`,
+      transcript: `T_${i}`,
+      blendedMarkdown: bigBlend,
+      aiSummary: `summary ${i}`,
+      createdAt: new Date(2026, 0, i + 1).toISOString(),
+      photos: []
+    }));
+    await chat({
+      scope: { kind: 'conference', sessionIds: sessions.map(s => s.id) },
+      messages: [{ role: 'user', content: 'q' }],
+      sessions
+    }, { anthropic: fakeAnthropic });
+    const userContent = fakeAnthropic.messages.create.mock.calls[0][0].messages[0].content;
+    // Total context length must fit under 600k chars.
+    expect(userContent.length).toBeLessThan(600_000);
+    // The most recent talk (Talk 5) must still have its full blend.
     expect(userContent).toContain('Talk 5');
-    expect(userContent).toContain('Talk 4');
-    expect(userContent).toContain('Talk 3');
-    // Older talks appear as summaries.
-    expect(userContent).toContain('summary 0');
-    // Three full blends + three summaries should fit well under 200k chars.
-    expect(userContent.length).toBeLessThan(200_000);
+    expect(userContent).toContain('Transcript:');
+  });
+});
+
+describe('citation post-processing preserves paragraphs', () => {
+  it('does not collapse newlines or paragraph breaks in the answer', async () => {
+    const multiline = {
+      content: [{ type: 'text', text: JSON.stringify({
+        answer: 'First paragraph [[c:0]].\n\nSecond paragraph with a bullet:\n- item one\n- item two',
+        references: [{ kind: 'note', sessionId: 'sess-1' }]
+      }) }],
+      usage: { input_tokens: 1, output_tokens: 1 }
+    };
+    const fakeAnthropic = { messages: { create: jest.fn().mockResolvedValue(multiline) } };
+    const r = await chat({
+      scope: { kind: 'talk', sessionId: 'sess-1' },
+      messages: [{ role: 'user', content: 'q' }],
+      sessions: [{ id: 'sess-1', title: 'T', transcript: 't', photos: [] }]
+    }, { anthropic: fakeAnthropic });
+    expect(r.message.content).toContain('\n\n');
+    expect(r.message.content).toContain('- item one');
+    expect(r.message.content).not.toMatch(/\[\[c:/);
   });
 });

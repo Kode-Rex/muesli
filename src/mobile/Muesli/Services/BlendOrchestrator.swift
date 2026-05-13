@@ -68,9 +68,14 @@ final class BlendOrchestrator {
                 try? context.save()
             }
 
-            // 2. Create backend session
+            // 2. Create backend session and persist it on the Note so the
+            // chat routes can address this talk's stored transcript.
             let sessionId = try await svc.createSession()
             AppLogger.shared.info("BlendOrchestrator: session created \(sessionId)")
+            await MainActor.run {
+                note.backendSessionId = sessionId
+                try? context.save()
+            }
 
             // 3. Upload audio
             guard let audioURL = AudioRecordingManager.shared.getRecordingURL(fileName: audioPath) else {

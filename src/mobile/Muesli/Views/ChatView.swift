@@ -19,6 +19,16 @@ struct ChatView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ChatViewModel?
     @State private var draft: String = ""
+    @State private var playbackTarget: PlaybackTarget?
+    @State private var noteTarget: Note?
+
+    /// Identifiable wrapper so `.sheet(item:)` can present the chaptered
+    /// playback view at a specific timestamp.
+    struct PlaybackTarget: Identifiable {
+        let id = UUID()
+        let note: Note
+        let startSec: Double
+    }
 
     var body: some View {
         NavigationStack {
@@ -65,6 +75,29 @@ struct ChatView: View {
                 viewModel = ChatViewModel(thread: thread, chat: World.current.chat, context: modelContext)
             }
         }
+        .sheet(item: $playbackTarget) { target in
+            ChapteredPlaybackView(note: target.note, startAt: target.startSec)
+        }
+        .sheet(item: $noteTarget) { note in
+            NavigationStack { AugmentedNoteView(note: note) }
+        }
+    }
+
+    private func openCitation(_ citation: ChatCitation) {
+        switch citation.kind {
+        case .transcript:
+            guard let talkId = citation.talkId else { return }
+            let predicate = #Predicate<Note> { $0.id == talkId || $0.backendSessionId == talkId }
+            if let note = try? modelContext.fetch(FetchDescriptor<Note>(predicate: predicate)).first {
+                playbackTarget = PlaybackTarget(note: note, startSec: citation.startSec ?? 0)
+            }
+        case .note:
+            guard let noteId = citation.noteId else { return }
+            let predicate = #Predicate<Note> { $0.id == noteId || $0.backendSessionId == noteId }
+            if let note = try? modelContext.fetch(FetchDescriptor<Note>(predicate: predicate)).first {
+                noteTarget = note
+            }
+        }
     }
 
     private var scopeChip: some View {
@@ -99,7 +132,7 @@ struct ChatView: View {
                 if !citations.isEmpty {
                     HStack(spacing: 6) {
                         ForEach(Array(citations.enumerated()), id: \.offset) { _, c in
-                            CitationChip(citation: c)
+                            CitationChip(citation: c) { openCitation(c) }
                         }
                     }
                 }

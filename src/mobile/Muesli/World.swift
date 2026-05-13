@@ -30,14 +30,20 @@ extension World {
     /// uses a default-empty sessionIdsResolver; ChatViewModel pre-resolves
     /// the conference's member sessions from SwiftData and passes them via
     /// LiveChatAdapter's explicit-resolver send variant.
+    ///
+    /// Auth is NOT added to chat requests; SessionsService matches this and
+    /// the backend's requireAuth middleware no-ops when AUTH_ENABLED=false.
+    /// Wiring access tokens here is a follow-on across all live adapters.
     static var live: World {
-        let chatBase = URL(string: APIConfiguration.transcriptionAPIBaseURL) ?? URL(string: "https://api.muesli-app.com/api/v1")!
+        // APIConfiguration.baseURL is the bare host (no /api/v1) — the live
+        // chat routes are mounted at /v1/sessions/:id/chat and /v1/chat so
+        // the adapter appends them itself.
         return World(
             transcription: TranscriptionService.shared,
             hybridTranscription: HybridTranscriptionService.shared,
             network: NetworkMonitor.shared,
             blend: SessionsService.shared,
-            chat: LiveChatAdapter(baseURL: chatBase)
+            chat: LiveChatAdapter(baseURL: APIConfiguration.baseURL)
         )
     }
 }

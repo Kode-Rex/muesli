@@ -40,6 +40,12 @@ final class Note {
     var blendError: String?
     var blendCostMicros: Int?
     var blendModelVersion: String?
+    /// The UUID the backend assigned for this note's session (from
+    /// `sessionsRepo.createSession`). Set by `BlendOrchestrator` once the
+    /// upload + blend cycle starts; used by chat routes to address the
+    /// backend's stored transcript / blended content. Nil for notes that
+    /// haven't been through the blend pipeline yet.
+    var backendSessionId: UUID?
 
     @Relationship(deleteRule: .cascade, inverse: \Photo.note) var photos: [Photo] = []
 

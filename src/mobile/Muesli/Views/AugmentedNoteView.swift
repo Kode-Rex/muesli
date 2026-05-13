@@ -71,8 +71,9 @@ struct AugmentedNoteView: View {
 
     private func openChat() {
         let noteId = note.id
+        let talkRaw = ChatScopeKind.talk.rawValue
         let predicate = #Predicate<ChatThread> {
-            $0.scopeKindRaw == "talk" && $0.scopeId == noteId
+            $0.scopeKindRaw == talkRaw && $0.scopeId == noteId
         }
         if let existing = try? modelContext.fetch(FetchDescriptor<ChatThread>(predicate: predicate)).first {
             chatThread = existing

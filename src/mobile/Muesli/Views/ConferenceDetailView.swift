@@ -87,8 +87,9 @@ struct ConferenceDetailView: View {
 
     private func openChat() {
         let confId = conference.id
+        let conferenceRaw = ChatScopeKind.conference.rawValue
         let predicate = #Predicate<ChatThread> {
-            $0.scopeKindRaw == "conference" && $0.scopeId == confId
+            $0.scopeKindRaw == conferenceRaw && $0.scopeId == confId
         }
         if let existing = try? modelContext.fetch(FetchDescriptor<ChatThread>(predicate: predicate)).first {
             chatThread = existing

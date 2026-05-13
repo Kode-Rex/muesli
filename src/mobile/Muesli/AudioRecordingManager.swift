@@ -148,11 +148,22 @@ class AudioRecordingManager: NSObject {
                     self.currentRecordingPath = audioFilename
                     self.recordingDuration = 0
                 }
-                
+
                 // Verify recording actually started
                 try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
                 if audioRecorder?.isRecording == true {
                     startDurationTimer()
+                    // Kick off the Live Activity (Dynamic Island banner).
+                    // No-op when the widget extension target isn't installed
+                    // or Live Activities are user-disabled.
+                    if #available(iOS 16.2, *) {
+                        await MainActor.run {
+                            LiveActivityController.shared.start(
+                                title: "Recording",
+                                sessionId: UUID()
+                            )
+                        }
+                    }
                     AppLogger.shared.info("Started recording: \(audioFilename) - Verified recording is active")
                     return audioFilename
                 } else {
@@ -199,25 +210,32 @@ class AudioRecordingManager: NSObject {
     }
     
     func stopRecording() {
-        guard state == .recording || state == .paused else { 
+        guard state == .recording || state == .paused else {
             AppLogger.shared.warning("stopRecording called but state is: \(state)")
-            return 
+            return
         }
-        
+
         AppLogger.shared.info("stopRecording called - current duration: \(recordingDuration)s, state: \(state)")
-        
+
         audioRecorder?.stop()
         DispatchQueue.main.async {
             self.state = .finished
         }
         stopDurationTimer()
-        
+
         do {
             try audioSession.setActive(false)
         } catch {
             AppLogger.shared.warning("Failed to deactivate audio session: \(error)")
         }
-        
+
+        // Tear down the Live Activity banner.
+        if #available(iOS 16.2, *) {
+            Task { @MainActor in
+                await LiveActivityController.shared.end()
+            }
+        }
+
         AppLogger.shared.info("Stopped recording. Duration: \(recordingDuration)s")
     }
     

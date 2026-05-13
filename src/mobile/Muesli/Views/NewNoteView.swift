@@ -291,17 +291,17 @@ struct NewNoteView: View {
                     }
             }
             
-            // End Button
+            // Stop Button — square stop icon matching the mockup.
             Button(action: {
                 endRecording()
             }) {
-                Text("End")
-                    .font(.system(size: 16, weight: .semibold))
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 16)
-                    .background(Color.teal)
-                    .cornerRadius(25)
+                    .frame(width: 56, height: 56)
+                    .background(Color.red)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .accessibilityLabel("Stop recording")
             }
             .disabled(recordingManager.state == .idle)
         }

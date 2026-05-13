@@ -36,7 +36,7 @@ actor FakeBlendAdapter: BlendPort {
         uploadAudioCount += 1
     }
 
-    func uploadPhoto(sessionId: UUID, photo: Photo, jpegData: Data) async throws -> PhotoResponse {
+    func uploadPhoto(sessionId: UUID, upload: PhotoUpload) async throws -> PhotoResponse {
         uploadPhotoCount += 1
         return stubPhotoResponse
     }

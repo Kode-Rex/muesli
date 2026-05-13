@@ -102,15 +102,26 @@ final class BlendOrchestrator {
                 try? context.save()
             }
 
-            // 5. Upload each photo
-            let photos = await MainActor.run { note.photos }
-            for photo in photos {
-                guard let jpeg = try? Data(contentsOf: URL(fileURLWithPath: photo.localPath)) else {
-                    AppLogger.shared.warning("BlendOrchestrator: skipping photo with missing file \(photo.localPath)")
-                    continue
+            // 5. Upload each photo. Build a Sendable DTO on the main actor
+            // (the Photo @Model isn't safe to cross actor boundaries) and
+            // then await the actor-isolated upload with the value type.
+            let uploads: [PhotoUpload] = await MainActor.run {
+                note.photos.compactMap { p -> PhotoUpload? in
+                    guard let jpeg = try? Data(contentsOf: URL(fileURLWithPath: p.localPath)) else {
+                        AppLogger.shared.warning("BlendOrchestrator: skipping photo with missing file \(p.localPath)")
+                        return nil
+                    }
+                    return PhotoUpload(
+                        photoId: p.id,
+                        contentHash: p.contentHash,
+                        capturedAt: p.capturedAt,
+                        jpegData: jpeg
+                    )
                 }
+            }
+            for upload in uploads {
                 do {
-                    let resp = try await svc.uploadPhoto(sessionId: sessionId, photo: photo, jpegData: jpeg)
+                    let resp = try await svc.uploadPhoto(sessionId: sessionId, upload: upload)
                     AppLogger.shared.info("BlendOrchestrator: photo uploaded \(resp.photoId)")
                 } catch {
                     AppLogger.shared.warning("BlendOrchestrator: photo upload failed, continuing — \(error.localizedDescription)")

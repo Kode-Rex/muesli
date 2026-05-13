@@ -55,9 +55,18 @@ actor SessionsService: BlendPort {
 
     private var baseURL: URL { APIConfig.baseURL }
 
+    /// Apply `Authorization: Bearer …` if TokenStore has a token. Used by
+    /// every outbound request so backends with AUTH_ENABLED=true accept them.
+    private func authorize(_ req: inout URLRequest) async {
+        if let token = await TokenStore.shared.accessToken, !token.isEmpty {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+    }
+
     func createSession() async throws -> UUID {
         var req = URLRequest(url: baseURL.appendingPathComponent("/v1/sessions"))
         req.httpMethod = "POST"
+        await authorize(&req)
         let (data, _) = try await session.data(for: req)
         return try decoder.decode(CreateSessionResponse.self, from: data).sessionId
     }
@@ -68,15 +77,15 @@ actor SessionsService: BlendPort {
         try await uploadMultipart(url: url, fields: ["durationSeconds": String(durationSeconds)], file: (name: "audio", filename: name, mime: mime, data: data))
     }
 
-    func uploadPhoto(sessionId: UUID, photo: Photo, jpegData: Data) async throws -> PhotoResponse {
+    func uploadPhoto(sessionId: UUID, upload: PhotoUpload) async throws -> PhotoResponse {
         let url = baseURL.appendingPathComponent("/v1/sessions/\(sessionId)/photos")
         let body = try await uploadMultipart(
             url: url,
             fields: [
-                "photoId": photo.id.uuidString,
-                "capturedAt": String(Int(photo.capturedAt.timeIntervalSince1970 * 1_000))
+                "photoId": upload.photoId.uuidString,
+                "capturedAt": String(Int(upload.capturedAt.timeIntervalSince1970 * 1_000))
             ],
-            file: (name: "photo", filename: "\(photo.contentHash).jpg", mime: "image/jpeg", data: jpegData)
+            file: (name: "photo", filename: "\(upload.contentHash).jpg", mime: "image/jpeg", data: upload.jpegData)
         )
         return try decoder.decode(PhotoResponse.self, from: body)
     }
@@ -86,6 +95,7 @@ actor SessionsService: BlendPort {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try encoder.encode(BlendRequest(userNotes: userNotes))
+        await authorize(&req)
         let (data, _) = try await session.data(for: req)
         return try decoder.decode(BlendResponse.self, from: data)
     }
@@ -96,6 +106,7 @@ actor SessionsService: BlendPort {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        await authorize(&req)
 
         var body = Data()
         for (k, v) in fields {

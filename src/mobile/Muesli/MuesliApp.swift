@@ -59,7 +59,7 @@ struct MuesliApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SimpleMainView()
+            MainView()
         }
         .modelContainer(sharedModelContainer)
     }

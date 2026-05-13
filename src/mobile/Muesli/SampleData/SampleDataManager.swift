@@ -10,33 +10,129 @@ import SwiftData
 
 #if DEBUG
 struct SampleDataManager {
-    
+
     // MARK: - Sample Data Generation
-    
+
     static func seedDatabase(context: ModelContext) {
-        let sampleNotes = generateSampleNotes()
-        
+        let conferences = generateSampleConferences()
+        conferences.forEach(context.insert)
+
+        let dataSummit = conferences[0]
+        let devWorld = conferences[1]
+        let sampleNotes = generateSampleNotes(dataSummit: dataSummit, devWorld: devWorld)
+
         for note in sampleNotes {
             context.insert(note)
         }
-        
+
         do {
             try context.save()
-            AppLogger.shared.dataSuccess("Sample Data", details: "Seeded \(sampleNotes.count) sample notes")
+            AppLogger.shared.dataSuccess(
+                "Sample Data",
+                details: "Seeded \(conferences.count) conferences and \(sampleNotes.count) notes"
+            )
         } catch {
             AppLogger.shared.dataError("Sample Data", error: error)
         }
     }
-    
-    static func generateSampleNotes() -> [Note] {
+
+    static func generateSampleConferences() -> [Conference] {
+        let cal = Calendar.current
+        let dataSummit = Conference(
+            name: "DataSummit 2026",
+            location: "San Francisco, CA",
+            startDate: cal.date(from: DateComponents(year: 2026, month: 5, day: 10)),
+            endDate: cal.date(from: DateComponents(year: 2026, month: 5, day: 12)),
+            conferenceDescription: "Annual data and ML conference"
+        )
+        let devWorld = Conference(
+            name: "DevWorld 2026",
+            location: "Austin, TX",
+            startDate: cal.date(from: DateComponents(year: 2026, month: 3, day: 14)),
+            endDate: cal.date(from: DateComponents(year: 2026, month: 3, day: 16)),
+            conferenceDescription: "Developer conference covering web, mobile, and platforms"
+        )
+        return [dataSummit, devWorld]
+    }
+
+    static func generateSampleNotes(dataSummit: Conference, devWorld: Conference) -> [Note] {
         let baseTime = Date()
-        
+
         return [
-            // Basic notes
+            // DataSummit 2026 talks (3)
+            Note(
+                title: "The three pillars of data infra",
+                content: "Storage, compute, and discoverability. Sarah walked through how DataSummit's flagship team rebuilt their lake-house on these primitives.",
+                timestamp: baseTime.addingTimeInterval(-3600),
+                conferenceName: "DataSummit 2026",
+                sessionType: "session",
+                isArchived: false,
+                audioFilePath: "sample_three_pillars.m4a",
+                transcriptionStatus: "completed",
+                duration: 2400,
+                speaker: "Sarah Chen",
+                conference: dataSummit
+            ),
+            Note(
+                title: "Streaming at planet scale",
+                content: "Devon's deep dive on multi-region streaming, exactly-once semantics, and the operational realities they hit at year three.",
+                timestamp: baseTime.addingTimeInterval(-7200),
+                conferenceName: "DataSummit 2026",
+                sessionType: "session",
+                isArchived: false,
+                audioFilePath: "sample_streaming.m4a",
+                transcriptionStatus: "completed",
+                duration: 2700,
+                speaker: "Devon Park",
+                conference: dataSummit
+            ),
+            Note(
+                title: "Embeddings for everything",
+                content: "Hina's plenary on using embeddings as the universal interface across retrieval, ranking, and dedup.",
+                timestamp: baseTime.addingTimeInterval(-90000),
+                conferenceName: "DataSummit 2026",
+                sessionType: "session",
+                isArchived: false,
+                audioFilePath: "sample_embeddings.m4a",
+                transcriptionStatus: "completed",
+                duration: 3000,
+                speaker: "Hina Yoshida",
+                conference: dataSummit
+            ),
+
+            // DevWorld 2026 talks (2)
+            Note(
+                title: "SwiftUI performance audit",
+                content: "A pragmatic tour of Instruments for SwiftUI, view identity, and the diff cost of large lists.",
+                timestamp: baseTime.addingTimeInterval(-5_184_000),
+                conferenceName: "DevWorld 2026",
+                sessionType: "session",
+                isArchived: false,
+                audioFilePath: "sample_swiftui_perf.m4a",
+                transcriptionStatus: "completed",
+                duration: 1800,
+                speaker: "Aiden Reyes",
+                conference: devWorld
+            ),
+            Note(
+                title: "Edge runtimes in practice",
+                content: "What works, what doesn't, and the boring middle of running production services at the edge.",
+                timestamp: baseTime.addingTimeInterval(-5_270_400),
+                conferenceName: "DevWorld 2026",
+                sessionType: "session",
+                isArchived: false,
+                audioFilePath: nil,
+                transcriptionStatus: "none",
+                duration: 0,
+                speaker: "Priya Iyer",
+                conference: devWorld
+            ),
+
+            // Ungrouped notes (preserved for non-conference flows)
             Note(
                 title: "Team Standup",
-                content: "Discussed current sprint progress. John is working on the API integration, Sarah is finishing the UI components. Need to review the deployment pipeline by Friday.",
-                timestamp: baseTime.addingTimeInterval(-3600), // 1 hour ago
+                content: "Discussed current sprint progress. John is working on the API integration, Sarah is finishing the UI components.",
+                timestamp: baseTime.addingTimeInterval(-1800),
                 conferenceName: nil,
                 sessionType: "meeting",
                 isArchived: false,
@@ -44,84 +140,35 @@ struct SampleDataManager {
                 transcriptionStatus: "none",
                 duration: 0
             ),
-            
-            Note(
-                title: "Feature Ideas",
-                content: "Brainstormed some interesting features:\n• Dark mode toggle\n• Export functionality\n• Collaboration features\n• Voice notes integration",
-                timestamp: baseTime.addingTimeInterval(-7200), // 2 hours ago
-                conferenceName: nil,
-                sessionType: "brainstorm",
-                isArchived: false,
-                audioFilePath: nil,
-                transcriptionStatus: "none",
-                duration: 0
-            ),
-            
-            Note(
-                title: "Client Feedback",
-                content: "Client loved the new interface design. Requested some minor adjustments to the color scheme and font sizing. Overall very positive response.",
-                timestamp: baseTime.addingTimeInterval(-86400), // 1 day ago
-                conferenceName: nil,
-                sessionType: "client-meeting",
-                isArchived: false,
-                audioFilePath: nil,
-                transcriptionStatus: "completed",
-                duration: 1800 // 30 minutes
-            ),
-            
-            // Note with transcription
-            Note(
-                title: "Architecture Review",
-                content: "Reviewed the current system architecture. The microservices approach is working well, but we need to optimize the database queries. Consider implementing caching layer.",
-                timestamp: baseTime.addingTimeInterval(-172800), // 2 days ago
-                conferenceName: "Tech Architecture",
-                sessionType: "technical-review",
-                isArchived: false,
-                audioFilePath: "sample_architecture_review.m4a",
-                transcriptionStatus: "completed",
-                duration: 2400 // 40 minutes
-            ),
-            
-            // Archived note
             Note(
                 title: "Old Project Notes",
-                content: "Legacy project documentation that's no longer active but kept for reference. Contains important historical decisions and rationale.",
-                timestamp: baseTime.addingTimeInterval(-604800), // 1 week ago
+                content: "Legacy project documentation that's no longer active but kept for reference.",
+                timestamp: baseTime.addingTimeInterval(-604800),
                 conferenceName: nil,
                 sessionType: "documentation",
                 isArchived: true,
                 audioFilePath: nil,
                 transcriptionStatus: "none",
                 duration: 0
-            ),
-            
-            // Note with failed transcription
-            Note(
-                title: "Quick Voice Note",
-                content: "This was recorded as a voice note but transcription failed. Needs to be reprocessed.",
-                timestamp: baseTime.addingTimeInterval(-1800), // 30 minutes ago
-                conferenceName: nil,
-                sessionType: "voice-note",
-                isArchived: false,
-                audioFilePath: "quick_voice_note.m4a",
-                transcriptionStatus: "failed",
-                duration: 120 // 2 minutes
             )
         ]
     }
-    
+
     // MARK: - Utility Methods
-    
+
     static func clearAllData(context: ModelContext) {
         do {
+            try context.delete(model: ChatMessage.self)
+            try context.delete(model: ChatThread.self)
             try context.delete(model: Note.self)
+            try context.delete(model: Conference.self)
             try context.save()
             AppLogger.shared.dataSuccess("Sample Data", details: "Cleared all data")
         } catch {
             AppLogger.shared.dataError("Sample Data Clear", error: error)
         }
     }
-    
+
     static func reseedDatabase(context: ModelContext) {
         clearAllData(context: context)
         seedDatabase(context: context)

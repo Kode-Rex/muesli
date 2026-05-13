@@ -16,8 +16,8 @@ enum NetworkStatus {
 }
 
 @Observable
-class NetworkMonitor {
-    
+class NetworkMonitor: NetworkPort {
+
     static let shared = NetworkMonitor()
     
     private let monitor = NWPathMonitor()

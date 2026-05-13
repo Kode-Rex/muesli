@@ -43,7 +43,7 @@ struct BlendResponse: Decodable {
     let costMicros: Int
 }
 
-actor SessionsService {
+actor SessionsService: BlendPort {
     static let shared = SessionsService()
     private let session = URLSession.shared
     private let decoder: JSONDecoder = {

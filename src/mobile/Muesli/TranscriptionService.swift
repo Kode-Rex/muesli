@@ -57,8 +57,8 @@ struct DeepgramAlternative: Codable {
 }
 
 @Observable
-class TranscriptionService {
-    
+class TranscriptionService: TranscriptionPort {
+
     static let shared = TranscriptionService()
     
     // Configuration

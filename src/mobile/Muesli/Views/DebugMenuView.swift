@@ -45,8 +45,8 @@ struct DebugMenuView: View {
                     HStack {
                         Text("API URL")
                         Spacer()
-                        Text(TranscriptionService.shared.isUsingLocalhost ? "Localhost" : "Remote")
-                            .foregroundColor(TranscriptionService.shared.isUsingLocalhost ? .orange : .green)
+                        Text(World.current.transcription.isUsingLocalhost ? "Localhost" : "Remote")
+                            .foregroundColor(World.current.transcription.isUsingLocalhost ? .orange : .green)
                     }
                 }
                 
@@ -61,7 +61,7 @@ struct DebugMenuView: View {
                     HStack {
                         Text("Current API")
                         Spacer()
-                        Text(TranscriptionService.shared.currentAPIEndpoint)
+                        Text(World.current.transcription.currentAPIEndpoint)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

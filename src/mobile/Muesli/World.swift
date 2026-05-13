@@ -11,6 +11,7 @@ import Foundation
 
 struct World {
     var transcription: any TranscriptionPort
+    var hybridTranscription: any HybridTranscriptionPort
     var network: any NetworkPort
     var blend: any BlendPort
     var chat: any ChatPort
@@ -19,14 +20,13 @@ struct World {
 extension World {
     /// Mutable accessor. Production is initialized to `.live` at launch.
     /// Tests overwrite this in setUp and restore the prior value in tearDown.
-    @MainActor
     static var current: World = .live
 
     /// Real adapters wired against production services.
-    @MainActor
     static var live: World {
         World(
             transcription: TranscriptionService.shared,
+            hybridTranscription: HybridTranscriptionService.shared,
             network: NetworkMonitor.shared,
             blend: SessionsService.shared,
             chat: UnimplementedChatAdapter()

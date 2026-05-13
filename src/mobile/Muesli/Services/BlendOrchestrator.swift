@@ -59,7 +59,7 @@ final class BlendOrchestrator {
             return
         }
 
-        let svc = SessionsService.shared
+        let svc = World.current.blend
 
         do {
             // 1. Status → transcribing

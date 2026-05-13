@@ -180,7 +180,7 @@ struct SimpleMainView: View {
         }
         
         // Check network connectivity
-        guard NetworkMonitor.shared.isConnected else {
+        guard World.current.network.isConnected else {
             AppLogger.shared.warning("Cannot process transcription - no internet connection")
             return
         }
@@ -197,7 +197,7 @@ struct SimpleMainView: View {
         // Process transcription with hybrid service
         Task {
             do {
-                let transcript = try await HybridTranscriptionService.shared.transcribeAudioFile(url: audioURL)
+                let transcript = try await World.current.hybridTranscription.transcribeAudioFile(url: audioURL)
 
                 await MainActor.run {
                     note.content = transcript

@@ -397,7 +397,7 @@ struct SimpleNoteDetailView: View {
             AppLogger.shared.info("🎤 Starting transcription for audio file: \(audioURL.lastPathComponent)")
 
             do {
-                let transcript = try await HybridTranscriptionService.shared.transcribeAudioFile(url: audioURL)
+                let transcript = try await World.current.hybridTranscription.transcribeAudioFile(url: audioURL)
                 AppLogger.shared.info("✅ Transcription completed: \(transcript.count) characters")
 
                 await MainActor.run {

@@ -26,14 +26,18 @@ extension World {
     /// orchestrators). Production code must NOT mutate `World.current`.
     nonisolated(unsafe) static var current: World = .live
 
-    /// Real adapters wired against production services.
+    /// Real adapters wired against production services. The chat adapter
+    /// uses a default-empty sessionIdsResolver; ChatViewModel pre-resolves
+    /// the conference's member sessions from SwiftData and passes them via
+    /// LiveChatAdapter's explicit-resolver send variant.
     static var live: World {
-        World(
+        let chatBase = URL(string: APIConfiguration.transcriptionAPIBaseURL) ?? URL(string: "https://api.muesli-app.com/api/v1")!
+        return World(
             transcription: TranscriptionService.shared,
             hybridTranscription: HybridTranscriptionService.shared,
             network: NetworkMonitor.shared,
             blend: SessionsService.shared,
-            chat: UnimplementedChatAdapter()
+            chat: LiveChatAdapter(baseURL: chatBase)
         )
     }
 }

@@ -7,11 +7,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct AugmentedNoteView: View {
     let note: Note
 
+    @Environment(\.modelContext) private var modelContext
     @State private var showingPlayback = false
+    @State private var chatThread: ChatThread?
 
     private var segments: [BlendSegment] {
         BlendRenderer.render(note: note)
@@ -50,9 +53,34 @@ struct AugmentedNoteView: View {
                 }
                 .disabled(note.audioFilePath == nil)
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    openChat()
+                } label: {
+                    Label("Ask", systemImage: "bubble.left")
+                }
+            }
         }
         .sheet(isPresented: $showingPlayback) {
             ChapteredPlaybackView(note: note)
+        }
+        .sheet(item: $chatThread) { thread in
+            ChatView(thread: thread, scopeTitle: "Talk · \(note.title)")
+        }
+    }
+
+    private func openChat() {
+        let noteId = note.id
+        let predicate = #Predicate<ChatThread> {
+            $0.scopeKindRaw == "talk" && $0.scopeId == noteId
+        }
+        if let existing = try? modelContext.fetch(FetchDescriptor<ChatThread>(predicate: predicate)).first {
+            chatThread = existing
+        } else {
+            let thread = ChatThread(scopeKind: .talk, scopeId: note.id)
+            modelContext.insert(thread)
+            try? modelContext.save()
+            chatThread = thread
         }
     }
 

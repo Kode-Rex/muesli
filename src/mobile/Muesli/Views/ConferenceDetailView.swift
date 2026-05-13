@@ -8,9 +8,13 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ConferenceDetailView: View {
     let conference: Conference
+
+    @Environment(\.modelContext) private var modelContext
+    @State private var chatThread: ChatThread?
 
     // Mirror MainView's filter: archived talks don't appear on the conference
     // page either. Archived notes can still be found via the archive screen.
@@ -65,14 +69,34 @@ struct ConferenceDetailView: View {
             }
 
             Button {
-                // Phase 6 wires this to ChatView scoped to this conference.
+                openChat()
             } label: {
                 Label("Chat with this conference", systemImage: "bubble.left.and.bubble.right")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .padding(.top, 8)
-            .disabled(true)
+        }
+        .sheet(item: $chatThread) { thread in
+            ChatView(
+                thread: thread,
+                scopeTitle: "\(conference.name) · \(notes.count) talk\(notes.count == 1 ? "" : "s")"
+            )
+        }
+    }
+
+    private func openChat() {
+        let confId = conference.id
+        let predicate = #Predicate<ChatThread> {
+            $0.scopeKindRaw == "conference" && $0.scopeId == confId
+        }
+        if let existing = try? modelContext.fetch(FetchDescriptor<ChatThread>(predicate: predicate)).first {
+            chatThread = existing
+        } else {
+            let thread = ChatThread(scopeKind: .conference, scopeId: conference.id)
+            modelContext.insert(thread)
+            try? modelContext.save()
+            chatThread = thread
         }
     }
 

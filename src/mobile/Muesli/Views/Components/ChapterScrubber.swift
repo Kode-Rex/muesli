@@ -11,11 +11,21 @@ import SwiftUI
 struct ChapterScrubber: View {
     let duration: Double
     let chapters: [ChapterModel]
-    @Binding var currentTime: Double
-    @Binding var isDragging: Bool
+    let currentTime: Double
+    /// Invoked with the target time during drag and on commit. The host
+    /// chooses whether each call should be a seek (which it does for both
+    /// taps and drag updates so the playhead tracks the finger).
+    let onSeek: (Double) -> Void
+
+    /// When non-nil, the scrubber is being dragged; render this value as
+    /// the thumb position instead of `currentTime` so the bar tracks the
+    /// finger even if the controller's timer overwrites currentTime in
+    /// the same frame.
+    @State private var dragValue: Double?
 
     var body: some View {
         GeometryReader { geo in
+            let displayTime = dragValue ?? currentTime
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color.gray.opacity(0.2))
@@ -23,10 +33,10 @@ struct ChapterScrubber: View {
 
                 Capsule()
                     .fill(Color.accentColor)
-                    .frame(width: progressWidth(in: geo.size.width), height: 6)
+                    .frame(width: progressWidth(for: displayTime, in: geo.size.width), height: 6)
 
                 ForEach(chapters) { chapter in
-                    let x = positionFor(time: chapter.start, in: geo.size.width)
+                    let x = progressWidth(for: chapter.start, in: geo.size.width)
                     Rectangle()
                         .fill(Color.primary.opacity(0.4))
                         .frame(width: 2, height: 12)
@@ -37,32 +47,27 @@ struct ChapterScrubber: View {
                     .fill(Color.accentColor)
                     .frame(width: 18, height: 18)
                     .shadow(radius: 2)
-                    .offset(x: progressWidth(in: geo.size.width) - 9)
+                    .offset(x: progressWidth(for: displayTime, in: geo.size.width) - 9)
             }
             .frame(height: 18)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        isDragging = true
                         let pct = max(0, min(value.location.x / geo.size.width, 1))
-                        currentTime = pct * max(1, duration)
+                        let t = pct * max(1, duration)
+                        dragValue = t
+                        onSeek(t)
                     }
                     .onEnded { _ in
-                        isDragging = false
+                        dragValue = nil
                     }
             )
         }
         .frame(height: 18)
     }
 
-    private func progressWidth(in total: CGFloat) -> CGFloat {
-        guard duration > 0 else { return 0 }
-        let pct = currentTime / duration
-        return CGFloat(max(0, min(pct, 1))) * total
-    }
-
-    private func positionFor(time: Double, in total: CGFloat) -> CGFloat {
+    private func progressWidth(for time: Double, in total: CGFloat) -> CGFloat {
         guard duration > 0 else { return 0 }
         let pct = time / duration
         return CGFloat(max(0, min(pct, 1))) * total

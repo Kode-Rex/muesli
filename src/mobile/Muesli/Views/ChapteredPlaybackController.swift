@@ -55,6 +55,9 @@ final class ChapteredPlaybackController {
         isPlaying ? pause() : play()
     }
 
+    /// Seeks the player. AVAudioPlayer.currentTime can be sticky for a frame
+    /// or two when set while playing on some iOS versions; if the user reports
+    /// hearing the prior position briefly, switch to a pause/seek/play cycle.
     func seek(to seconds: Double) {
         guard let player else { return }
         let clamped = max(0, min(seconds, duration))
@@ -62,11 +65,15 @@ final class ChapteredPlaybackController {
         currentTime = clamped
     }
 
+    /// Skips by `offset` chapters and resumes playback. Matches the
+    /// chapter-list row's tap behavior so the user gets consistent
+    /// playback-on-jump across all chapter-navigation entry points.
     func skipChapter(offset: Int, chapters: [ChapterModel]) {
         let current = PlaybackTimer.currentChapterIndex(at: currentTime, chapters: chapters)
         let target = max(0, min(current + offset, chapters.count - 1))
         guard chapters.indices.contains(target) else { return }
         seek(to: chapters[target].start)
+        play()
     }
 
     deinit {
@@ -75,8 +82,10 @@ final class ChapteredPlaybackController {
 
     private func startTimer() {
         stopTimer()
+        // The runloop fires on main; trust the isolation rather than spawning
+        // a fresh Task four times per second.
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 guard let self, let player = self.player else { return }
                 self.currentTime = player.currentTime
                 if !player.isPlaying && self.isPlaying {

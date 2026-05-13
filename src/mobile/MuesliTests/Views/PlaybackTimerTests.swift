@@ -72,4 +72,20 @@ struct PlaybackTimerTests {
         #expect(PlaybackTimer.decodeChapters(from: nil).isEmpty)
         #expect(PlaybackTimer.decodeChapters(from: Data("not json".utf8)).isEmpty)
     }
+
+    @Test("Decoding a ChaptersWrapper with an empty array returns an empty list")
+    func decodeEmptyArray() {
+        let json = #"{"chapters":[]}"#
+        let chapters = PlaybackTimer.decodeChapters(from: Data(json.utf8))
+        #expect(chapters.isEmpty)
+    }
+
+    @Test("Decoding a chapter with missing summary yields an empty summary")
+    func decodeMissingSummary() {
+        let json = #"{"chapters":[{"start":0.0,"title":"Opening"}]}"#
+        let chapters = PlaybackTimer.decodeChapters(from: Data(json.utf8))
+        #expect(chapters.count == 1)
+        #expect(chapters.first?.summary == "")
+        #expect(chapters.first?.title == "Opening")
+    }
 }

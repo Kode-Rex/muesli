@@ -15,7 +15,6 @@ struct ChapteredPlaybackView: View {
 
     @State private var controller = ChapteredPlaybackController()
     @State private var chapters: [ChapterModel] = []
-    @State private var isDragging = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -77,15 +76,8 @@ struct ChapteredPlaybackView: View {
             ChapterScrubber(
                 duration: controller.duration,
                 chapters: chapters,
-                currentTime: Binding(
-                    get: { controller.currentTime },
-                    set: { newTime in
-                        if isDragging {
-                            controller.seek(to: newTime)
-                        }
-                    }
-                ),
-                isDragging: $isDragging
+                currentTime: controller.currentTime,
+                onSeek: { controller.seek(to: $0) }
             )
             HStack {
                 Text(PlaybackTimer.formatTime(controller.currentTime))
@@ -160,8 +152,16 @@ struct ChapteredPlaybackView: View {
 
     private func setup() {
         chapters = PlaybackTimer.decodeChapters(from: note.chaptersJSON)
-        guard let path = note.audioFilePath,
-              let url = AudioRecordingManager.shared.getRecordingURL(fileName: path) else {
+        guard let path = note.audioFilePath else {
+            controller.loadError = "Audio file not found."
+            return
+        }
+        // Mirror SlideCard: callers may pass absolute paths or relative
+        // filenames; resolve both into a URL.
+        let url: URL? = path.hasPrefix("/")
+            ? URL(fileURLWithPath: path)
+            : AudioRecordingManager.shared.getRecordingURL(fileName: path)
+        guard let url else {
             controller.loadError = "Audio file not found."
             return
         }

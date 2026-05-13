@@ -10,7 +10,6 @@ import SwiftData
 
 @Suite("Chat View Model Tests", .tags(.unit))
 struct ChatViewModelTests {
-
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([Note.self, Photo.self, Conference.self, ChatThread.self, ChatMessage.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -18,7 +17,7 @@ struct ChatViewModelTests {
     }
 
     final class StubChat: ChatPort, @unchecked Sendable {
-        var stub: ChatResponse = ChatResponse(
+        var stub = ChatResponse(
             message: ChatTurn(role: "assistant", content: "ok"),
             citations: []
         )

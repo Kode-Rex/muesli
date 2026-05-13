@@ -12,9 +12,8 @@ import Testing
 
 /// Provides test setup utilities and mock data for all tests
 struct TestSetup {
-    
     // MARK: - Test Data Creation
-    
+
     static func createTestNote(
         title: String = "Test Note",
         content: String = "Test content for unit testing",
@@ -37,7 +36,7 @@ struct TestSetup {
             duration: duration
         )
     }
-    
+
     static func createMultipleTestNotes(count: Int = 3) -> [Note] {
         return (1...count).map { index in
             createTestNote(
@@ -48,49 +47,49 @@ struct TestSetup {
             )
         }
     }
-    
+
     // MARK: - SwiftData Test Container
-    
+
     static func createTestContainer() throws -> ModelContainer {
         let schema = Schema([Note.self])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: [modelConfiguration])
     }
-    
+
     @MainActor
     static func setupTestDataInContainer(_ container: ModelContainer) throws {
         let context = container.mainContext
         let testNotes = createMultipleTestNotes(count: 5)
-        
+
         for note in testNotes {
             context.insert(note)
         }
-        
+
         try context.save()
     }
-    
+
     // MARK: - Test Isolation Helpers
-    
+
     /// Creates isolated test instances instead of using shared singletons
     static func createIsolatedTestInstances() {
         // Tests should create their own instances or use dependency injection
         // No more shared singleton initialization that pollutes other tests
     }
-    
+
     // MARK: - Test Audio File
-    
+
     static func createTestAudioFile() throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         let audioURL = tempDir.appendingPathComponent("test-audio.m4a")
-        
+
         // Create a minimal empty file for testing
         try Data().write(to: audioURL)
-        
+
         return audioURL
     }
-    
+
     // MARK: - Mock Network Responses
-    
+
     static func mockTranscriptionResponse() -> [String: Any] {
         return [
             "transcript": "This is a test transcription response from the mock API.",
@@ -102,9 +101,9 @@ struct TestSetup {
             ]
         ]
     }
-    
+
     // MARK: - Test Constants
-    
+
     struct TestConstants {
         static let defaultTimeout: TimeInterval = 5.0
         static let testContent = "This is test content for unit testing purposes. It contains enough text to test various parsing and processing functions."
@@ -112,14 +111,14 @@ struct TestSetup {
         static let testConferenceName = "Test Conference 2024"
         static let testSessionTypes = ["note", "meeting", "brainstorm", "voice-note"]
     }
-    
+
     // MARK: - Cleanup
-    
+
     static func cleanup() throws {
         // Clean up any temporary test files
         let tempDir = FileManager.default.temporaryDirectory
         let testFiles = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
-        
+
         for file in testFiles where file.pathExtension == "m4a" && file.lastPathComponent.contains("test") {
             try? FileManager.default.removeItem(at: file)
         }

@@ -1,5 +1,5 @@
 //
-//  SimpleSettingsView.swift
+//  SettingsView.swift
 //  Muesli
 //
 //  Created by Travis Frisinger on 8/25/25.
@@ -8,20 +8,20 @@
 import SwiftUI
 import SwiftData
 
-struct SimpleSettingsView: View {
+struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Binding var showingArchive: Bool
     @State private var showingPerformance = false
     @State private var showingProfile = false
-    
+
     @Query(filter: #Predicate<Note> { $0.isArchived })
     private var archivedNotes: [Note]
-    
+
     private var archivedCount: Int {
         archivedNotes.count
     }
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
@@ -37,13 +37,13 @@ struct SimpleSettingsView: View {
                             .foregroundColor(.gray)
                             .font(.system(size: 20))
                             .frame(width: 24)
-                        
+
                         Text("Profile")
                             .foregroundColor(.white)
                             .font(.system(size: 16, weight: .medium))
-                        
+
                         Spacer()
-                        
+
                         Image(systemName: "chevron.right")
                             .foregroundColor(.gray)
                             .font(.system(size: 14))
@@ -53,7 +53,7 @@ struct SimpleSettingsView: View {
                     .cornerRadius(12)
                 }
                 .buttonStyle(PlainButtonStyle())
-                
+
                 // Archive Section
                 Button(action: {
                     dismiss()
@@ -66,13 +66,13 @@ struct SimpleSettingsView: View {
                             .foregroundColor(.gray)
                             .font(.system(size: 20))
                             .frame(width: 24)
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Archive")
                                 .foregroundColor(.white)
                                 .font(.system(size: 16, weight: .medium))
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            
+
                             if archivedCount > 0 {
                                 Text("\(archivedCount) archived notes")
                                     .foregroundColor(.gray)
@@ -80,7 +80,7 @@ struct SimpleSettingsView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
-                        
+
                         Spacer()
                     }
                     .padding()
@@ -88,7 +88,7 @@ struct SimpleSettingsView: View {
                     .cornerRadius(12)
                 }
                 .buttonStyle(PlainButtonStyle())
-                
+
                 // Performance section (Debug only)
                 #if DEBUG
                 Button(action: {
@@ -102,12 +102,12 @@ struct SimpleSettingsView: View {
                             .foregroundColor(.gray)
                             .font(.system(size: 20))
                             .frame(width: 24)
-                        
+
                         Text("Performance Monitor")
                             .foregroundColor(.white)
                             .font(.system(size: 16, weight: .medium))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        
+
                         Text("DEBUG")
                             .font(.caption)
                             .foregroundColor(.orange)
@@ -115,7 +115,7 @@ struct SimpleSettingsView: View {
                             .padding(.vertical, 2)
                             .background(Color.orange.opacity(0.2))
                             .cornerRadius(4)
-                        
+
                         Spacer()
                     }
                     .padding()
@@ -124,7 +124,7 @@ struct SimpleSettingsView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 #endif
-                
+
                 Spacer()
             }
             .padding(.horizontal, 20)
@@ -152,6 +152,6 @@ struct SimpleSettingsView: View {
 }
 
 #Preview {
-    SimpleSettingsView(showingArchive: .constant(false))
+    SettingsView(showingArchive: .constant(false))
         .modelContainer(for: Note.self, inMemory: true)
 }

@@ -91,7 +91,7 @@ final class Note {
         self.speaker = speaker
         self.conference = conference
     }
-    
+
     // Computed properties for UI display
     var timeString: String {
         let formatter = DateFormatter()
@@ -99,29 +99,29 @@ final class Note {
         formatter.locale = Locale(identifier: "en_US") // Ensure AM/PM format for tests
         return formatter.string(from: timestamp)
     }
-    
+
     var dateString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "E d MMM yyyy" // Include year for tests
         formatter.locale = Locale(identifier: "en_US") // Ensure consistent format
         return formatter.string(from: timestamp)
     }
-    
+
     var durationString: String {
         guard let duration = duration else { return "00:00" }
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
-    
+
     var hasAudio: Bool {
         return audioFilePath != nil
     }
-    
+
     var needsTranscription: Bool {
         return hasAudio && (transcriptionStatus == "none" || transcriptionStatus == "failed")
     }
-    
+
     var isTranscribing: Bool {
         return transcriptionStatus == "processing"
     }

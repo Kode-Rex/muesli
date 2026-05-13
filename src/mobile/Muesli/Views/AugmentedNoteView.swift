@@ -14,6 +14,7 @@ struct AugmentedNoteView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var showingPlayback = false
+    @State private var playbackStartAt: Double = 0
     @State private var chatThread: ChatThread?
 
     private var segments: [BlendSegment] {
@@ -31,9 +32,21 @@ struct AugmentedNoteView: View {
                     ForEach(Array(segments.enumerated()), id: \.offset) { _, seg in
                         switch seg {
                         case .text(let attr):
-                            Text(attr)
+                            let targets = BlendRenderer.tapTargets(in: attr)
+                            if targets.isEmpty {
+                                Text(attr)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
+                            } else {
+                                TappableAttributedText(
+                                    attributed: attr,
+                                    targets: targets
+                                ) { seconds in
+                                    playbackStartAt = seconds
+                                    showingPlayback = true
+                                }
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
+                            }
                         case .photo(let photo, let caption):
                             SlideCard(photo: photo, caption: caption)
                         }
@@ -66,7 +79,7 @@ struct AugmentedNoteView: View {
             }
         }
         .sheet(isPresented: $showingPlayback) {
-            ChapteredPlaybackView(note: note)
+            ChapteredPlaybackView(note: note, startAt: playbackStartAt)
         }
         .sheet(item: $chatThread) { thread in
             ChatView(thread: thread, scopeTitle: "Talk · \(note.title)")
@@ -112,34 +125,17 @@ struct AugmentedNoteView: View {
     private var blendStatusFallback: some View {
         switch note.blendStatus {
         case .idle, .transcribing, .transcribed, .extracting, .blending:
-            VStack(spacing: 8) {
-                ProgressView()
-                Text("Preparing note…").font(.footnote).foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 24)
+            BlendingOverlay(status: note.blendStatus)
         case .failed:
-            VStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.title)
-                    .foregroundColor(.orange)
-                Text(note.blendError ?? "Blend failed.").font(.footnote)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 24)
+            BlendingOverlay(status: .failed, error: note.blendError)
         case .complete:
             // Inconsistent state: pipeline reported complete but no markdown
             // landed. Surface as an error rather than silently substituting
             // raw transcript, which would hide the corruption.
-            VStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.title)
-                    .foregroundColor(.orange)
-                Text("Blend output is missing. Try blending again.")
-                    .font(.footnote)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 24)
+            BlendingOverlay(
+                status: .failed,
+                error: "Blend output is missing. Try blending again."
+            )
             .onAppear {
                 AppLogger.shared.error("AugmentedNoteView: note \(note.id) has blendStatus .complete but blendedMarkdown is nil")
             }

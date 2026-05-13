@@ -9,13 +9,13 @@ import SwiftUI
 
 struct NoteContentView: View {
     let content: String
-    
+
     var body: some View {
         ForEach(parseSimpleContent(content), id: \.text) { item in
             SimpleContentItemView(item: item)
         }
     }
-    
+
     private func parseSimpleContent(_ content: String) -> [SimpleContentData] {
         content.components(separatedBy: .newlines)
             .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -36,7 +36,7 @@ struct NoteContentView: View {
 
 struct SimpleContentItemView: View {
     let item: SimpleContentData
-    
+
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             switch item.type {

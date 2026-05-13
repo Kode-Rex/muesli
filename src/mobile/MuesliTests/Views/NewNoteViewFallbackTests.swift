@@ -13,7 +13,6 @@ import SwiftData
 
 @MainActor
 struct NewNoteViewFallbackTests {
-
     private let transcription: FakeTranscriptionAdapter
     private let network: FakeNetworkAdapter
 

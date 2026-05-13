@@ -8,7 +8,6 @@
 import Foundation
 
 struct SimpleSummaryGenerator {
-
     /// Generates a short title from transcript (first meaningful phrase or timestamp)
     static func generateTitle(from transcript: String) -> String {
         guard !transcript.isEmpty else {

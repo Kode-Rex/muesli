@@ -23,7 +23,6 @@ struct ChapterModel: Equatable, Identifiable {
 }
 
 enum PlaybackTimer {
-
     /// Decode chapters from the JSON shape `BlendOrchestrator` persists to
     /// `note.chaptersJSON`. Empty list on missing or malformed input.
     static func decodeChapters(from data: Data?) -> [ChapterModel] {
@@ -49,8 +48,8 @@ enum PlaybackTimer {
     /// mm:ss under one hour, h:mm:ss at one hour and over.
     static func formatTime(_ seconds: Double) -> String {
         let total = max(0, Int(seconds.rounded(.toNearestOrEven)))
-        let h = total / 3600
-        let m = (total % 3600) / 60
+        let h = total / 3_600
+        let m = (total % 3_600) / 60
         let s = total % 60
         if h > 0 {
             return String(format: "%d:%02d:%02d", h, m, s)

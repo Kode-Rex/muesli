@@ -10,7 +10,6 @@ import SwiftData
 
 #if DEBUG
 struct SampleDataManager {
-
     // MARK: - Sample Data Generation
 
     static func seedDatabase(context: ModelContext) {
@@ -41,15 +40,15 @@ struct SampleDataManager {
         let dataSummit = Conference(
             name: "DataSummit 2026",
             location: "San Francisco, CA",
-            startDate: cal.date(from: DateComponents(year: 2026, month: 5, day: 10)),
-            endDate: cal.date(from: DateComponents(year: 2026, month: 5, day: 12)),
+            startDate: cal.date(from: DateComponents(year: 2_026, month: 5, day: 10)),
+            endDate: cal.date(from: DateComponents(year: 2_026, month: 5, day: 12)),
             conferenceDescription: "Annual data and ML conference"
         )
         let devWorld = Conference(
             name: "DevWorld 2026",
             location: "Austin, TX",
-            startDate: cal.date(from: DateComponents(year: 2026, month: 3, day: 14)),
-            endDate: cal.date(from: DateComponents(year: 2026, month: 3, day: 16)),
+            startDate: cal.date(from: DateComponents(year: 2_026, month: 3, day: 14)),
+            endDate: cal.date(from: DateComponents(year: 2_026, month: 3, day: 16)),
             conferenceDescription: "Developer conference covering web, mobile, and platforms"
         )
         return [dataSummit, devWorld]
@@ -63,39 +62,39 @@ struct SampleDataManager {
             Note(
                 title: "The three pillars of data infra",
                 content: "Storage, compute, and discoverability. Sarah walked through how DataSummit's flagship team rebuilt their lake-house on these primitives.",
-                timestamp: baseTime.addingTimeInterval(-3600),
+                timestamp: baseTime.addingTimeInterval(-3_600),
                 conferenceName: "DataSummit 2026",
                 sessionType: "session",
                 isArchived: false,
                 audioFilePath: "sample_three_pillars.m4a",
                 transcriptionStatus: "completed",
-                duration: 2400,
+                duration: 2_400,
                 speaker: "Sarah Chen",
                 conference: dataSummit
             ).withSeededBackendSessionId(),
             Note(
                 title: "Streaming at planet scale",
                 content: "Devon's deep dive on multi-region streaming, exactly-once semantics, and the operational realities they hit at year three.",
-                timestamp: baseTime.addingTimeInterval(-7200),
+                timestamp: baseTime.addingTimeInterval(-7_200),
                 conferenceName: "DataSummit 2026",
                 sessionType: "session",
                 isArchived: false,
                 audioFilePath: "sample_streaming.m4a",
                 transcriptionStatus: "completed",
-                duration: 2700,
+                duration: 2_700,
                 speaker: "Devon Park",
                 conference: dataSummit
             ).withSeededBackendSessionId(),
             Note(
                 title: "Embeddings for everything",
                 content: "Hina's plenary on using embeddings as the universal interface across retrieval, ranking, and dedup.",
-                timestamp: baseTime.addingTimeInterval(-90000),
+                timestamp: baseTime.addingTimeInterval(-90_000),
                 conferenceName: "DataSummit 2026",
                 sessionType: "session",
                 isArchived: false,
                 audioFilePath: "sample_embeddings.m4a",
                 transcriptionStatus: "completed",
-                duration: 3000,
+                duration: 3_000,
                 speaker: "Hina Yoshida",
                 conference: dataSummit
             ).withSeededBackendSessionId(),
@@ -110,7 +109,7 @@ struct SampleDataManager {
                 isArchived: false,
                 audioFilePath: "sample_swiftui_perf.m4a",
                 transcriptionStatus: "completed",
-                duration: 1800,
+                duration: 1_800,
                 speaker: "Aiden Reyes",
                 conference: devWorld
             ).withSeededBackendSessionId(),
@@ -132,7 +131,7 @@ struct SampleDataManager {
             Note(
                 title: "Team Standup",
                 content: "Discussed current sprint progress. John is working on the API integration, Sarah is finishing the UI components.",
-                timestamp: baseTime.addingTimeInterval(-1800),
+                timestamp: baseTime.addingTimeInterval(-1_800),
                 conferenceName: nil,
                 sessionType: "meeting",
                 isArchived: false,
@@ -143,7 +142,7 @@ struct SampleDataManager {
             Note(
                 title: "Old Project Notes",
                 content: "Legacy project documentation that's no longer active but kept for reference.",
-                timestamp: baseTime.addingTimeInterval(-604800),
+                timestamp: baseTime.addingTimeInterval(-604_800),
                 conferenceName: nil,
                 sessionType: "documentation",
                 isArchived: true,
@@ -186,7 +185,6 @@ extension SampleDataManager {
         ]
     }
 }
-
 
 private extension Note {
     /// Sample-data helper: assigns a deterministic backendSessionId so chat

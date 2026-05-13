@@ -13,7 +13,7 @@ struct DebugMenuView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var showingAlert = false
     @State private var alertMessage = ""
-    
+
     var body: some View {
         NavigationView {
             List {
@@ -22,18 +22,18 @@ struct DebugMenuView: View {
                         SampleDataManager.reseedDatabase(context: modelContext)
                         showAlert("Sample data refreshed")
                     }
-                    
+
                     Button("Clear All Data") {
                         SampleDataManager.clearAllData(context: modelContext)
                         showAlert("All data cleared")
                     }
-                    
+
                     Button("Add More Sample Notes") {
                         SampleDataManager.seedDatabase(context: modelContext)
                         showAlert("Added more sample notes")
                     }
                 }
-                
+
                 Section("API Configuration") {
                     HStack {
                         Text("Environment")
@@ -41,7 +41,7 @@ struct DebugMenuView: View {
                         Text(APIConfiguration.environmentName)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     HStack {
                         Text("API URL")
                         Spacer()
@@ -49,7 +49,7 @@ struct DebugMenuView: View {
                             .foregroundColor(World.current.transcription.isUsingLocalhost ? .orange : .green)
                     }
                 }
-                
+
                 Section("Development Info") {
                     HStack {
                         Text("Build Configuration")
@@ -57,7 +57,7 @@ struct DebugMenuView: View {
                         Text("DEBUG")
                             .foregroundColor(.orange)
                     }
-                    
+
                     HStack {
                         Text("Current API")
                         Spacer()
@@ -76,7 +76,7 @@ struct DebugMenuView: View {
             }
         }
     }
-    
+
     private func showAlert(_ message: String) {
         alertMessage = message
         showingAlert = true

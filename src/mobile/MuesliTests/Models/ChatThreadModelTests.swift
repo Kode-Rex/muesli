@@ -12,7 +12,6 @@ import Foundation
 
 @Suite("Chat Thread Model Tests", .tags(.unit))
 struct ChatThreadModelTests {
-
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([Note.self, Photo.self, Conference.self, ChatThread.self, ChatMessage.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)

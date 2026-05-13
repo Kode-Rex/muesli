@@ -10,9 +10,9 @@ import Foundation
 @testable import Muesli
 
 actor FakeBlendAdapter: BlendPort {
-    var stubSessionId: UUID = UUID()
-    var stubPhotoResponse: PhotoResponse = PhotoResponse(photoId: "fake", ocrText: "", description: "")
-    var stubBlendResponse: BlendResponse = BlendResponse(
+    var stubSessionId = UUID()
+    var stubPhotoResponse = PhotoResponse(photoId: "fake", ocrText: "", description: "")
+    var stubBlendResponse = BlendResponse(
         blendedMarkdown: "Fake blend",
         userNoteSpans: [],
         quoteSpans: [],

@@ -12,7 +12,6 @@ import SwiftData
 
 @Suite("Main View Tests", .tags(.unit))
 struct MainViewTests {
-
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([Note.self, Photo.self, Conference.self, ChatThread.self, ChatMessage.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)

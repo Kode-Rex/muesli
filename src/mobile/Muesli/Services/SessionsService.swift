@@ -74,7 +74,7 @@ actor SessionsService: BlendPort {
             url: url,
             fields: [
                 "photoId": photo.id.uuidString,
-                "capturedAt": String(Int(photo.capturedAt.timeIntervalSince1970 * 1000))
+                "capturedAt": String(Int(photo.capturedAt.timeIntervalSince1970 * 1_000))
             ],
             file: (name: "photo", filename: "\(photo.contentHash).jpg", mime: "image/jpeg", data: jpegData)
         )

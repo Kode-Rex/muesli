@@ -9,19 +9,18 @@ import Foundation
 
 @Suite("Playback Timer Tests", .tags(.unit))
 struct PlaybackTimerTests {
-
     private func chapters() -> [ChapterModel] {
         [
-            ChapterModel(id: 0, start: 0,   title: "Intro",  summary: ""),
+            ChapterModel(id: 0, start: 0, title: "Intro", summary: ""),
             ChapterModel(id: 1, start: 120, title: "Middle", summary: ""),
-            ChapterModel(id: 2, start: 480, title: "Outro",  summary: "")
+            ChapterModel(id: 2, start: 480, title: "Outro", summary: "")
         ]
     }
 
     @Test("currentChapterIndex returns 0 before second chapter starts")
     func beforeSecond() {
-        #expect(PlaybackTimer.currentChapterIndex(at: 0,     chapters: chapters()) == 0)
-        #expect(PlaybackTimer.currentChapterIndex(at: 60,    chapters: chapters()) == 0)
+        #expect(PlaybackTimer.currentChapterIndex(at: 0, chapters: chapters()) == 0)
+        #expect(PlaybackTimer.currentChapterIndex(at: 60, chapters: chapters()) == 0)
         #expect(PlaybackTimer.currentChapterIndex(at: 119.9, chapters: chapters()) == 0)
     }
 
@@ -43,13 +42,13 @@ struct PlaybackTimerTests {
         #expect(PlaybackTimer.formatTime(0) == "00:00")
         #expect(PlaybackTimer.formatTime(9) == "00:09")
         #expect(PlaybackTimer.formatTime(65) == "01:05")
-        #expect(PlaybackTimer.formatTime(3599) == "59:59")
+        #expect(PlaybackTimer.formatTime(3_599) == "59:59")
     }
 
     @Test("format h:mm:ss for >= 1 hour")
     func formatHours() {
-        #expect(PlaybackTimer.formatTime(3600) == "1:00:00")
-        #expect(PlaybackTimer.formatTime(3725) == "1:02:05")
+        #expect(PlaybackTimer.formatTime(3_600) == "1:00:00")
+        #expect(PlaybackTimer.formatTime(3_725) == "1:02:05")
     }
 
     @Test("Decoding chapters from JSON returns model values")

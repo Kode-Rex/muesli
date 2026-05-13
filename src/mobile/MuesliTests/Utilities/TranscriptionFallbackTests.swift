@@ -12,7 +12,6 @@ import Foundation
 
 @MainActor
 struct TranscriptionFallbackTests {
-
     private let transcription: FakeTranscriptionAdapter
     private let network: FakeNetworkAdapter
 

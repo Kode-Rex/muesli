@@ -13,7 +13,6 @@ import SwiftData
 
 @Suite("Blend Renderer Tests", .tags(.unit))
 struct BlendRendererTests {
-
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([Note.self, Photo.self, Conference.self, ChatThread.self, ChatMessage.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -307,6 +306,54 @@ struct BlendRendererTests {
         }
     }
 
+    @Test("tapTargets returns NSRanges for quoteSpans and citations")
+    @MainActor
+    func tapTargetsForQuotesAndCitations() async throws {
+        let container = try makeContainer()
+        let note = Note(title: "x")
+        note.blendedMarkdown = "Quote here. Then citation."
+        let bc = BlendCitations(
+            userNoteSpans: [],
+            quoteSpans: [QuoteSpan(start: 0, end: 11, transcriptStart: 12.0, transcriptEnd: 14.0, speaker: nil)],
+            imagePlacements: [],
+            citations: [Citation(blendStart: 17, blendEnd: 25, transcriptStart: 30.0, transcriptEnd: 32.0)]
+        )
+        note.blendCitationsJSON = try JSONEncoder().encode(bc)
+        container.mainContext.insert(note)
+
+        let segments = BlendRenderer.render(note: note)
+        guard case .text(let attr) = segments[0] else {
+            Issue.record("expected text")
+            return
+        }
+        let targets = BlendRenderer.tapTargets(in: attr)
+        #expect(targets.count == 2)
+        #expect(targets[0].startSec == 12.0)
+        #expect(targets[1].startSec == 30.0)
+        // Locations should be UTF-16 offsets, not character counts (matches
+        // the input char ranges for ASCII text).
+        #expect(targets[0].range.location == 0)
+        #expect(targets[0].range.length == 11)
+        #expect(targets[1].range.location == 17)
+        #expect(targets[1].range.length == 8)
+    }
+
+    @Test("tapTargets returns an empty list when no tappable runs exist")
+    @MainActor
+    func tapTargetsEmpty() async throws {
+        let container = try makeContainer()
+        let note = Note(title: "x")
+        note.blendedMarkdown = "Plain prose only."
+        container.mainContext.insert(note)
+
+        let segments = BlendRenderer.render(note: note)
+        guard case .text(let attr) = segments[0] else {
+            Issue.record("expected text")
+            return
+        }
+        #expect(BlendRenderer.tapTargets(in: attr).isEmpty)
+    }
+
     @Test("Renderer clamps out-of-range spans and skips unresolved photos")
     @MainActor
     func defensiveAgainstBadOffsets() async throws {
@@ -314,7 +361,7 @@ struct BlendRendererTests {
         let note = Note(title: "x")
         note.blendedMarkdown = "short"
         let bc = BlendCitations(
-            userNoteSpans: [UserNoteSpan(start: 0, end: 9999)],
+            userNoteSpans: [UserNoteSpan(start: 0, end: 9_999)],
             quoteSpans: [],
             imagePlacements: [ImagePlacement(imageId: "missing-photo", charOffset: 3)],
             citations: []

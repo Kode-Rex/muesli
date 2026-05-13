@@ -9,7 +9,6 @@ import Foundation
 
 @Suite("Live Chat Adapter Tests", .tags(.unit))
 struct LiveChatAdapterTests {
-
     final class StubProtocol: URLProtocol {
         nonisolated(unsafe) static var lastRequest: URLRequest?
         nonisolated(unsafe) static var lastBody: Data?
@@ -24,7 +23,7 @@ struct LiveChatAdapterTests {
             if let stream = request.httpBodyStream {
                 stream.open()
                 var data = Data()
-                let bufferSize = 1024
+                let bufferSize = 1_024
                 let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
                 defer {
                     buffer.deallocate()

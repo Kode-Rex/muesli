@@ -12,7 +12,6 @@ import SwiftData
 
 @MainActor
 final class ConferenceMigrationTests: XCTestCase {
-
     override func setUp() {
         super.setUp()
         UserDefaults.standard.removeObject(forKey: ConferenceMigration.runFlagKey)
@@ -35,8 +34,8 @@ final class ConferenceMigrationTests: XCTestCase {
 
         let n1 = Note(title: "Talk A", timestamp: Date(timeIntervalSince1970: 1_000), conferenceName: "DataSummit 2026")
         let n2 = Note(title: "Talk B", timestamp: Date(timeIntervalSince1970: 2_000), conferenceName: "DataSummit 2026")
-        let n3 = Note(title: "Solo",   timestamp: Date(timeIntervalSince1970: 3_000), conferenceName: "DevWorld")
-        let n4 = Note(title: "Loose",  timestamp: Date(timeIntervalSince1970: 4_000), conferenceName: nil)
+        let n3 = Note(title: "Solo", timestamp: Date(timeIntervalSince1970: 3_000), conferenceName: "DevWorld")
+        let n4 = Note(title: "Loose", timestamp: Date(timeIntervalSince1970: 4_000), conferenceName: nil)
         [n1, n2, n3, n4].forEach { context.insert($0) }
         try context.save()
 

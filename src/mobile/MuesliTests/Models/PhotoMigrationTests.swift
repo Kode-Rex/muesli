@@ -11,7 +11,6 @@ import SwiftData
 
 @MainActor
 final class PhotoMigrationTests: XCTestCase {
-
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([Note.self, Photo.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)

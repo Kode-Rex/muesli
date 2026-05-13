@@ -1,5 +1,5 @@
 //
-//  SimpleArchiveView.swift
+//  ArchiveView.swift
 //  Muesli
 //
 //  Created by Travis Frisinger on 8/25/25.
@@ -8,14 +8,14 @@
 import SwiftUI
 import SwiftData
 
-struct SimpleArchiveView: View {
+struct ArchiveView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Query(filter: #Predicate<Note> { $0.isArchived }, sort: \Note.timestamp, order: .reverse) 
+    @Query(filter: #Predicate<Note> { $0.isArchived }, sort: \Note.timestamp, order: .reverse)
     private var archivedNotes: [Note]
-    
-    @State private var selectedNote: Note? = nil
-    
+
+    @State private var selectedNote: Note?
+
     private var groupedArchivedNotes: [(String, [Note])] {
         let groups = Dictionary(grouping: archivedNotes) { note in
             note.dateString
@@ -25,7 +25,7 @@ struct SimpleArchiveView: View {
             first.value.first?.timestamp ?? Date() > second.value.first?.timestamp ?? Date()
         }
     }
-    
+
     var body: some View {
         NavigationView {
             Group {
@@ -34,12 +34,12 @@ struct SimpleArchiveView: View {
                         Image(systemName: "archivebox")
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
-                        
+
                         Text("No Archived Notes")
                             .font(.title2)
                             .foregroundColor(.gray)
                             .padding(.top, 16)
-                        
+
                         Text("Archived notes will appear here")
                             .font(.body)
                             .foregroundColor(.gray.opacity(0.7))
@@ -54,7 +54,7 @@ struct SimpleArchiveView: View {
                                         .font(.headline)
                                         .foregroundColor(.gray)
                                         .padding(.horizontal, 20)
-                                    
+
                                     ForEach(dateGroup.1) { note in
                                         SimpleArchivedNoteCard(
                                             title: note.title,
@@ -95,9 +95,9 @@ struct SimpleArchiveView: View {
         }
         .preferredColorScheme(.dark)
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func unarchiveNote(_ note: Note) {
         do {
             note.isArchived = false
@@ -106,7 +106,7 @@ struct SimpleArchiveView: View {
             AppLogger.shared.dataError("Unarchive Note", error: error, details: "Title: \(note.title)")
         }
     }
-    
+
     private func deleteNote(_ note: Note) {
         do {
             modelContext.delete(note)
@@ -123,7 +123,7 @@ struct SimpleArchivedNoteCard: View {
     let onTap: () -> Void
     let onUnarchive: () -> Void
     let onDelete: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack {
@@ -133,20 +133,20 @@ struct SimpleArchivedNoteCard: View {
                     .frame(width: 40, height: 40)
                     .background(Color.orange.opacity(0.2))
                     .cornerRadius(8)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .foregroundColor(.white.opacity(0.8))
                         .font(.system(size: 16, weight: .medium))
                         .lineLimit(1)
-                    
+
                     Text(time)
                         .foregroundColor(.gray)
                         .font(.system(size: 14))
                 }
-                
+
                 Spacer()
-                
+
                 Text("ARCHIVED")
                     .font(.caption)
                     .foregroundColor(.orange)
@@ -169,6 +169,6 @@ struct SimpleArchivedNoteCard: View {
 }
 
 #Preview {
-    SimpleArchiveView()
+    ArchiveView()
         .modelContainer(for: Note.self, inMemory: true)
 }

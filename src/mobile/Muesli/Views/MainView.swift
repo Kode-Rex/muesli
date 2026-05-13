@@ -49,7 +49,7 @@ struct MainView: View {
             }
         }
         var groups = byConferenceId.values.map { Group(conference: $0.0, notes: $0.1) }
-        groups.sort { (a, b) in
+        groups.sort { a, b in
             let aDate = a.notes.map(\.timestamp).max() ?? a.conference?.createdAt ?? .distantPast
             let bDate = b.notes.map(\.timestamp).max() ?? b.conference?.createdAt ?? .distantPast
             if aDate != bDate { return aDate > bDate }

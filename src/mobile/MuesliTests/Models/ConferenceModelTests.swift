@@ -12,7 +12,6 @@ import Foundation
 
 @Suite("Conference Model Tests", .tags(.unit))
 struct ConferenceModelTests {
-
     @Test("Conference initialization with required fields")
     func conferenceInitialization() async throws {
         let conf = Conference(name: "DataSummit 2026")

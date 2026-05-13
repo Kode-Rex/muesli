@@ -13,7 +13,7 @@ final class FakeTranscriptionAdapter: TranscriptionPort {
     // Configurable per-test
     var stubHasValidEndpoint: Bool = true
     var stubStartReturns: Bool = false
-    var stubFileTranscript: String? = nil
+    var stubFileTranscript: String?
 
     // Recorded calls
     private(set) var startCount = 0

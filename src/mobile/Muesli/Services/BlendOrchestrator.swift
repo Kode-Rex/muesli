@@ -143,7 +143,6 @@ final class BlendOrchestrator {
                 note.blendError = nil
                 try? context.save()
             }
-
         } catch {
             // 9. On any error → status .failed
             await MainActor.run {

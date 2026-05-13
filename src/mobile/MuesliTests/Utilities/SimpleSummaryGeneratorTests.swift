@@ -10,7 +10,6 @@ import XCTest
 
 @MainActor
 final class SimpleSummaryGeneratorTests: XCTestCase {
-
     // MARK: - Title Generation Tests
 
     func testGenerateTitleFromTranscript() {

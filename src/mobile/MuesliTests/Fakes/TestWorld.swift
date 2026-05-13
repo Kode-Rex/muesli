@@ -11,7 +11,6 @@ import Foundation
 @testable import Muesli
 
 enum TestWorld {
-
     /// Replace World.current with a fully-faked World. Returns the fakes
     /// so the test can configure stubs and inspect recorded calls.
     @discardableResult

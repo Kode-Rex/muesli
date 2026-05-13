@@ -18,7 +18,6 @@ enum BlendSegment {
 }
 
 enum BlendRenderer {
-
     /// Returns the list of display segments for a Note. Empty if the note has
     /// no `blendedMarkdown`. Defensive against bad span offsets (clamped + skipped).
     ///
@@ -136,6 +135,36 @@ enum BlendRenderer {
             segments.append(.text(AttributedString(base[lo..<base.endIndex])))
         }
         return segments
+    }
+
+    /// Returns the NSRanges of all tappable spans (quote spans + citations)
+    /// inside an AttributedString produced by `render(note:)`. Each target
+    /// carries the audio second to seek to. Offsets are UTF-16 code units to
+    /// match `NSAttributedString` / `NSLayoutManager` semantics used by the
+    /// hosting `UITextView`.
+    static func tapTargets(in attr: AttributedString) -> [TappableTextTarget] {
+        var targets: [TappableTextTarget] = []
+        var nsLocation = 0
+        for run in attr.runs {
+            let runText = String(attr[run.range].characters)
+            let utf16Length = runText.utf16.count
+            let startSec: Double?
+            if let q = run.quoteStartSec {
+                startSec = q
+            } else if let c = run.citationTranscriptStart {
+                startSec = c
+            } else {
+                startSec = nil
+            }
+            if let target = startSec, utf16Length > 0 {
+                targets.append(TappableTextTarget(
+                    range: NSRange(location: nsLocation, length: utf16Length),
+                    startSec: target
+                ))
+            }
+            nsLocation += utf16Length
+        }
+        return targets
     }
 
     // MARK: - Index helpers

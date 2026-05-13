@@ -11,6 +11,8 @@ import SwiftUI
 struct AugmentedNoteView: View {
     let note: Note
 
+    @State private var showingPlayback = false
+
     private var segments: [BlendSegment] {
         BlendRenderer.render(note: note)
     }
@@ -39,6 +41,19 @@ struct AugmentedNoteView: View {
         }
         .navigationTitle(note.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingPlayback = true
+                } label: {
+                    Label("Listen", systemImage: "play.circle")
+                }
+                .disabled(note.audioFilePath == nil)
+            }
+        }
+        .sheet(isPresented: $showingPlayback) {
+            ChapteredPlaybackView(note: note)
+        }
     }
 
     private var header: some View {

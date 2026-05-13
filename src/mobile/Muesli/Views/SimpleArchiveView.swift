@@ -91,7 +91,7 @@ struct SimpleArchiveView: View {
             }
         }
         .sheet(item: $selectedNote) { note in
-            SimpleNoteDetailView(note: note)
+            NavigationStack { AugmentedNoteView(note: note) }
         }
         .preferredColorScheme(.dark)
     }

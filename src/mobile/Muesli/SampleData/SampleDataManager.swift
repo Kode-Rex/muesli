@@ -72,7 +72,7 @@ struct SampleDataManager {
                 duration: 2400,
                 speaker: "Sarah Chen",
                 conference: dataSummit
-            ),
+            ).withSeededBackendSessionId(),
             Note(
                 title: "Streaming at planet scale",
                 content: "Devon's deep dive on multi-region streaming, exactly-once semantics, and the operational realities they hit at year three.",
@@ -85,7 +85,7 @@ struct SampleDataManager {
                 duration: 2700,
                 speaker: "Devon Park",
                 conference: dataSummit
-            ),
+            ).withSeededBackendSessionId(),
             Note(
                 title: "Embeddings for everything",
                 content: "Hina's plenary on using embeddings as the universal interface across retrieval, ranking, and dedup.",
@@ -98,7 +98,7 @@ struct SampleDataManager {
                 duration: 3000,
                 speaker: "Hina Yoshida",
                 conference: dataSummit
-            ),
+            ).withSeededBackendSessionId(),
 
             // DevWorld 2026 talks (2)
             Note(
@@ -113,7 +113,7 @@ struct SampleDataManager {
                 duration: 1800,
                 speaker: "Aiden Reyes",
                 conference: devWorld
-            ),
+            ).withSeededBackendSessionId(),
             Note(
                 title: "Edge runtimes in practice",
                 content: "What works, what doesn't, and the boring middle of running production services at the edge.",
@@ -126,7 +126,7 @@ struct SampleDataManager {
                 duration: 0,
                 speaker: "Priya Iyer",
                 conference: devWorld
-            ),
+            ).withSeededBackendSessionId(),
 
             // Ungrouped notes (preserved for non-conference flows)
             Note(
@@ -184,6 +184,17 @@ extension SampleDataManager {
             ("Clear All Data", { clearAllData(context: context) }),
             ("Add More Notes", { seedDatabase(context: context) })
         ]
+    }
+}
+
+
+private extension Note {
+    /// Sample-data helper: assigns a deterministic backendSessionId so chat
+    /// against a backend that has the same seed rows works without a real
+    /// blend round-trip. Production notes get this from BlendOrchestrator.
+    func withSeededBackendSessionId() -> Note {
+        self.backendSessionId = self.id
+        return self
     }
 }
 

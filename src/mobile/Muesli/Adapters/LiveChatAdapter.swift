@@ -58,11 +58,8 @@ struct LiveChatAdapter: ChatPort, @unchecked Sendable {
 
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token = await TokenStore.shared.accessToken, !token.isEmpty {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
 
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await Self.dataWithRefresh(session: session, request: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw ChatAdapterError.http(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1, body: data)
         }
@@ -74,6 +71,30 @@ struct LiveChatAdapter: ChatPort, @unchecked Sendable {
         }
         let env = try JSONDecoder().decode(Envelope.self, from: data)
         return ChatResponse(message: env.message, citations: env.citations)
+    }
+}
+
+extension LiveChatAdapter {
+    /// Authorize + send. On a 401, refresh the access token once and retry.
+    fileprivate static func dataWithRefresh(session: URLSession, request: URLRequest) async throws -> (Data, URLResponse) {
+        var first = request
+        if let token = await TokenStore.shared.accessToken, !token.isEmpty {
+            first.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await session.data(for: first)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 401 else {
+            return (data, response)
+        }
+        do {
+            _ = try await AuthService.shared.refreshAccessToken()
+        } catch {
+            return (data, response)
+        }
+        var retry = request
+        if let token = await TokenStore.shared.accessToken, !token.isEmpty {
+            retry.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return try await session.data(for: retry)
     }
 }
 

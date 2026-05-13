@@ -4,6 +4,7 @@ import * as refresh from '../services/refreshTokensRepo.js';
 import { signAccessToken } from '../services/jwtService.js';
 import { verifyIdToken } from '../services/googleAuth.js';
 import { requireAuth } from '../middleware/auth.js';
+import { config } from '../config/index.js';
 import Logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -43,6 +44,38 @@ router.post('/logout', requireAuth, async (req, res) => {
   const { refreshToken } = req.body ?? {};
   if (refreshToken) await refresh.revoke(refreshToken);
   res.status(204).end();
+});
+
+/**
+ * Dev sign-in. Non-production only: mints access + refresh tokens for an
+ * arbitrary email without going through Google's OAuth flow. The user row
+ * is upserted with a synthetic `dev:<email>` googleSub so the existing
+ * unique constraint and signup-grant logic still works.
+ *
+ * Disabled when NODE_ENV === 'production'; returns 404 to avoid leaking
+ * the route's existence.
+ */
+router.post('/dev', async (req, res) => {
+  if (config.server.environment === 'production') {
+    return res.status(404).json({ error: 'not_found' });
+  }
+  const { email, fullName } = req.body ?? {};
+  if (typeof email !== 'string' || !email.includes('@')) {
+    return res.status(400).json({ error: 'email_invalid' });
+  }
+  const user = await users.upsertByGoogleSub({
+    googleSub: `dev:${email.toLowerCase()}`,
+    email,
+    fullName: fullName ?? null
+  });
+  const accessToken = signAccessToken(user.id);
+  const r = await refresh.create(user.id);
+  Logger.info('Dev sign-in', { userId: user.id, email });
+  res.json({
+    accessToken,
+    refreshToken: r.token,
+    user: { id: user.id, email: user.email, fullName: user.fullName }
+  });
 });
 
 router.get('/me', requireAuth, async (req, res) => {

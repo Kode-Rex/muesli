@@ -63,11 +63,30 @@ actor SessionsService: BlendPort {
         }
     }
 
+    /// Issue the request; on a 401, refresh once and retry. Anything else
+    /// passes through to the caller for normal decode / error handling.
+    private func dataWithRefresh(for req: URLRequest) async throws -> (Data, URLResponse) {
+        var request = req
+        await authorize(&request)
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 401 else {
+            return (data, response)
+        }
+        // Try refreshing the access token; if that throws, surface the 401.
+        do {
+            _ = try await AuthService.shared.refreshAccessToken()
+        } catch {
+            return (data, response)
+        }
+        var retry = req
+        await authorize(&retry)
+        return try await session.data(for: retry)
+    }
+
     func createSession() async throws -> UUID {
         var req = URLRequest(url: baseURL.appendingPathComponent("/v1/sessions"))
         req.httpMethod = "POST"
-        await authorize(&req)
-        let (data, _) = try await session.data(for: req)
+        let (data, _) = try await dataWithRefresh(for: req)
         return try decoder.decode(CreateSessionResponse.self, from: data).sessionId
     }
 
@@ -95,8 +114,7 @@ actor SessionsService: BlendPort {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try encoder.encode(BlendRequest(userNotes: userNotes))
-        await authorize(&req)
-        let (data, _) = try await session.data(for: req)
+        let (data, _) = try await dataWithRefresh(for: req)
         return try decoder.decode(BlendResponse.self, from: data)
     }
 
@@ -106,7 +124,6 @@ actor SessionsService: BlendPort {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        await authorize(&req)
 
         var body = Data()
         for (k, v) in fields {
@@ -121,7 +138,7 @@ actor SessionsService: BlendPort {
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         req.httpBody = body
 
-        let (data, _) = try await session.data(for: req)
+        let (data, _) = try await dataWithRefresh(for: req)
         return data
     }
 }

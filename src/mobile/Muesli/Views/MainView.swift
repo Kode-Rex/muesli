@@ -21,6 +21,7 @@ struct MainView: View {
     private var conferences: [Conference]
 
     @State private var showingNewNote = false
+    @State private var showingSignIn = false
 
     struct Group: Identifiable {
         let conference: Conference?
@@ -79,6 +80,16 @@ struct MainView: View {
                 }
                 .sheet(isPresented: $showingNewNote) {
                     NewNoteView()
+                }
+                .sheet(isPresented: $showingSignIn) {
+                    SignInView { showingSignIn = false }
+                        .interactiveDismissDisabled()
+                }
+                .task {
+                    // Prompt for sign-in at launch when no token is cached.
+                    if await AuthService.shared.isSignedIn() == false {
+                        showingSignIn = true
+                    }
                 }
                 .navigationDestination(for: Note.self) { note in
                     AugmentedNoteView(note: note)

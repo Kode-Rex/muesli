@@ -156,6 +156,9 @@ class AudioRecordingManager: NSObject {
                     // Kick off the Live Activity (Dynamic Island banner).
                     // No-op when the widget extension target isn't installed
                     // or Live Activities are user-disabled.
+                    // TODO: thread Note.backendSessionId through once the
+                    // recording flow knows the eventual session ID (it's
+                    // currently assigned later by BlendOrchestrator).
                     if #available(iOS 16.2, *) {
                         await MainActor.run {
                             LiveActivityController.shared.start(
@@ -336,6 +339,18 @@ class AudioRecordingManager: NSObject {
                 
                 // Update duration and audio levels (already on main thread)
                 self.recordingDuration = recorder.currentTime
+
+                // Push elapsed time to the Live Activity once a second.
+                if #available(iOS 16.2, *), Int(self.recordingDuration * 10) % 10 == 0 {
+                    let elapsed = Int(self.recordingDuration)
+                    let paused = (self.state == .paused)
+                    Task { @MainActor in
+                        await LiveActivityController.shared.update(
+                            elapsedSeconds: elapsed,
+                            isPaused: paused
+                        )
+                    }
+                }
                 
                 // Only update audio levels when actively recording
                 if self.state == .recording && recorder.isRecording {

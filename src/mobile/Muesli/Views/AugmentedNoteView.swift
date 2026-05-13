@@ -59,6 +59,10 @@ struct AugmentedNoteView: View {
                 } label: {
                     Label("Ask", systemImage: "bubble.left")
                 }
+                // Chat addresses the backend session by Note.backendSessionId.
+                // Before the blend pipeline writes that field the backend has
+                // no session row, so 404 would be confusing — gate the button.
+                .disabled(note.backendSessionId == nil)
             }
         }
         .sheet(isPresented: $showingPlayback) {

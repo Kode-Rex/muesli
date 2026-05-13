@@ -12,9 +12,16 @@ struct NoteRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(note.title)
-                .font(.body.weight(.semibold))
-                .lineLimit(2)
+            HStack(spacing: 6) {
+                Text(note.title)
+                    .font(.body.weight(.semibold))
+                    .lineLimit(2)
+                if isBlending {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("Blending in progress")
+                }
+            }
             HStack(spacing: 4) {
                 if let conf = note.resolvedConferenceName {
                     Text(conf).font(.caption.weight(.semibold)).foregroundColor(.accentColor)
@@ -35,6 +42,13 @@ struct NoteRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private var isBlending: Bool {
+        switch note.blendStatus {
+        case .transcribing, .transcribed, .extracting, .blending: return true
+        case .idle, .complete, .failed: return false
+        }
     }
 
     private var dot: some View {
